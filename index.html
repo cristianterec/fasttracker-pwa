@@ -1,627 +1,230 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FastTrackers</title>
-<!-- Font Awesome for icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<!-- Manifest for PWA -->
-<link rel="manifest" href="manifest.json" />
-<!-- Theme color for mobile browsers -->
-<meta name="theme-color" content="#0f0f0f" />
-<!-- Apple-specific meta tags for PWA -->
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<!-- Apple icons -->
-<link rel="apple-touch-icon" href="icon-192.png" />
-<!-- Styles for the app -->
-<style>
-  :root {
-    --color-dark: #0f0f0f;
-    --color-primary: #0a3d62;
-    --color-accent: #1e90ff;
-    --color-success: #2d7d47;
-    --color-warning: #f39c12;
-    --color-danger: #c0392b;
-    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  body {
-    margin: 0;
-    font-family: var(--font-family);
-    background-color: #121212;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-  header {
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #0a3d62, #1e90ff);
-    position: relative;
-  }
-  #logo-container {
-    position: absolute;
-    top: 8px;
-    left: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  #logo {
-    font-size: 36px;
-    color: #fff;
-  }
-  #logo-text {
-    font-size: 12px;
-    color: #ccc;
-    margin-top: 4px;
-  }
-  h1 {
-    font-size: 2rem;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  #tabs {
-    display: flex;
-    justify-content: space-around;
-    background-color: #222;
-  }
-  .tab {
-    flex: 1;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: background 0.2s;
-  }
-  .tab.active {
-    background-color: #1e90ff;
-    color: #fff;
-  }
-  #content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-  #patients-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 8px;
-    padding: 8px;
-  }
-  .patient-card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    transition: transform 0.1s;
-    min-height: 80px;
-    position: relative;
-  }
-  .patient-card:hover {
-    transform: scale(1.02);
-  }
-  /* Background colors based on triage */
-  .red { background-color: #c0392b; }
-  .orange { background-color: #d35400; }
-  .yellow { background-color: #f39c12; color: #000; }
-  .green { background-color: #27ae60; }
-  .blue { background-color: #2980b9; }
-  .purple { background-color: #8e44ad; }
-  /* Info top right box for room and nurse */
-  .info-box {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .info-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  /* Patient name and complaint */
-  .name {
-    font-size: 1.2rem;
-    font-weight: bold;
-  }
-  .complaint {
-    font-size: 0.9rem;
-  }
-  /* Tasks list inside patient card */
-  .tasks-list {
-    margin-top: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .task-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255,255,255,0.1);
-    padding: 2px 6px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-  }
-  .task-timer {
-    font-family: monospace;
-    font-weight: bold;
-  }
-  /* Buttons at bottom of patient card */
-  .actions {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 4px;
-  }
-  .action-btn {
-    border: none;
-    border-radius: 20px;
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .tasks-btn { background: rgba(255,255,255,0.2); color: #fff; }
-  .decision-btn { background: rgba(255,255,255,0.2); color: #fff; }
-  /* Floating menu for decision options */
-  .decision-menu {
-    position: absolute;
-    bottom: 40px;
-    right: 10px;
-    background: rgba(255,255,255,0.9);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    z-index: 999;
-  }
-  .decision-option {
-    padding: 10px 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .decision-option:hover {
-    background: rgba(0,0,0,0.1);
-  }
-  /* Modal for tasks */
-  .modal-backdrop {
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-  .modal {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px;
-    max-width: 300px;
-    width: 90%;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-  .modal h3 {
-    margin-top: 0;
-    margin-bottom: 12px;
-    font-size: 1.2rem;
-  }
-  .modal input {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-  }
-  .modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  .btn {
-    border: none;
-    border-radius: 20px;
-    padding: 8px 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .btn-primary { background: #2ecc71; color: #fff; }
-  .btn-secondary { background: #3498db; color: #fff; }
-  .btn-danger { background: #e74c3c; color: #fff; }
-  /* Notification popup */
-  .notification {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    background: #222;
-    color: #fff;
-    padding: 16px 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    font-size: 1rem;
-    z-index: 9999;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0;
-  }
-  .notification.show {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-  /* Stats page styles */
-  #stats {
-    padding: 16px;
-  }
-  #stats h2 {
-    margin-top: 0;
-  }
-  #stats .stats-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .stat-box {
-    flex: 1 1 150px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 12px;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-  }
-  /* Reset button in stats */
-  #reset-stats {
-    margin-top: 12px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 20px;
-    background: #e74c3c;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  #reset-stats:hover {
-    background: #c0392b;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastTrackers - Gestion des Patients d'Urgence</title>
+    <meta name="description" content="Application PWA pour la gestion des patients en médecine d'urgence">
+    <meta name="theme-color" content="#0a1628">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/json;base64,ewogICAgIm5hbWUiOiAiRmFzdFRyYWNrZXJzIC0gR2VzdGlvbiBkZXMgUGF0aWVudHMiLAogICAgInNob3J0X25hbWUiOiAiRmFzdFRyYWNrZXJzIiwKICAgICJkZXNjcmlwdGlvbiI6ICJBcHBsaWNhdGlvbiBQV0EgcG91ciBsYSBnZXN0aW9uIGRlcyBwYXRpZW50cyBlbiBtw6lkZWNpbmUgZCd1cmdlbmNlIiwKICAgICJzdGFydF91cmwiOiAiLyIsCiAgICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAgICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwYTE2MjgiLAogICAgInRoZW1lX2NvbG9yIjogIiMwYTE2MjgiLAogICAgImljb25zIjogWwogICAgICAgIHsKICAgICAgICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSGRwWkhSb1BTSXhNakFpSUdobGFXZG9kRDBpTVRJd0lqNDhaV3hzYVhCelpTQmplRDBpTmpBaUlHTjVQU0kyTUNJZ2NuZzlJakkxSWlCbWFXeHNQU0lqYkdsbmFIUWlMejQ4Y0dGMGFDQmtQU0pOTnpBZ05EQk1OVEF1TmppMElEUTNMall4TkZNME1TNDBPQ0EwTnk0Mk1UUklNelVnTURveU9DQTJNRXcyTlNBME1sc3pOeTQxTFRNM0xqVmRXakUwTkNBM056cHNMUzB1TmpZMUxUSTBUR1EwTlMwME5HY3VOalkxTFRJMExESTBMakE0TnkweUxESTBJREl5TGpReGVIUTJMakF5VFNKbWFXeHNQU0lqWVRBMk16TTNJaUF6TGprMU9TWXhOaUE0TGpBNE56UWxNVFlnTVRVdU9UZzFMUzQxTWprZ01qY3VPRFExUkRJMUlESTNMall4TkZneE9TNHlOQ0E0TGpBME56UWxNVFlnT0M0d09EY3lXaUlnZEhKaGJuTm1iM0p0UFNKMGNtRnVjMnhoZEdVb0xURmNKbHNsSnpReUxpNHpOekl1TW1OMFNTa2lMejQ4TDNOMlp6ND0iLAogICAgICAgICAgICAic2l6ZXMiOiAiMTIweDEyMCIsCiAgICAgICAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICAgICAgfQogICAgXQp9">
+    
+    <!-- Apple PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FastTrackers">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div id="logo-container">
-    <!-- SVG logo with medical bolt -->
-    <svg id="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
-      <circle cx="32" cy="32" r="30" fill="#1e90ff" opacity="0.8"/>
-      <polygon points="32,4 36,20 52,20 38,32 42,48 28,36 22,52 26,36 12,36 26,20 22,4" fill="#fff"/>
-    </svg>
-    <div id="logo-text">Speed & Care</div>
-  </div>
-  <h1>FastTrackers</h1>
-</header>
-<div id="tabs">
-  <div class="tab active" data-tab="patients">Patients</div>
-  <div class="tab" data-tab="stats">Statistiques</div>
-</div>
-<div id="content">
-  <div id="patients" style="display:flex; flex-wrap:wrap; gap:8px; padding:8px;">
-    <!-- Patient cards will be appended here -->
-  </div>
-  <button id="addPatientBtn" style="margin:12px auto; display:block; padding:10px 20px; border:none; border-radius:20px; background:#2ecc71; color:#fff; font-weight:600; font-size:1rem; cursor:pointer;">
-    <i class="fas fa-user-plus"></i> Ajouter un patient
-  </button>
-  <div id="stats" style="display:none;">
-    <h2>Statistiques</h2>
-    <div class="stats-container">
-      <div class="stat-box" id="totalPatients">0</div>
-      <div class="stat-box" id="hospitalizedCount">0</div>
-      <div class="stat-box" id="dischargedCount">0</div>
-      <div class="stat-box" id="deletedCount">0</div>
-    </div>
-    <button id="resetStats">Réinitialiser</button>
-  </div>
-</div>
-
-<!-- Modal container -->
-<div id="modalContainer"></div>
-
-<!-- Notification container -->
-<div id="notification"></div>
-
-<!-- Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-<script>
-  // Data
-  let patients = [];
-  let tasks = [];
-  let currentTab = 'patients';
-
-  // Utility functions
-  function createPatientCard(p) {
-    const bgColor = {
-      red: '#c0392b',
-      orange: '#d35400',
-      yellow: '#f39c12',
-      green: '#27ae60',
-      blue: '#2980b9',
-      purple: '#8e44ad'
-    }[p.triage];
-
-    const card = document.createElement('div');
-    card.className = `patient-card ${p.triage}`;
-    card.style.backgroundColor = bgColor;
-    card.innerHTML = `
-      <div class="info-box" onclick="editLocationNurse('${p.id}')">
-        <div><i class="fas fa-map-pin"></i> <span id="loc-${p.id}">${p.chambre || '---'}</span></div>
-        <div><i class="fas fa-phone"></i> <span id="nurse-${p.id}">${p.ide || '---'}</span></div>
-      </div>
-      <div style="margin-top:8px;">
-        <div class="name">${p.nom}</div>
-        <div class="complaint">${p.motif}</div>
-      </div>
-      <div class="tasks-list" id="tasks-${p.id}">
-        <!-- Tasks will appear here -->
-      </div>
-      <div class="actions">
-        <button class="action-btn tasks" onclick="openTaskModal('${p.id}')"><i class="fas fa-tasks"></i> Tâches</button>
-        <button class="action-btn decision" onclick="openDecisionMenu(event,'${p.id}')"><i class="fas fa-ellipsis-h"></i> Décision</button>
-      </div>
-    `;
-    // Add existing tasks
-    const taskContainer = card.querySelector(`#tasks-${p.id}`);
-    tasks.filter(t => t.patientId===p.id && !t.done).forEach(t => {
-      const tdiv = document.createElement('div');
-      tdiv.className='task-item';
-      tdiv.innerHTML = `
-        <span>${t.desc}</span>
-        <span style="display:flex; align-items:center; gap:4px;">
-          <span id="timer-${t.id}">${formatTimer(t)}</span>
-          <span class="task-complete" title="Terminer" onclick="completeTask('${t.id}')"><i class="fas fa-check"></i></span>
-        </span>
-      `;
-      taskContainer.appendChild(tdiv);
-    });
-    return card;
-  }
-
-  function formatTimer(t) {
-    const remaining = Math.max(0, Math.floor((t.end - Date.now())/1000));
-    const m = Math.floor(remaining/60);
-    const s = remaining%60;
-    return `${m}:${s.toString().padStart(2,'0')}`;
-  }
-
-  function updateTimers() {
-    tasks.filter(t => !t.done).forEach(t => {
-      const el = document.getElementById('timer-'+t.id);
-      if (el) {
-        el.textContent = formatTimer(t);
-        if (t.end - Date.now() <= 0) {
-          showNotification(`Tâche "${t.desc}" pour ${getPatientName(t.patientId)} terminée`, true);
-        }
-      }
-    });
-  }
-  setInterval(updateTimers, 1000);
-
-  function getPatientName(pid) {
-    const p = patients.find(p => p.id===pid);
-    return p ? p.nom : '';
-  }
-
-  // Render all patients
-  function renderPatients() {
-    const container = document.getElementById('patients');
-    container.innerHTML = '';
-    patients.forEach(p => {
-      container.appendChild(createPatientCard(p));
-    });
-    updateStats();
-  }
-
-  // Add patient
-  document.getElementById('addPatientBtn').onclick = () => {
-    openPatientModal();
-  };
-
-  // Modal for adding patient
-function openPatientModal() {
-  const modal = document.createElement('div');
-  modal.className='modal-backdrop';
-  modal.innerHTML=`
-    <div class="modal">
-      <h3>Ajouter un patient</h3>
-      <form id="patientForm">
-        <input type="text" placeholder="Nom" required id="nom">
-        <input type="text" placeholder="Motif" required id="motif">
-        <input type="text" placeholder="Chambre" id="chambre">
-        <input type="text" placeholder="IDE" id="ide">
-        <select id="triage" required>
-          <option value="">Triage</option>
-          <option value="red">Rouge</option>
-          <option value="orange">Orange</option>
-          <option value="yellow">Jaune</option>
-          <option value="green">Vert</option>
-          <option value="blue">Bleu</option>
-          <option value="purple">Violet</option>
-        </select>
-        <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px;">
-          <button type="button" onclick="closeModal()">Annuler</button>
-          <button type="submit">Ajouter</button>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <div class="logo">
+                    <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="60" cy="60" rx="25" fill="#light"/>
+                        <path d="M70 40L50.664 47.614S41.408 47.614H35 0:28 60L65 42s37.5-37.5dZ144 77ls-.529 24Lds45-44g.665-24,24.087-2,24 22.41xt6.02MS" fill="#a06337" 3.959&16 8.0874&16 15.985-.529 27.845D25 27.614X19.24 8.0474&16 8.0872Z" transform="translate(-1&[&$42..372.2ctI)"/>
+                    </svg>
+                    <h1>FastTrackers</h1>
+                    <p>Gestion des Patients d'Urgence</p>
+                </div>
+                
+                <div class="login-options">
+                    <button class="login-btn" data-user="Cristian">
+                        <span class="user-icon">👨‍⚕️</span>
+                        <span>Cristian</span>
+                    </button>
+                    <button class="login-btn" data-user="Ilinca">
+                        <span class="user-icon">👩‍⚕️</span>
+                        <span>Ilinca</span>
+                    </button>
+                    <button class="login-btn" data-user="Guest">
+                        <span class="user-icon">👤</span>
+                        <span>Invité</span>
+                    </button>
+                </div>
+            </div>
         </div>
-      </form>
-    </div>
-  `;
-  document.getElementById('modalContainer').appendChild(modal);
-  document.getElementById('patientForm').onsubmit = e => {
-    e.preventDefault();
-    const p = {
-      id: 'p'+Date.now(),
-      nom: document.getElementById('nom').value.trim(),
-      motif: document.getElementById('motif').value.trim(),
-      chambre: document.getElementById('chambre').value.trim(),
-      ide: document.getElementById('ide').value.trim(),
-      triage: document.getElementById('triage').value
-    };
-    patients.push(p);
-    closeModal();
-    renderPatients();
-  };
-}
-function closeModal() {
-  document.getElementById('modalContainer').innerHTML='';
-}
 
-// Decision menu
-function openDecisionMenu(e,pid) {
-  closeDecisionMenus();
-  const btn = e.currentTarget;
-  const menu = document.createElement('div');
-  menu.className='decision-menu';
-  menu.innerHTML=`
-    <button class="rad" onclick="setOutcome('${pid}','Retour à domicile')">Retour à domicile</button>
-    <button class="hospit" onclick="setOutcome('${pid}','Hospitalisation')">Hospitalisation</button>
-    <button class="supprimer" onclick="setOutcome('${pid}','Supprimer le patient')">Supprimer le patient</button>
-  `;
-  btn.parentNode.appendChild(menu);
-  document.addEventListener('click', closeDecisionMenus, {once:true});
-}
-function closeDecisionMenus() {
-  document.querySelectorAll('.decision-menu').forEach(m=>m.remove());
-}
-function setOutcome(pid, action) {
-  if (action==='Retour à domicile') {
-    patients = patients.filter(p=>p.id!==pid);
-    // increment discharged count
-    updateStats('discharged');
-  } else if (action==='Hospitalisation') {
-    patients = patients.filter(p=>p.id!==pid);
-    // increment hospitalized count
-    updateStats('hospitalized');
-  } else if (action==='Supprimer le patient') {
-    patients = patients.filter(p=>p.id!==pid);
-    // increment deleted count
-    updateStats('deleted');
-  }
-  closeDecisionMenus();
-  renderPatients();
-}
+        <!-- Main Application -->
+        <div id="main-screen" class="screen">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <div class="logo-small">
+                        <svg width="32" height="32" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="60" cy="60" rx="25" fill="#light"/>
+                            <path d="M70 40L50.664 47.614S41.408 47.614H35 0:28 60L65 42s37.5-37.5dZ144 77ls-.529 24Lds45-44g.665-24,24.087-2,24 22.41xt6.02MS" fill="#a06337"/>
+                        </svg>
+                    </div>
+                    <h2 id="current-user">FastTrackers</h2>
+                </div>
+                
+                <div class="header-right">
+                    <div class="location-info" id="location-info">
+                        <div class="location-item" id="room-info">
+                            <span class="location-icon">📍</span>
+                            <span class="location-text" contenteditable="true">Salle 1</span>
+                        </div>
+                        <div class="location-item" id="nurse-info">
+                            <span class="location-icon">📱</span>
+                            <span class="location-text" contenteditable="true">Infirmière: Marie</span>
+                        </div>
+                    </div>
+                    <button class="btn btn--outline logout-btn" id="logout-btn">Déconnexion</button>
+                </div>
+            </header>
 
-// Task modal
-function openTaskModal(pid) {
-  const modal = document.createElement('div');
-  modal.className='modal-backdrop';
-  modal.innerHTML=`
-    <div class="modal">
-      <h3>Nouvelle tâche</h3>
-      <form id="taskForm">
-        <input type="text" placeholder="Description" required id="taskDesc">
-        <input type="number" placeholder="Minutes" min="1" max="240" id="taskMin">
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-          <button type="button" onclick="closeModal()">Annuler</button>
-          <button type="submit">Ajouter</button>
+            <!-- Navigation -->
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-tab="patients">Patients</button>
+                <button class="nav-tab" data-tab="statistics">Statistiques</button>
+            </nav>
+
+            <!-- Patients Tab -->
+            <div id="patients-tab" class="tab-content active">
+                <div class="patients-header">
+                    <h3>Gestion des Patients</h3>
+                    <button class="btn btn--primary" id="add-patient-btn">+ Ajouter Patient</button>
+                </div>
+                
+                <div class="patients-grid" id="patients-grid">
+                    <!-- Patients will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Statistics Tab -->
+            <div id="statistics-tab" class="tab-content">
+                <div class="statistics-header">
+                    <h3>Statistiques</h3>
+                    <button class="btn btn--outline" id="reset-stats-btn">Réinitialiser</button>
+                </div>
+                
+                <div class="statistics-grid">
+                    <div class="stat-card">
+                        <h4>Total Patients</h4>
+                        <span class="stat-value" id="total-patients">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Patients Actifs</h4>
+                        <span class="stat-value" id="active-patients">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Retour à Domicile</h4>
+                        <span class="stat-value" id="discharged-patients">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Hospitalisations</h4>
+                        <span class="stat-value" id="admitted-patients">0</span>
+                    </div>
+                    <div class="stat-card triage-red">
+                        <h4>Rouge</h4>
+                        <span class="stat-value" id="red-patients">0</span>
+                    </div>
+                    <div class="stat-card triage-orange">
+                        <h4>Orange</h4>
+                        <span class="stat-value" id="orange-patients">0</span>
+                    </div>
+                    <div class="stat-card triage-yellow">
+                        <h4>Jaune</h4>
+                        <span class="stat-value" id="yellow-patients">0</span>
+                    </div>
+                    <div class="stat-card triage-green">
+                        <h4>Vert</h4>
+                        <span class="stat-value" id="green-patients">0</span>
+                    </div>
+                    <div class="stat-card triage-blue">
+                        <h4>Bleu</h4>
+                        <span class="stat-value" id="blue-patients">0</span>
+                    </div>
+                    <div class="stat-card triage-purple">
+                        <h4>Violet</h4>
+                        <span class="stat-value" id="purple-patients">0</span>
+                    </div>
+                </div>
+            </div>
         </div>
-      </form>
     </div>
-  `;
-  document.getElementById('modalContainer').appendChild(modal);
-  document.getElementById('taskForm').onsubmit=e=>{
-    e.preventDefault();
-    const desc = document.getElementById('taskDesc').value.trim();
-    const min = parseInt(document.getElementById('taskMin').value,10);
-    if (!desc || !min) return;
-    const t = {
-      id:'t'+Date.now()+Math.random().toString(36).slice(2,6),
-      patientId:pid,
-      desc,
-      end: Date.now() + min*60000,
-      done:false
-    };
-    tasks.push(t);
-    closeModal();
-    renderPatients();
-  };
-}
 
-// Mark task as complete
-function completeTask(tid) {
-  tasks = tasks.map(t=>t.id===tid ? {...t, done:true} : t);
-  renderPatients();
-}
+    <!-- Patient Modal -->
+    <div id="patient-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Ajouter Patient</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <form id="patient-form">
+                <div class="form-group">
+                    <label class="form-label">Nom du Patient</label>
+                    <input type="text" class="form-control" id="patient-name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motif de Consultation</label>
+                    <textarea class="form-control" id="patient-complaint" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Niveau de Triage</label>
+                    <select class="form-control" id="patient-triage" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="red">Rouge - Urgence Vitale</option>
+                        <option value="orange">Orange - Urgence</option>
+                        <option value="yellow">Jaune - Peu Urgent</option>
+                        <option value="green">Vert - Non Urgent</option>
+                        <option value="blue">Bleu - Orientation</option>
+                        <option value="purple">Violet - Psychosocial</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Salle/Box</label>
+                    <input type="text" class="form-control" id="patient-room">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Infirmier(ère)</label>
+                    <input type="text" class="form-control" id="patient-nurse">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn--outline" id="cancel-btn">Annuler</button>
+                    <button type="submit" class="btn btn--primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-// Stats update
-function updateStats(type) {
-  if (!type) {
-    // initialize
-    document.getElementById('totalPatients').textContent=patients.length;
-    document.getElementById('hospitalizedCount').textContent=0;
-    document.getElementById('dischargedCount').textContent=0;
-    document.getElementById('deletedCount').textContent=0;
-  } else {
-    const el = document.getElementById({
-      'hospitalized':'hospitalizedCount',
-      'discharged':'dischargedCount',
-      'deleted':'deletedCount'
-    }[type]);
-    el.textContent = parseInt(el.textContent,10)+1;
-  }
-}
+    <!-- Task Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter Tâche</h3>
+                <button class="modal-close" id="task-modal-close">&times;</button>
+            </div>
+            <form id="task-form">
+                <div class="form-group">
+                    <label class="form-label">Description de la Tâche</label>
+                    <input type="text" class="form-control" id="task-description" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="task-timer-enabled"> Activer Minuteur
+                    </label>
+                </div>
+                <div class="form-group timer-group" id="timer-group" style="display: none;">
+                    <label class="form-label">Durée (MM:SS)</label>
+                    <div class="timer-inputs">
+                        <input type="number" class="form-control timer-input" id="timer-minutes" min="0" max="59" placeholder="MM">
+                        <span>:</span>
+                        <input type="number" class="form-control timer-input" id="timer-seconds" min="0" max="59" placeholder="SS">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn--outline" id="task-cancel-btn">Annuler</button>
+                    <button type="submit" class="btn btn--primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-// Reset stats
-document.getElementById('reset-stats').onclick=()=>{
-  if (confirm('Réinitialiser toutes les statistiques ?')) {
-    document.getElementById('totalPatients').textContent='0';
-    document.getElementById('hospitalizedCount').textContent='0';
-    document.getElementById('dischargedCount').textContent='0';
-    document.getElementById('deletedCount').textContent='0';
-  }
-};
-
-// Add event listeners
-document.getElementById('addPatientBtn').onclick=()=>{ openPatientModal(); };
-document.querySelectorAll('.tab').forEach(t=>{
-  t.onclick=()=> {
-    document.querySelectorAll('.tab').forEach(tt=>tt.classList.remove('active'));
-    t.classList.add('active');
-    currentTab = t.dataset.tab;
-    document.getElementById('patients').style.display= currentTab==='patients'?'flex':'none';
-    document.getElementById('stats').style.display= currentTab==='stats'?'block':'none';
-  };
-});
-document.getElementById('reset-stats').onclick=()=>{ 
-  if (confirm('Réinitialiser toutes les statistiques ?')) {
-    document.getElementById('totalPatients').textContent='0';
-    document.getElementById('hospitalizedCount').textContent='0';
-    document.getElementById('dischargedCount').textContent='0';
-    document.getElementById('deletedCount').textContent='0';
-  }
-};
-
-// Initialize
-renderPatients();
-</script>
+    <script src="app.js"></script>
 </body>
 </html>
