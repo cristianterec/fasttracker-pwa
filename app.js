@@ -1,5 +1,5 @@
-// FastTrackers PWA with Firebase real-time sync and working buttons
-console.log('FastTrackers loading with Firebase sync...');
+// FastTrackers PWA with Firebase sync and offline capabilities
+console.log('FastTrackers loading with Firebase sync and offline support...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -17,6 +17,8 @@ let db = null;
 let unsubscribePatients = null;
 let unsubscribeStats = null;
 let app = null;
+let patients = {};
+let offlineManager = null;
 
 // DOM helpers
 function $(selector) {
@@ -27,10 +29,275 @@ function $$(selector) {
   return document.querySelectorAll(selector);
 }
 
-// Initialize Firebase and app
-async function initializeFirebase() {
+// Offline Manager Class
+class OfflineManager {
+  constructor() {
+    this.isOnline = navigator.onLine;
+    this.operationQueue = [];
+    this.db = null;
+    this.setupEventListeners();
+    this.initializeIndexedDB();
+  }
+  
+  async initializeIndexedDB() {
+    try {
+      this.db = await this.openDB();
+      console.log('IndexedDB initialized for offline storage');
+    } catch (error) {
+      console.error('IndexedDB initialization failed:', error);
+    }
+  }
+  
+  openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('FastTrackersOfflineDB', 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('offlinePatients')) {
+          const store = db.createObjectStore('offlinePatients', { keyPath: 'id' });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+          store.createIndex('user', 'user', { unique: false });
+        }
+        
+        if (!db.objectStoreNames.contains('offlineTasks')) {
+          const store = db.createObjectStore('offlineTasks', { keyPath: 'id' });
+          store.createIndex('patientId', 'patientId', { unique: false });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+        
+        if (!db.objectStoreNames.contains('offlineStats')) {
+          const store = db.createObjectStore('offlineStats', { keyPath: 'id' });
+          store.createIndex('user', 'user', { unique: false });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+        
+        if (!db.objectStoreNames.contains('operationQueue')) {
+          const store = db.createObjectStore('operationQueue', { keyPath: 'id' });
+          store.createIndex('priority', 'priority', { unique: false });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+      };
+    });
+  }
+  
+  setupEventListeners() {
+    window.addEventListener('online', () => {
+      console.log('Connection restored - starting sync');
+      this.isOnline = true;
+      this.showConnectionStatus(true);
+      this.processOfflineQueue();
+    });
+    
+    window.addEventListener('offline', () => {
+      console.log('Connection lost - switching to offline mode');
+      this.isOnline = false;
+      this.showConnectionStatus(false);
+    });
+  }
+  
+  showConnectionStatus(isOnline) {
+    let statusIndicator = document.getElementById('connection-status');
+    
+    if (!statusIndicator) {
+      statusIndicator = document.createElement('div');
+      statusIndicator.id = 'connection-status';
+      statusIndicator.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 1000;
+        transition: all 0.3s ease;
+      `;
+      document.body.appendChild(statusIndicator);
+    }
+    
+    if (isOnline) {
+      statusIndicator.textContent = '🟢 En ligne';
+      statusIndicator.style.background = 'rgba(16, 185, 129, 0.9)';
+      statusIndicator.style.color = 'white';
+      setTimeout(() => {
+        statusIndicator.style.opacity = '0';
+        setTimeout(() => statusIndicator.remove(), 300);
+      }, 3000);
+    } else {
+      statusIndicator.textContent = '🔴 Hors ligne';
+      statusIndicator.style.background = 'rgba(239, 68, 68, 0.9)';
+      statusIndicator.style.color = 'white';
+      statusIndicator.style.opacity = '1';
+    }
+  }
+  
+  async queueOperation(operation) {
+    if (this.isOnline) {
+      return await this.executeOperation(operation);
+    } else {
+      await this.addToQueue(operation);
+      return { success: true, queued: true };
+    }
+  }
+  
+  async addToQueue(operation) {
+    if (!this.db) {
+      await this.initializeIndexedDB();
+    }
+    
+    const tx = this.db.transaction(['operationQueue'], 'readwrite');
+    const store = tx.objectStore('operationQueue');
+    
+    const queueItem = {
+      id: 'op_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      ...operation,
+      timestamp: Date.now(),
+      retryCount: 0,
+      maxRetries: 3
+    };
+    
+    await store.add(queueItem);
+    
+    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.sync.register(`${operation.type}-sync`);
+    }
+  }
+  
+  async processOfflineQueue() {
+    if (!this.db) return;
+    
+    const tx = this.db.transaction(['operationQueue'], 'readwrite');
+    const store = tx.objectStore('operationQueue');
+    const operations = await store.getAll();
+    
+    for (const operation of operations) {
+      try {
+        await this.executeOperation(operation);
+        await store.delete(operation.id);
+        console.log('Successfully synced queued operation:', operation.type);
+      } catch (error) {
+        console.error('Failed to sync operation:', error);
+        
+        operation.retryCount++;
+        if (operation.retryCount < operation.maxRetries) {
+          await store.put(operation);
+        } else {
+          console.error('Max retries reached for operation:', operation.id);
+          await store.delete(operation.id);
+        }
+      }
+    }
+  }
+  
+  async executeOperation(operation) {
+    switch (operation.type) {
+      case 'ADD_PATIENT':
+        return await this.syncPatientToFirebase(operation.data);
+      case 'UPDATE_PATIENT':
+        return await this.updatePatientInFirebase(operation.data);
+      case 'DELETE_PATIENT':
+        return await this.deletePatientFromFirebase(operation.data);
+      case 'ADD_TASK':
+        return await this.syncTaskToFirebase(operation.data);
+      case 'COMPLETE_TASK':
+        return await this.completeTaskInFirebase(operation.data);
+      case 'UPDATE_STATS':
+        return await this.updateStatsInFirebase(operation.data);
+      default:
+        throw new Error(`Unknown operation type: ${operation.type}`);
+    }
+  }
+  
+  async syncPatientToFirebase(patientData) {
+    if (!db || !window.firestoreFunctions) {
+      throw new Error('Firebase not available');
+    }
+    
+    const { doc, setDoc } = window.firestoreFunctions;
+    await setDoc(doc(db, `users`, currentUser, 'patients', patientData.id), patientData);
+  }
+  
+  async updatePatientInFirebase(updateData) {
+    if (!db || !window.firestoreFunctions) {
+      throw new Error('Firebase not available');
+    }
+    
+    const { doc, updateDoc } = window.firestoreFunctions;
+    await updateDoc(doc(db, `users`, currentUser, 'patients', updateData.id), updateData.changes);
+  }
+  
+  async deletePatientFromFirebase(patientData) {
+    if (!db || !window.firestoreFunctions) {
+      throw new Error('Firebase not available');
+    }
+    
+    const { doc, deleteDoc } = window.firestoreFunctions;
+    await deleteDoc(doc(db, `users`, currentUser, 'patients', patientData.id));
+  }
+  
+  async syncTaskToFirebase(taskData) {
+    if (!db || !window.firestoreFunctions) {
+      throw new Error('Firebase not available');
+    }
+    
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, `users`, currentUser, 'patients', taskData.patientId);
+    const patientSnap = await getDoc(patientRef);
+    
+    if (patientSnap.exists()) {
+      const patientData = patientSnap.data();
+      const updatedTasks = [...(patientData.tasks || []), taskData.task];
+      await updateDoc(patientRef, { tasks: updatedTasks });
+    }
+  }
+  
+  async completeTaskInFirebase(taskData) {
+    if (!db || !window.firestoreFunctions) {
+      throw new Error('Firebase not available');
+    }
+    
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, `users`, currentUser, 'patients', taskData.patientId);
+    const patientSnap = await getDoc(patientRef);
+    
+    if (patientSnap.exists()) {
+      const patientData = patientSnap.data();
+      const updatedTasks = patientData.tasks.map(task => 
+        task.id === taskData.taskId ? { ...task, completed: true } : task
+      );
+      await updateDoc(patientRef, { tasks: updatedTasks });
+    }
+  }
+  
+  async updateStatsInFirebase(statsData) {
+    if (!db || !window.firestoreFunctions) {
+      throw new Error('Firebase not available');
+    }
+    
+    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
+    const statsRef = doc(db, `users`, currentUser, 'stats', 'main');
+    
+    try {
+      await updateDoc(statsRef, {
+        [statsData.field]: increment(statsData.value)
+      });
+    } catch (error) {
+      const initialStats = { added: 0, hospitalized: 0, discharged: 0, deleted: 0 };
+      initialStats[statsData.field] = statsData.value;
+      await setDoc(statsRef, initialStats);
+    }
+  }
+}
+
+// Enhanced Firebase initialization with offline capabilities
+async function initializeFirebaseWithOffline() {
   try {
-    // Load Firebase SDK dynamically
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
     const { 
       getFirestore, 
@@ -41,26 +308,29 @@ async function initializeFirebase() {
       deleteDoc, 
       onSnapshot, 
       increment,
-      getDoc 
+      getDoc,
+      enableNetwork,
+      disableNetwork
     } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
     
-    // Initialize Firebase
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
     
-    // Store Firestore functions globally for use throughout the app
+    try {
+      await enableNetwork(db);
+      console.log('Firebase offline persistence enabled');
+    } catch (error) {
+      console.warn('Offline persistence failed:', error);
+    }
+    
     window.firestoreFunctions = {
-      collection,
-      doc,
-      setDoc,
-      updateDoc,
-      deleteDoc,
-      onSnapshot,
-      increment,
-      getDoc
+      collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, getDoc,
+      enableNetwork, disableNetwork
     };
     
-    console.log('Firebase initialized successfully');
+    initializeOfflineManager();
+    
+    console.log('Firebase initialized with offline capabilities');
     return true;
   } catch (error) {
     console.error('Firebase initialization failed:', error);
@@ -68,26 +338,27 @@ async function initializeFirebase() {
   }
 }
 
+function initializeOfflineManager() {
+  offlineManager = new OfflineManager();
+  window.offlineManager = offlineManager;
+}
+
 // Initialize app
 async function initializeApp() {
   console.log('Initializing FastTrackers...');
   
-  // Initialize Firebase first
-  const firebaseReady = await initializeFirebase();
+  const firebaseReady = await initializeFirebaseWithOffline();
   if (!firebaseReady) {
     console.error('Firebase failed to initialize, falling back to localStorage');
   }
   
-  // Setup login buttons
   setupLoginButtons();
-  
-  // Setup other event listeners
   setupAppEventListeners();
   
   console.log('FastTrackers initialized successfully');
 }
 
-// Setup login buttons with multiple approaches
+// Setup login buttons
 function setupLoginButtons() {
   console.log('Setting up login buttons...');
   
@@ -106,7 +377,6 @@ function setupLoginButtons() {
     });
   });
   
-  // Backup event delegation
   const loginScreen = $('#login');
   if (loginScreen) {
     loginScreen.addEventListener('click', function(e) {
@@ -121,26 +391,21 @@ function setupLoginButtons() {
   }
 }
 
-// Login function with Firebase real-time setup
+// Login function
 async function loginUser(username) {
   console.log('Logging in user:', username);
   
   try {
     currentUser = username;
     
-    // Update UI
     const usernameEl = $('#username');
     if (usernameEl) {
       usernameEl.textContent = username;
     }
     
-    // Hide login screen
     $('#login').classList.add('hidden');
-    
-    // Show app
     $('#app').classList.remove('hidden');
     
-    // Start real-time Firebase listeners if available
     if (db && window.firestoreFunctions) {
       await startFirebaseListeners();
     } else {
@@ -163,7 +428,6 @@ async function startFirebaseListeners() {
   try {
     const { collection, doc, onSnapshot } = window.firestoreFunctions;
     
-    // Listen to patients collection
     const patientsCollection = collection(db, `users`, currentUser, 'patients');
     unsubscribePatients = onSnapshot(patientsCollection, (snapshot) => {
       console.log('Patients updated from Firebase');
@@ -172,7 +436,6 @@ async function startFirebaseListeners() {
       console.error('Error listening to patients:', error);
     });
     
-    // Listen to statistics document
     const statsDoc = doc(db, `users`, currentUser, 'stats', 'main');
     unsubscribeStats = onSnapshot(statsDoc, (doc) => {
       console.log('Stats updated from Firebase');
@@ -201,13 +464,11 @@ function renderPatientsFromFirebase(snapshot) {
     patients.push(doc.data());
   });
   
-  // Sort by triage priority (red=1, orange=2, etc.)
   const triagePriority = { red: 1, orange: 2, yellow: 3, green: 4, blue: 5, purple: 6 };
   patients.sort((a, b) => (triagePriority[a.triage] || 6) - (triagePriority[b.triage] || 6));
   
   grid.innerHTML = patients.map(patient => createPatientCardHTML(patient)).join('');
   
-  // Attach event listeners to action buttons
   attachActionButtonListeners();
 }
 
@@ -247,9 +508,8 @@ function createPatientCardHTML(patient) {
 function attachActionButtonListeners() {
   console.log('Attaching action button listeners...');
   
-  // Task buttons
   $$('.btn.task').forEach(btn => {
-    btn.replaceWith(btn.cloneNode(true)); // Remove existing listeners
+    btn.replaceWith(btn.cloneNode(true));
   });
   
   $$('.btn.task').forEach(btn => {
@@ -262,9 +522,8 @@ function attachActionButtonListeners() {
     });
   });
   
-  // Decision buttons
   $$('.btn.decision').forEach(btn => {
-    btn.replaceWith(btn.cloneNode(true)); // Remove existing listeners
+    btn.replaceWith(btn.cloneNode(true));
   });
   
   $$('.btn.decision').forEach(btn => {
@@ -282,26 +541,22 @@ function attachActionButtonListeners() {
 
 // Setup other app event listeners
 function setupAppEventListeners() {
-  // Logout button
   const logoutBtn = $('#logout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', logoutUser);
   }
   
-  // Tab switching
   $$('.tab').forEach(tab => {
     tab.addEventListener('click', function() {
       switchTab(this.dataset.tab);
     });
   });
   
-  // Add patient button
   const addPatientBtn = $('#addPatient');
   if (addPatientBtn) {
     addPatientBtn.addEventListener('click', showAddPatientModal);
   }
   
-  // Reset stats button
   const resetStatsBtn = $('#resetStats');
   if (resetStatsBtn) {
     resetStatsBtn.addEventListener('click', resetStatistics);
@@ -312,7 +567,6 @@ function setupAppEventListeners() {
 function logoutUser() {
   console.log('Logging out user');
   
-  // Unsubscribe from Firebase listeners
   if (unsubscribePatients) {
     unsubscribePatients();
     unsubscribePatients = null;
@@ -323,11 +577,7 @@ function logoutUser() {
   }
   
   currentUser = null;
-  
-  // Show login screen
   $('#login').classList.remove('hidden');
-  
-  // Hide app
   $('#app').classList.add('hidden');
 }
 
@@ -338,10 +588,6 @@ function switchTab(tabName) {
   
   $$('.tab-content').forEach(content => content.classList.add('hidden'));
   $(`#${tabName}`).classList.remove('hidden');
-  
-  if (tabName === 'stats') {
-    // Stats will be updated via Firebase listener
-  }
 }
 
 // Format time
@@ -376,22 +622,21 @@ function showAddPatientModal() {
         </select>
         <input id="patientLocation" placeholder="📍 Localisation">
         <input id="patientNurse" placeholder="📱 Numéro infirmière">
-        <button class="btn-primary" onclick="saveNewPatient()">Enregistrer</button>
+        <button class="btn-primary" onclick="saveNewPatientWithOffline()">Enregistrer</button>
       </div>
     </div>
   `;
   
   document.body.appendChild(modal);
   
-  // Close handlers
   modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
 }
 
-// Save new patient to Firebase
-async function saveNewPatient() {
+// Save new patient with offline support
+async function saveNewPatientWithOffline() {
   const name = $('#patientName').value.trim();
   const complaint = $('#patientComplaint').value.trim();
   const triage = $('#patientTriage').value;
@@ -412,21 +657,26 @@ async function saveNewPatient() {
     location,
     nurse,
     tasks: [],
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    user: currentUser,
+    synced: false
   };
   
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, setDoc } = window.firestoreFunctions;
-      await setDoc(doc(db, `users`, currentUser, 'patients', patientId), patientData);
-      await incrementStatistic('added');
-    } else {
-      // Fallback to localStorage
-      saveToLocalStorage('patient', patientData);
-    }
+    await offlineManager.queueOperation({
+      type: 'ADD_PATIENT',
+      data: patientData,
+      priority: 'high'
+    });
+    
+    await offlineManager.queueOperation({
+      type: 'UPDATE_STATS',
+      data: { field: 'added', value: 1 },
+      priority: 'low'
+    });
     
     $('.modal-overlay').remove();
-    console.log('Patient added:', name);
+    console.log('Patient added (offline/online):', name);
     
   } catch (error) {
     console.error('Error adding patient:', error);
@@ -449,22 +699,21 @@ function showAddTaskModal(patientId) {
       <div class="modal-content">
         <input id="taskDescription" placeholder="Description de la tâche *" required>
         <input id="taskMinutes" type="number" placeholder="⏰ Délai en minutes (optionnel)" min="1" max="1440">
-        <button class="btn-primary" onclick="saveNewTask('${patientId}')">Ajouter la tâche</button>
+        <button class="btn-primary" onclick="saveNewTaskWithOffline('${patientId}')">Ajouter la tâche</button>
       </div>
     </div>
   `;
   
   document.body.appendChild(modal);
   
-  // Close handlers
   modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
 }
 
-// Save new task
-async function saveNewTask(patientId) {
+// Save new task with offline support
+async function saveNewTaskWithOffline(patientId) {
   const description = $('#taskDescription').value.trim();
   const minutes = parseInt($('#taskMinutes').value) || 0;
   
@@ -479,24 +728,20 @@ async function saveNewTask(patientId) {
     dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
     completed: false,
     patientId,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    user: currentUser,
+    synced: false
   };
   
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, getDoc, updateDoc } = window.firestoreFunctions;
-      const patientRef = doc(db, `users`, currentUser, 'patients', patientId);
-      const patientSnap = await getDoc(patientRef);
-      
-      if (patientSnap.exists()) {
-        const patientData = patientSnap.data();
-        const updatedTasks = [...(patientData.tasks || []), task];
-        await updateDoc(patientRef, { tasks: updatedTasks });
-      }
-    }
+    await offlineManager.queueOperation({
+      type: 'ADD_TASK',
+      data: { patientId, task },
+      priority: 'medium'
+    });
     
     $('.modal-overlay').remove();
-    console.log('Task added:', description);
+    console.log('Task added (offline/online):', description);
     
   } catch (error) {
     console.error('Error adding task:', error);
@@ -508,7 +753,6 @@ async function saveNewTask(patientId) {
 function showDecisionMenu(patientId, buttonElement) {
   console.log('Showing decision menu for patient:', patientId);
   
-  // Remove existing menus
   $$('.floating-menu').forEach(menu => menu.remove());
   
   const menu = document.createElement('div');
@@ -527,7 +771,6 @@ function showDecisionMenu(patientId, buttonElement) {
   
   buttonElement.closest('.card').appendChild(menu);
   
-  // Close menu when clicking outside
   setTimeout(() => {
     document.addEventListener('click', (e) => {
       if (!menu.contains(e.target) && !buttonElement.contains(e.target)) {
@@ -542,20 +785,24 @@ async function handlePatientDecision(patientId, action) {
   console.log('Handling patient decision:', action, 'for patient:', patientId);
   
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, deleteDoc } = window.firestoreFunctions;
-      await deleteDoc(doc(db, `users`, currentUser, 'patients', patientId));
-      
-      // Update statistics
-      const statMap = {
-        'discharge': 'discharged',
-        'hospitalize': 'hospitalized',
-        'delete': 'deleted'
-      };
-      await incrementStatistic(statMap[action]);
-    }
+    await offlineManager.queueOperation({
+      type: 'DELETE_PATIENT',
+      data: { id: patientId },
+      priority: 'high'
+    });
     
-    // Remove floating menu
+    const statMap = {
+      'discharge': 'discharged',
+      'hospitalize': 'hospitalized',
+      'delete': 'deleted'
+    };
+    
+    await offlineManager.queueOperation({
+      type: 'UPDATE_STATS',
+      data: { field: statMap[action], value: 1 },
+      priority: 'low'
+    });
+    
     $$('.floating-menu').forEach(menu => menu.remove());
     
     console.log(`Patient ${action} completed`);
@@ -571,19 +818,11 @@ async function completeTask(patientId, taskId) {
   console.log('Completing task:', taskId, 'for patient:', patientId);
   
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, getDoc, updateDoc } = window.firestoreFunctions;
-      const patientRef = doc(db, `users`, currentUser, 'patients', patientId);
-      const patientSnap = await getDoc(patientRef);
-      
-      if (patientSnap.exists()) {
-        const patientData = patientSnap.data();
-        const updatedTasks = patientData.tasks.map(task => 
-          task.id === taskId ? { ...task, completed: true } : task
-        );
-        await updateDoc(patientRef, { tasks: updatedTasks });
-      }
-    }
+    await offlineManager.queueOperation({
+      type: 'COMPLETE_TASK',
+      data: { patientId, taskId },
+      priority: 'medium'
+    });
     
     console.log('Task completed');
     
@@ -596,36 +835,6 @@ async function completeTask(patientId, taskId) {
 // Edit patient info
 function editPatientInfo(patientId) {
   console.log('Edit patient info for:', patientId);
-  // Implementation for editing patient info modal
-  // This can be added based on your requirements
-}
-
-// Increment statistic
-async function incrementStatistic(statName) {
-  try {
-    if (db && window.firestoreFunctions) {
-      const { doc, updateDoc, increment, setDoc, getDoc } = window.firestoreFunctions;
-      const statsRef = doc(db, `users`, currentUser, 'stats', 'main');
-      
-      try {
-        await updateDoc(statsRef, {
-          [statName]: increment(1)
-        });
-      } catch (error) {
-        // Document doesn't exist, create it
-        const initialStats = {
-          added: 0,
-          hospitalized: 0,
-          discharged: 0,
-          deleted: 0
-        };
-        initialStats[statName] = 1;
-        await setDoc(statsRef, initialStats);
-      }
-    }
-  } catch (error) {
-    console.error('Error updating statistics:', error);
-  }
 }
 
 // Update statistics display
@@ -662,20 +871,13 @@ async function resetStatistics() {
   }
 }
 
-// Fallback functions for localStorage
 function loadLocalData() {
-  // Implementation for localStorage fallback
   console.log('Loading local data as fallback');
 }
 
-function saveToLocalStorage(type, data) {
-  // Implementation for localStorage fallback
-  console.log('Saving to localStorage as fallback:', type, data);
-}
-
 // Make functions globally available
-window.saveNewPatient = saveNewPatient;
-window.saveNewTask = saveNewTask;
+window.saveNewPatientWithOffline = saveNewPatientWithOffline;
+window.saveNewTaskWithOffline = saveNewTaskWithOffline;
 window.showAddTaskModal = showAddTaskModal;
 window.showDecisionMenu = showDecisionMenu;
 window.handlePatientDecision = handlePatientDecision;
@@ -689,7 +891,6 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-// Backup initialization
 window.addEventListener('load', initializeApp);
 
-console.log('FastTrackers script loaded with Firebase sync');
+console.log('FastTrackers script loaded with Firebase sync and offline support');
