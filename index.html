@@ -229,6 +229,25 @@
             </form>
         </div>
     </div>
+    <!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+
+<script>
+// Your Firebase config (paste what you copied)
+const firebaseConfig = {
+ apiKey: "AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU",
+  authDomain: "fasttrackers-sync.firebaseapp.com",
+  projectId: "fasttrackers-sync",
+  storageBucket: "fasttrackers-sync.firebasestorage.app",
+  messagingSenderId: "987908003870",
+  appId: "1:987908003870:web:0e9c19e942df988c5ab60f"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
 
     <script src="app.js"></script>
 </body>
