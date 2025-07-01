@@ -1,72 +1,79 @@
-<!DOCTYPE html```html lang="fr">
+<!DOCTYPE html>
+<html lang="fr">
 <head>
- ```eta charset```TF-8" />
- ```eta name="viewport" content```idth=device-width,initial```ale=1" />
- ```itle>FastTrackers –```gences</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FastTrackers – Urgences</title>
 
- ```-- PWA essentials```>
-  <meta name```heme-color" content```0a1628" />
- ```ink rel="manifest" href```anifest.json" />
+  <!-- PWA essentials -->
+  <meta name="theme-color" content="#0a1628" />
+  <link rel="manifest" href="manifest.json" />
 
- ```-- Homescreen icons```OS / Android```->
-  <link rel```pple-touch-icon" sizes```12x512" href```asttrackers_icon.png" />
- ```ink rel="apple-touch-icon"```zes="192x192" href```asttrackers_icon.png" />
+  <!-- Homescreen icons (iOS / Android) -->
+  <link rel="apple-touch-icon" sizes="512x512" href="fasttrackers_icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="fasttrackers_icon.png" />
 
- ```-- Styles -->
- ```ink rel="stylesheet" href```tyles.css" />
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body``` <!-- Login```>
-  <section id```ogin" class```ogin-screen">
-   ```iv class="login-card">
-     ```iv class="login-logo">```div>
-     ```1>FastTrackers</h1>
-     ```>Gestion des```tients d'urgence</p>
-     ```utton class```ser-btn" data```er="Cristian">👨‍⚕️ Cristian```utton>
-     ```utton class```ser-btn" data```er="Ilinca">👩‍⚕️ Il```a</button>
-     ```utton class```ser-btn" data```er="Guest">👤 Inv```</button>
-   ```div>
+<body>
+  <!-- Login -->
+  <section id="login" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">⚡</div>
+      <h1>FastTrackers</h1>
+      <p>Gestion des patients d'urgence</p>
+      <button class="user-btn" data-user="Cristian">👨‍⚕️ Cristian</button>
+      <button class="user-btn" data-user="Ilinca">👩‍⚕️ Ilinca</button>
+      <button class="user-btn" data-user="Guest">👤 Invité</button>
+    </div>
   </section>
 
- ```-- App Shell```>
-  <section id```pp" class="app-container```dden">
-   ```eader class```pp-header">
-     ```iv class="brand">⚡ Fast```ckers</div>
-     ```iv class="user-panel">
-       ```pan id="username"></span```       <button id```ogout">Déconnexion</button```     </div>
-   ```header>
+  <!-- App Shell -->
+  <section id="app" class="app-container hidden">
+    <header class="app-header">
+      <div class="brand">⚡ FastTrackers</div>
+      <div class="user-panel">
+        <span id="username"></span>
+        <button id="logout">Déconnexion</button>
+      </div>
+    </header>
 
-   ```av class="tabs">
-     ```utton class```ab active" data```b="patients">👥 Patients```utton>
-     ```utton class```ab" data-tab="stats">📊```atistiques</button>
-   ```nav>
+    <nav class="tabs">
+      <button class="tab active" data-tab="patients">👥 Patients</button>
+      <button class="tab" data-tab="stats">📊 Statistiques</button>
+    </nav>
 
-    <!-- Patients```>
-    <main id```atients" class```ab-content">
-     ```iv id="grid" class```rid"></div>
-     ```utton id="addPatient" class```dd-btn">➕ Ajouter``` patient</button>
-   ```main>
+    <!-- Patients -->
+    <main id="patients" class="tab-content">
+      <div id="grid" class="grid"></div>
+      <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
+    </main>
 
-   ```-- Stats -->
-   ```ain id="stats" class```ab-content hidden```      <div class```tats">
-       ```iv class="stat"><span id```Added">0</span><label>```utés</label></div>
-       ```iv class="stat"><span id```Hosp">0</span><label>Hospital```s</label></div>
-       ```iv class="stat"><span id```Home">0</span><label>Sort```/label></div>
-       ```iv class="stat"><span id```Del">0</span><label>Sup```més</label></div>
-     ```div>
-     ```utton id="resetStats" class```eset-btn">🔄 Ré```tialiser</button>
-   ```main>
-  </```tion>
+    <!-- Stats -->
+    <main id="stats" class="tab-content hidden">
+      <div class="stats">
+        <div class="stat"><span id="sAdded">0</span><label>Ajoutés</label></div>
+        <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
+        <div class="stat"><span id="sHome">0</span><label>Sortis</label></div>
+        <div class="stat"><span id="sDel">0</span><label>Supprimés</label></div>
+      </div>
+      <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
+    </main>
+  </section>
 
-  <!-- Service```rker Registration```>
+  <!-- Service Worker Registration -->
   <script>
-   ``` ('serviceWorker' in```vigator) {
-     ```ndow.addEventListener('load```() => {
-       ```vigator.serviceWorker.register```sw.js')
-         ```hen(reg =>```nsole.log('SW registered```reg))
-         ```atch(err =>```nsole.log('SW registration```iled', err```
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW registered', reg))
+          .catch(err => console.log('SW registration failed', err));
       });
-   ```  </script>
+    }
+  </script>
 
- ```-- Main App```ript -->
- ```cript src="app.js"></script```/body>
+  <!-- Main App Script -->
+  <script src="app.js"></script>
+</body>
 </html>
