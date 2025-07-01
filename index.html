@@ -1,254 +1,66 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FastTrackers - Gestion des Patients d'Urgence</title>
-    <meta name="description" content="Application PWA pour la gestion des patients en médecine d'urgence">
-    <meta name="theme-color" content="#0a1628">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="data:application/json;base64,ewogICAgIm5hbWUiOiAiRmFzdFRyYWNrZXJzIC0gR2VzdGlvbiBkZXMgUGF0aWVudHMiLAogICAgInNob3J0X25hbWUiOiAiRmFzdFRyYWNrZXJzIiwKICAgICJkZXNjcmlwdGlvbiI6ICJBcHBsaWNhdGlvbiBQV0EgcG91ciBsYSBnZXN0aW9uIGRlcyBwYXRpZW50cyBlbiBtw6lkZWNpbmUgZCd1cmdlbmNlIiwKICAgICJzdGFydF91cmwiOiAiLyIsCiAgICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAgICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwYTE2MjgiLAogICAgInRoZW1lX2NvbG9yIjogIiMwYTE2MjgiLAogICAgImljb25zIjogWwogICAgICAgIHsKICAgICAgICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSGRwWkhSb1BTSXhNakFpSUdobGFXZG9kRDBpTVRJd0lqNDhaV3hzYVhCelpTQmplRDBpTmpBaUlHTjVQU0kyTUNJZ2NuZzlJakkxSWlCbWFXeHNQU0lqYkdsbmFIUWlMejQ4Y0dGMGFDQmtQU0pOTnpBZ05EQk1OVEF1TmppMElEUTNMall4TkZNME1TNDBPQ0EwTnk0Mk1UUklNelVnTURveU9DQTJNRXcyTlNBME1sc3pOeTQxTFRNM0xqVmRXakUwTkNBM056cHNMUzB1TmpZMUxUSTBUR1EwTlMwME5HY3VOalkxTFRJMExESTBMakE0TnkweUxESTBJREl5TGpReGVIUTJMakF5VFNKbWFXeHNQU0lqWVRBMk16TTNJaUF6TGprMU9TWXhOaUE0TGpBNE56UWxNVFlnTVRVdU9UZzFMUzQxTWprZ01qY3VPRFExUkRJNUlESTNMall4TkZneE9TNHlOQ0E0TGpBME56UWxNVFlnT0M0d08yY3lXaUlnZEhKaGJuTm1iM0p0UFNKMGNtRnVjMnhoZEdVb0xURmNKbHNsSnpReUxpNHpOeko0TG1OMFNTa2lMejQ4TDNOMlp6ND0iLAogICAgICAgICAgICAic2l6ZXMiOiAiMTIweDEyMCIsCiAgICAgICAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICAgICAgfQogICAgXQp9">
-    
-    <!-- Apple PWA meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FastTrackers">
-    
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FastTrackers – Urgences</title>
+
+  <!-- PWA essentials -->
+  <meta name="theme-color" content="#0a1628" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <!-- Styles & Firebase SDK -->
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="app.js"></script>
 </head>
+
 <body>
-    <div id="app">
-        <!-- Login Screen -->
-        <div id="login-screen" class="screen active">
-            <div class="login-container">
-                <div class="logo">
-                    <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <ellipse cx="60" cy="60" rx="25" fill="#4fc3f7"/>
-                        <path d="M70 40L50.664 47.614S41.408 47.614H35 0:28 60L65 42s37.5-37.5dZ144 77ls-.529 24Lds45-44g.665-24,24.087-2,24 22.41xt6.02MS" fill="#a06337" transform="translate(-1&[&$42..372.2ctI)"/>
-                    </svg>
-                    <h1>FastTrackers</h1>
-                    <p>Gestion des Patients d'Urgence</p>
-                </div>
-                
-                <div class="login-options">
-                    <button class="login-btn" data-user="Cristian">
-                        <span class="user-icon">👨‍⚕️</span>
-                        <span>Cristian</span>
-                    </button>
-                    <button class="login-btn" data-user="Ilinca">
-                        <span class="user-icon">👩‍⚕️</span>
-                        <span>Ilinca</span>
-                    </button>
-                    <button class="login-btn" data-user="Guest">
-                        <span class="user-icon">👤</span>
-                        <span>Invité</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Application -->
-        <div id="main-screen" class="screen">
-            <!-- Header -->
-            <header class="app-header">
-                <div class="header-left">
-                    <div class="logo-small">
-                        <svg width="32" height="32" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <ellipse cx="60" cy="60" rx="25" fill="#4fc3f7"/>
-                            <path d="M70 40L50.664 47.614S41.408 47.614H35 0:28 60L65 42s37.5-37.5dZ144 77ls-.529 24Lds45-44g.665-24,24.087-2,24 22.41xt6.02MS" fill="#a06337"/>
-                        </svg>
-                    </div>
-                    <h2 id="current-user">FastTrackers</h2>
-                </div>
-                
-                <div class="header-right">
-                    <button class="btn btn--outline logout-btn" id="logout-btn">Déconnexion</button>
-                </div>
-            </header>
-
-            <!-- Navigation -->
-            <nav class="nav-tabs">
-                <button class="nav-tab active" data-tab="patients">Patients</button>
-                <button class="nav-tab" data-tab="statistics">Statistiques</button>
-            </nav>
-
-            <!-- Patients Tab -->
-            <div id="patients-tab" class="tab-content active">
-                <div class="patients-header">
-                    <h3>Gestion des Patients</h3>
-                    <button class="btn btn--primary" id="add-patient-btn">+ Ajouter Patient</button>
-                </div>
-                
-                <div class="patients-grid" id="patients-grid">
-                    <!-- Patients will be rendered here -->
-                </div>
-            </div>
-
-            <!-- Statistics Tab -->
-            <div id="statistics-tab" class="tab-content">
-                <div class="statistics-header">
-                    <h3>Statistiques</h3>
-                    <button class="btn btn--outline" id="reset-stats-btn">Réinitialiser</button>
-                </div>
-                
-                <div class="statistics-grid">
-                    <div class="stat-card">
-                        <h4>Total Patients</h4>
-                        <span class="stat-value" id="total-patients">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Patients Actifs</h4>
-                        <span class="stat-value" id="active-patients">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Retour à Domicile</h4>
-                        <span class="stat-value" id="discharged-patients">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Hospitalisations</h4>
-                        <span class="stat-value" id="admitted-patients">0</span>
-                    </div>
-                    <div class="stat-card triage-red">
-                        <h4>Rouge</h4>
-                        <span class="stat-value" id="red-patients">0</span>
-                    </div>
-                    <div class="stat-card triage-orange">
-                        <h4>Orange</h4>
-                        <span class="stat-value" id="orange-patients">0</span>
-                    </div>
-                    <div class="stat-card triage-yellow">
-                        <h4>Jaune</h4>
-                        <span class="stat-value" id="yellow-patients">0</span>
-                    </div>
-                    <div class="stat-card triage-green">
-                        <h4>Vert</h4>
-                        <span class="stat-value" id="green-patients">0</span>
-                    </div>
-                    <div class="stat-card triage-blue">
-                        <h4>Bleu</h4>
-                        <span class="stat-value" id="blue-patients">0</span>
-                    </div>
-                    <div class="stat-card triage-purple">
-                        <h4>Violet</h4>
-                        <span class="stat-value" id="purple-patients">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Login -->
+  <section id="login" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">⚡</div>
+      <h1>FastTrackers</h1>
+      <p>Gestion des patients d’urgence</p>
+      <button class="user-btn" data-user="Cristian">👨‍⚕️ Cristian</button>
+      <button class="user-btn" data-user="Ilinca">👩‍⚕️ Ilinca</button>
+      <button class="user-btn" data-user="Guest">👤 Invité</button>
     </div>
+  </section>
 
-    <!-- Patient Modal -->
-    <div id="patient-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Ajouter Patient</h3>
-                <button class="modal-close" id="modal-close">&times;</button>
-            </div>
-            <form id="patient-form">
-                <div class="form-group">
-                    <label class="form-label">Nom du Patient</label>
-                    <input type="text" class="form-control" id="patient-name" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Motif de Consultation</label>
-                    <textarea class="form-control" id="patient-complaint" rows="3" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Niveau de Triage</label>
-                    <select class="form-control" id="patient-triage" required>
-                        <option value="">Sélectionner...</option>
-                        <option value="red">Rouge - Urgence Vitale</option>
-                        <option value="orange">Orange - Urgence</option>
-                        <option value="yellow">Jaune - Peu Urgent</option>
-                        <option value="green">Vert - Non Urgent</option>
-                        <option value="blue">Bleu - Orientation</option>
-                        <option value="purple">Violet - Psychosocial</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">📍 Salle/Box</label>
-                    <input type="text" class="form-control" id="patient-room">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">📱 Infirmier(ère)</label>
-                    <input type="text" class="form-control" id="patient-nurse">
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn--outline" id="cancel-btn">Annuler</button>
-                    <button type="submit" class="btn btn--primary">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
+  <!-- App Shell -->
+  <section id="app" class="app-container hidden">
+    <header class="app-header">
+      <div class="brand">⚡ FastTrackers</div>
+      <div class="user-panel">
+        <span id="username"></span>
+        <button id="logout">Déconnexion</button>
+      </div>
+    </header>
 
-    <!-- Task Modal -->
-    <div id="task-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📋 Ajouter Tâche</h3>
-                <button class="modal-close" id="task-modal-close">&times;</button>
-            </div>
-            <form id="task-form">
-                <div class="form-group">
-                    <label class="form-label">Description de la Tâche</label>
-                    <input type="text" class="form-control" id="task-description" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">⏱️ Minutes (optionnel pour rappel)</label>
-                    <input type="number" class="form-control" id="timer-minutes" min="0" max="999" placeholder="Entrer le nombre de minutes">
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn--outline" id="task-cancel-btn">Annuler</button>
-                    <button type="submit" class="btn btn--primary">Ajouter</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="patients">👥 Patients</button>
+      <button class="tab" data-tab="stats">📊 Statistiques</button>
+    </nav>
 
-    <!-- Edit Location/Nurse Modal -->
-    <div id="edit-meta-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Modifier Informations</h3>
-                <button class="modal-close" id="edit-meta-modal-close">&times;</button>
-            </div>
-            <form id="edit-meta-form">
-                <div class="form-group">
-                    <label class="form-label">📍 Salle/Box</label>
-                    <input type="text" class="form-control" id="edit-room">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">📱 Infirmier(ère)</label>
-                    <input type="text" class="form-control" id="edit-nurse">
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn--outline" id="edit-meta-cancel-btn">Annuler</button>
-                    <button type="submit" class="btn btn--primary">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+    <!-- Patients -->
+    <main id="patients" class="tab-content">
+      <div id="grid" class="grid"></div>
+      <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
+    </main>
 
-<script>
-// Your Firebase config (paste what you copied)
-const firebaseConfig = {
- apiKey: "AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU",
-  authDomain: "fasttrackers-sync.firebaseapp.com",
-  projectId: "fasttrackers-sync",
-  storageBucket: "fasttrackers-sync.firebasestorage.app",
-  messagingSenderId: "987908003870",
-  appId: "1:987908003870:web:0e9c19e942df988c5ab60f"
-};
+    <!-- Stats -->
+    <main id="stats" class="tab-content hidden">
+      <div class="stats">
+        <div class="stat"><span id="sAdded">0</span><label>Ajoutés</label></div>
+        <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
+        <div class="stat"><span id="sHome">0</span><label>Sortis</label></div>
+        <div class="stat"><span id="sDel">0</span><label>Supprimés</label></div>
+      </div>
+      <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
+    </main>
+  </section>
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-</script>
-
-    <script src="app.js"></script>
+  <!-- Modals are injected dynamically -->
 </body>
 </html>
