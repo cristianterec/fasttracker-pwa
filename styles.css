@@ -630,15 +630,43 @@ body {
   50% { opacity: 0.7; }
 }
 
-/* Completed task styling - crossed out but visible */
+/* Enhanced Completed Task Styling */
 .task.completed {
-  opacity: 0.6;
+  opacity: 0.7;
   position: relative;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  transform: scale(0.98);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .task.completed .task-desc {
   text-decoration: line-through;
   color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.task.completed .task-timer {
+  background: linear-gradient(135deg, var(--accent-green), #059669);
+  color: white;
+  animation: completedGlow 2s ease-in-out;
+}
+
+@keyframes completedGlow {
+  0% { box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 4px 16px rgba(16, 185, 129, 0.6); }
+  100% { box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); }
+}
+
+.task.completed::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--accent-green), #059669);
+  border-radius: 0 4px 4px 0;
 }
 
 .task.completed::after {
@@ -647,17 +675,45 @@ body {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--accent-green);
+  background: linear-gradient(135deg, var(--accent-green), #059669);
   color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
+  padding: 4px 12px;
+  border-radius: 16px;
   font-size: 0.75rem;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  animation: slideInRight 0.5s ease-out;
 }
 
-.task.completed .task-timer {
-  background: var(--accent-green);
-  color: white;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Task completion animation */
+.task.completing {
+  animation: taskComplete 0.6s ease-out forwards;
+}
+
+@keyframes taskComplete {
+  0% {
+    transform: scale(1);
+    background: rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    background: rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+  }
 }
 
 .task-check {
@@ -680,6 +736,26 @@ body {
   background: #059669;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Enhanced task check button when task is being completed */
+.task-check.completing {
+  animation: checkComplete 0.6s ease-out forwards;
+}
+
+@keyframes checkComplete {
+  0% {
+    transform: scale(1);
+    background: var(--accent-green);
+  }
+  50% {
+    transform: scale(1.3) rotate(180deg);
+    background: #059669;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
 }
 
 /* Action Buttons - Professional Design */
