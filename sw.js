@@ -99,16 +99,14 @@ async function syncPatientData() {
     const offlinePatients = await store.getAll();
     
     for (const patient of offlinePatients) {
-      // Send to Firebase when online
       await sendToFirebase('patients', patient);
-      // Remove from offline storage after successful sync
       await removeFromOfflineStorage('offlinePatients', patient.id);
     }
     
     console.log('[ServiceWorker] Patient data synced successfully');
   } catch (error) {
     console.error('[ServiceWorker] Error syncing patient data:', error);
-    throw error; // This will cause the sync to retry
+    throw error;
   }
 }
 
@@ -163,7 +161,6 @@ function openDB() {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
       
-      // Create object stores for offline data
       if (!db.objectStoreNames.contains('offlinePatients')) {
         db.createObjectStore('offlinePatients', { keyPath: 'id' });
       }
@@ -179,13 +176,10 @@ function openDB() {
   });
 }
 
-// Send data to Firebase (placeholder - implement based on your Firebase setup)
 async function sendToFirebase(collection, data) {
-  // This would integrate with your Firebase configuration
   console.log(`[ServiceWorker] Sending ${collection} data to Firebase:`, data);
 }
 
-// Remove data from offline storage after successful sync
 async function removeFromOfflineStorage(storeName, id) {
   const db = await openDB();
   const tx = db.transaction([storeName], 'readwrite');
