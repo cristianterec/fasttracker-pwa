@@ -1,32 +1,43 @@
 /* FastTrackers PWA - Complete Professional Emergency Medicine CSS */
 
 :root {
+  /* Core Medical Theme Colors */
   --bg-primary: #0a1628;
   --bg-surface: #1a2332;
   --bg-card: #2a3441;
   --text-primary: #ffffff;
   --text-secondary: #e2e8f0;
   --text-muted: #94a3b8;
+  
+  /* FRENCH Triage System Colors */
   --triage-red: #dc2626;
   --triage-orange: #ea580c;
   --triage-yellow: #eab308;
   --triage-green: #16a34a;
   --triage-blue: #2563eb;
   --triage-purple: #7c3aed;
+  
+  /* Professional Action Colors */
   --accent-blue: #3b82f6;
   --accent-green: #10b981;
   --accent-red: #ef4444;
   --accent-yellow: #f59e0b;
   --accent-orange: #f97316;
+  
+  /* Liquid Glass Morphism */
   --glass-bg: rgba(42, 52, 65, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-backdrop: blur(20px);
   --glass-strong: rgba(42, 52, 65, 0.8);
+  
+  /* Professional Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  
+  /* Consistent Border Radius */
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -34,6 +45,8 @@
   --radius-xl: 20px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  
+  /* iOS Typography System */
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -43,6 +56,8 @@
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.875rem;
   --font-size-4xl: 2.25rem;
+  
+  /* Spacing System */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -56,31 +71,50 @@
   --space-20: 5rem;
 }
 
-/* ... (all your previous CSS here, unchanged) ... */
-
-/* Live-timer colour when expired */
-.task-timer.expired { background: var(--accent-red); }
-
-/* Simplified completed task design */
-.task.completed {
-  opacity: .8;
-  background: rgba(16,185,129,.08);
-  border: 1px solid rgba(16,185,129,.25);
-  position: relative;
+/* Base Reset and Foundation */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-.task.completed .task-desc { text-decoration: line-through; color: var(--text-muted); }
-.task.completed .task-timer { display: none; }
-.task.completed::after{
-  content:"Terminé";
-  background:#16a34a;
-  color:#fff;
-  font-size:.75rem;
-  font-weight:600;
-  padding:2px 10px;
-  border-radius:9999px;
-  position:absolute;
-  right:12px;
-  top:50%;
-  transform:translateY(-50%);
+
+*::before,
+*::after {
+  box-sizing: border-box;
 }
-.task.completed::before{content:none}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  font-size: var(--font-size-base);
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.animate
