@@ -4,16 +4,806 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FastTrackers – Urgences</title>
+  <style>
+    /* Complete CSS with all fixes */
+    :root {
+      --bg-primary: #0a1628;
+      --bg-surface: #1a2332;
+      --bg-card: #2a3441;
+      --text-primary: #ffffff;
+      --text-secondary: #e2e8f0;
+      --text-muted: #94a3b8;
+      --triage-red: #dc2626;
+      --triage-orange: #ea580c;
+      --triage-yellow: #eab308;
+      --triage-green: #16a34a;
+      --triage-blue: #2563eb;
+      --triage-purple: #7c3aed;
+      --accent-blue: #3b极82f6;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --accent-orange: #f97316;
+      --glass-bg: rgba(42, 52, 65, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-backdrop: blur(20px);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-2xl: 24px;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --font-size-2xl: 1.5rem;
+      --font-size-3xl: 1.875rem;
+    }
 
-  <!-- PWA essentials -->
-  <meta name="theme-color" content="#0a1628" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css" />
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .login-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, #1e293b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-2xl);
+      padding: 48px 32px;
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+      min-width: 320px;
+      max-width: 400px;
+      width: 100%;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .login-card h1 {
+      font-size: var(--font-size-2xl);
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .login-card p {
+      font-size: var(--font-size-base);
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .user-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      margin: 12px 0;
+      padding: 16px 24px;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .user-btn:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: var(--accent-blue);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+    }
+
+    .app-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border-bottom: 1px solid var(--glass-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-md);
+    }
+
+    .brand {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-primary);
+    }
+
+    .user-panel {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--glass-b极);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 8px 16px;
+      font-size: var(--font-size-sm);
+    }
+
+    #logout {
+      background: none;
+      border: none;
+      color: var(--accent-red);
+      cursor: pointer;
+      font-size: var(--font-size-sm);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    #logout:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 0 24px;
+      box-shadow: inset 0 -1px 0 var(--glass-border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 16px 24px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .tab.active {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .tab-content {
+      flex: 1;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .card.red { 
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.85), rgba(220, 38, 38, 0.65));
+      border-color: rgba(220, 38, 38, 0.3);
+    }
+
+    .card.orange { 
+      background: linear-gradient(135deg, rgba(234, 88, 12, 0.85), rgba(234, 88, 12, 0.65));
+      border-color: rgba(234, 88, 12, 0.3);
+    }
+
+    .card.yellow { 
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.85), rgba(234, 179, 8, 0.65));
+      border-color: rgba(234, 179, 8, 0.3);
+      color: #1f2937;
+    }
+
+    .card.yellow .patient-name,
+    .card.yellow .patient-complaint {
+      color: #1f2937;
+    }
+
+    .card.green { 
+      background: linear-gradient(135deg, rgba(22, 163, 74, 0.85), rgba(22, 163, 74, 0.65));
+      border-color: rgba(22, 163, 74, 0.3);
+    }
+
+    .card.blue { 
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.85), rgba(37, 99, 235, 0.65));
+      border-color: rgba(37, 99, 235, 0.3);
+    }
+
+    .card.purple { 
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.85), rgba(124, 58, 237, 0.65));
+      border-color: rgba(124, 58, 237, 0.3);
+    }
+
+    .info-box {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: var(--font-size-xs);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 80px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .info-box:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .patient-main {
+      margin-right: 100px;
+      flex: 1;
+      margin-bottom: 16px;
+    }
+
+    .patient-name {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+    }
+
+    .patient-complaint {
+      font-size: var(--font-size-lg);
+      font-weight: 500;
+      opacity: 0.95;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .tasks {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .task:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .task-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .task-desc {
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task-timer {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      min-width: 50px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+    }
+
+    .task-check {
+      background: var(--accent-green);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--font-size-base);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    }
+
+    .task-check:hover {
+      background: #059669;
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: auto;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn.task {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn.task:hover {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn.decision {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    }
+
+    .btn.decision:hover {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+    }
+
+    .add-btn {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border: 2px dashed var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      min-height: 180px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .add-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      transform: translateY(-4px);
+      box-shadow: 0 8极px 25px rgba(59, 130, 246, 0.15);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .stat {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .stat span {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: block;
+      line-height: 1;
+    }
+
+    .stat label {
+      font-size: var(--font-size-lg);
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .reset-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, var(--accent-red), #dc2626);
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    .reset-btn:hover {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      animation: fadeIn 0.3s ease-out forwards;
+      padding: 20px;
+    }
+
+    .modal {
+      background: var(--bg-surface);
+      border-radius: var(--radius-2xl);
+      padding: 32px;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--glass-border);
+      min-width: 400px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.9);
+      animation: modalSlideIn 0.3s ease-out forwards;
+    }
+
+    @keyframes modalSlideIn {
+      to { transform: scale(1); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .modal-header h2 {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-primary);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+      background: var(--glass-bg);
+    }
+
+    .modal-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .modal-content input,
+    .modal-content select {
+      width: 100%;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 14px 24px;
+      color: white;
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .floating-menu {
+      position: absolute;
+      bottom: 60px;
+      right: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      z-index: 200;
+      animation: slideUpMenu 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: var(--glass-backdrop);
+    }
+
+    @keyframes slideUpMenu {
+      from { opacity: 0; transform: translateY(20px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .menu-item {
+      background: none;
+      border: none;
+      width: 100%;
+      padding: 16px 24px;
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+      text-align: left;
+      min-width: 200px;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 40px;
+      color: var(--text-muted);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      margin: 20px 0;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    #connection-status {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Completed task styling */
+    .task.completed {
+      opacity: 0.6;
+      position: relative;
+    }
+
+    .task.completed .task-desc {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .task.completed::after {
+      content: '✓ Terminé';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--accent-green);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Editable info box */
+    .info-box.editable {
+      cursor: pointer;
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+    }
+
+    .info-box.editable:hover {
+      border-color: var(--accent-blue);
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+  </style>
 </head>
-
 <body>
   <!-- Login -->
   <section id="login" class="login-screen">
@@ -60,22 +850,544 @@
     </main>
   </section>
 
-  <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('SW registered: ', registration);
-          })
-          .catch((registrationError) => {
-            console.log('SW registration failed: ', registrationError);
-          });
+  <script type="module">
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU",
+      authDomain: "fasttrackers-sync.firebaseapp.com",
+      projectId: "fasttrackers-sync",
+      storageBucket: "fasttrackers-sync.firebasestorage.app",
+      messagingSenderId: "987908003870",
+      appId: "1:987908003870:web:0e9c19e942df988c5ab60f"
+    };
+
+    // Import Firebase functions
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      updateDoc, 
+      deleteDoc, 
+      onSnapshot, 
+      increment,
+      getDoc,
+      enableIndexedDbPersistence
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Enable offline persistence
+    enableIndexedDbPersistence(db)
+      .catch((err) => {
+        console.error("Offline persistence failed: ", err);
+      });
+
+    // Global state
+    let currentUser = null;
+    let unsubscribePatients = null;
+    let unsubscribeStats = null;
+
+    // DOM helpers
+    function $(selector) {
+      return document.querySelector(selector);
+    }
+
+    // Initialize app
+    function initializeApp() {
+      setupLoginButtons();
+      setupAppEventListeners();
+      console.log('FastTrackers initialized successfully');
+    }
+
+    // Setup login buttons
+    function setupLoginButtons() {
+      const loginButtons = document.querySelectorAll('.user-btn');
+      
+      loginButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          const username = this.dataset.user;
+          if (username) {
+            loginUser(username);
+          }
+        });
       });
     }
-  </script>
 
-  <!-- Main App Script -->
-  <script src="app.js"></script>
+    // Login function
+    async function loginUser(username) {
+      currentUser = username;
+      $('#username').textContent = username;
+      $('#login').classList.add('hidden');
+      $('#app').classList.remove('hidden');
+      await startFirebaseListeners();
+    }
+
+    // Start Firebase real-time listeners
+    async function startFirebaseListeners() {
+      // Patients listener
+      const patientsCollection = collection(db, `users`, currentUser, 'patients');
+      unsubscribePatients = onSnapshot(patientsCollection, (snapshot) => {
+        renderPatientsFromFirebase(snapshot);
+      });
+
+      // Stats listener
+      const statsDoc = doc(db, `users`, currentUser, 'stats', 'main');
+      unsubscribeStats = onSnapshot(statsDoc, (doc) => {
+        const stats = doc.exists() ? doc.data() : {};
+        updateStatisticsDisplay(stats);
+      });
+    }
+
+    // Render patients from Firebase snapshot
+    function renderPatientsFromFirebase(snapshot) {
+      const grid = $('#grid');
+      grid.innerHTML = '';
+
+      if (snapshot.empty) {
+        grid.innerHTML = '<div class="empty-state"><p>Aucun patient actif</p><p>Cliquez sur "Ajouter un patient" pour commencer</p></div>';
+        return;
+      }
+
+      const patients = [];
+      snapshot.forEach(doc => {
+        patients.push(doc.data());
+      });
+
+      // Sort by triage priority
+      const triagePriority = { red: 1, orange: 2, yellow: 3, green: 4, blue: 5, purple: 6 };
+      patients.sort((a, b) => (triagePriority[a.triage] || 6) - (triagePriority[b.triage] || 6));
+
+      patients.forEach(patient => {
+        grid.innerHTML += createPatientCardHTML(patient);
+      });
+    }
+
+    // Create patient card HTML with editable info and completed tasks
+    function createPatientCardHTML(patient) {
+      const allTasks = (patient.tasks || []);
+      
+      return `
+        <div class="card ${patient.triage}" data-patient-id="${patient.id}">
+          <div class="info-box editable" data-patient-id="${patient.id}" data-field="location">
+            📍 ${patient.location || 'Cliquer pour modifier'}
+          </div>
+          <div class="patient-main">
+            <h3 class="patient-name">${patient.name}</h3>
+            <p class="patient-complaint">${patient.complaint}</p>
+          </div>
+          <div class="tasks">
+            ${allTasks.map(task => `
+              <div class="task ${task.completed ? 'completed' : ''}">
+                <div class="task-content">
+                  <span class="task-desc">${task.description}</span>
+                  ${task.dueAt ? `<span class="task-timer">${task.completed ? 'Terminé' : formatTime(new Date(task.dueAt) - Date.now())}</span>` : ''}
+                </div>
+                ${!task.completed ? `<button class="task-check" data-patient-id="${patient.id}" data-task-id="${task.id}">✓</button>` : ''}
+              </div>
+            `).join('')}
+          </div>
+          <div class="actions">
+            <button class="btn task" data-patient-id="${patient.id}">📋 Tâches</button>
+            <button class="btn decision" data-patient-id="${patient.id}">⚖️ Décision</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Setup other app event listeners
+    function setupAppEventListeners() {
+      // Logout button
+      $('#logout').addEventListener('click', logoutUser);
+      
+      // Tab switching
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          switchTab(this.dataset.tab);
+        });
+      });
+      
+      // Add patient button
+      $('#addPatient').addEventListener('click', showAddPatientModal);
+      
+      // Reset stats button
+      $('#resetStats').addEventListener('click', resetStatistics);
+      
+      // Event delegation for dynamic elements
+      document.addEventListener('click', function(e) {
+        // Task buttons
+        if (e.target.classList.contains('btn') && e.target.classList.contains('task')) {
+          const patientId = e.target.dataset.patientId;
+          showAddTaskModal(patientId);
+        }
+        
+        // Decision buttons
+        if (e.target.classList.contains('btn') && e.target.classList.contains('decision')) {
+          const patientId = e.target.dataset.patientId;
+          showDecisionMenu(patientId, e.target);
+        }
+        
+        // Task completion
+        if (e.target.classList.contains('task-check')) {
+          const patientId = e.target.dataset.patientId;
+          const taskId = e.target.dataset.taskId;
+          completeTask(patientId, taskId);
+        }
+        
+        // Editable info boxes
+        if (e.target.classList.contains('editable')) {
+          const patientId = e.target.dataset.patientId;
+          editPatientInfo(patientId);
+        }
+      });
+    }
+
+    // Logout function
+    function logoutUser() {
+      if (unsubscribePatients) unsubscribePatients();
+      if (unsubscribeStats) unsubscribeStats();
+      currentUser = null;
+      $('#login').classList.remove('hidden');
+      $('#app').classList.add('hidden');
+    }
+
+    // Switch tabs
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      $(`[data-tab="${tabName}"]`).classList.add('active');
+      
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+      $(`#${tabName}`).classList.remove('hidden');
+    }
+
+    // Format time
+    function formatTime(ms) {
+      if (ms <= 0) return '00:00';
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Show add patient modal
+    function showAddPatientModal() {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2>➕ Nouveau patient</h2>
+            <button class="modal-close">&times;</button>
+          </div>
+          <div class="modal-content">
+            <input id="patientName" placeholder="Nom du patient *" required>
+            <input id="patientComplaint" placeholder="Motif de consultation *" required>
+            <select id="patientTriage" required>
+              <option value="">Niveau de triage *</option>
+              <option value="red">Rouge - Critique</option>
+              <option value="orange">Orange - Très urgent</option>
+              <option value="yellow">Jaune - Urgent</option>
+              <option value="green">Vert - Semi-urgent</option>
+              <option value="blue">Bleu - Moins urgent</option>
+              <option value="purple">Violet - Non urgent</option>
+            </select>
+            <input id="patientLocation" placeholder="📍 Localisation">
+            <input id="patientNurse" placeholder="📱 Numéro infirmière">
+            <button class="btn-primary" id="savePatient">Enregistrer</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Close handlers
+      modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      
+      // Save patient
+      $('#savePatient').addEventListener('click', saveNewPatient);
+    }
+
+    // Save new patient
+    async function saveNewPatient() {
+      const name = $('#patientName').value.trim();
+      const complaint = $('#patientComplaint').value.trim();
+      const triage = $('#patientTriage').value;
+      const location = $('#patientLocation').value.trim();
+      const nurse = $('#patientNurse').value.trim();
+      
+      if (!name || !complaint || !triage) {
+        alert('Veuillez remplir tous les champs obligatoires');
+        return;
+      }
+      
+      const patientId = 'patient_' + Date.now();
+      const patientData = {
+        id: patientId,
+        name,
+        complaint,
+        triage,
+        location,
+        nurse,
+        tasks: [],
+        createdAt: new Date().toISOString()
+      };
+      
+      try {
+        await setDoc(doc(db, `users`, currentUser, 'patients', patientId), patientData);
+        await updateStats('added', 1);
+        $('.modal-overlay').remove();
+      } catch (error) {
+        console.error('Error adding patient:', error);
+        alert('Erreur lors de l\'ajout du patient');
+      }
+    }
+
+    // Show add task modal
+    function showAddTaskModal(patientId) {
+      const modal = document.createElement('div');
+      modal.class极ame = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2>📋 Nouvelle tâche</h2>
+            <button class="modal-close">&times;</button>
+          </div>
+          <div class="modal-content">
+            <input id="taskDescription" placeholder="Description de la tâche *" required>
+            <input id="taskMinutes" type="number" placeholder="⏰ Délai en minutes (optionnel)" min="1" max="1440">
+            <button class="btn-primary" id="saveTask">Ajouter la tâche</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Close handlers
+      modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      
+      // Save task
+      $('#saveTask').addEventListener('click', () => saveNewTask(patientId));
+    }
+
+    // Save new task
+    async function saveNewTask(patientId) {
+      const description = $('#taskDescription').value.trim();
+      const minutes = parseInt($('#taskMinutes').value) || 0;
+      
+      if (!description) {
+        alert('Veuillez saisir une description pour la tâche');
+        return;
+      }
+      
+      const task = {
+        id: 'task_' + Date.now(),
+        description,
+        dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      try {
+        const patientRef = doc(db, `users`, currentUser, 'patients', patientId);
+        const patientSnap = await getDoc(patientRef);
+        
+        if (patientSnap.exists()) {
+          const patientData = patientSnap.data();
+          const updatedTasks = [...(patientData.tasks || []), task];
+          await updateDoc(patientRef, { tasks: updatedTasks });
+          $('.modal-overlay').remove();
+        }
+      } catch (error) {
+        console.error('Error adding task:', error);
+        alert('Erreur lors de l\'ajout de la tâche');
+      }
+    }
+
+    // Show decision menu
+    function showDecisionMenu(patientId, buttonElement) {
+      // Remove existing menus
+      document.querySelectorAll('.floating-menu').forEach(menu => menu.remove());
+      
+      const menu = document.createElement('div');
+      menu.className = 'floating-menu';
+      menu.innerHTML = `
+        <button class="menu-item discharge" data-action="discharge" data-patient-id="${patientId}">
+          🏠 Retour à domicile
+        </button>
+        <button class="menu-item hospitalize" data-action="hospitalize" data-patient-id="${patientId}">
+          🏥 Hospitalisation
+        </button>
+        <button class="menu-item delete" data-action="delete" data-patient-id="${patientId}">
+          🗑️ Supprimer le patient
+        </button>
+      `;
+      
+      buttonElement.closest('.card').appendChild(menu);
+      
+      // Add event listeners to menu items
+      menu.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('click', function() {
+          handlePatientDecision(patientId, this.dataset.action);
+        });
+      });
+      
+      // Close menu when clicking outside
+      setTimeout(() => {
+        document.addEventListener('click', (e) => {
+          if (!menu.contains(e.target) && !buttonElement.contains(e.target)) {
+            menu.remove();
+          }
+        }, { once: true });
+      }, 100);
+    }
+
+    // Handle patient decision
+    async function handlePatientDecision(patientId, action) {
+      try {
+        // Delete patient
+        await deleteDoc(doc(db, `users`, currentUser, 'patients', patientId));
+        
+        // Update statistics
+        const statMap = {
+          'discharge': 'discharged',
+          'hospitalize': 'hospitalized',
+          'delete': 'deleted'
+        };
+        await updateStats(statMap[action], 1);
+        
+        // Remove floating menu
+        document.querySelectorAll('.floating-menu').forEach(menu => menu.remove());
+      } catch (error) {
+        console.error(`Error with ${action}:`, error);
+        alert('Erreur lors du traitement du patient');
+      }
+    }
+
+    // Complete task
+    async function completeTask(patientId, taskId) {
+      try {
+        const patientRef = doc(db, `users`, currentUser, 'patients', patientId);
+        const patientSnap = await getDoc(patientRef);
+        
+        if (patientSnap.exists()) {
+          const patientData = patientSnap.data();
+          const updatedTasks = patientData.tasks.map(task => 
+            task.id === taskId ? { ...task, completed: true } : task
+          );
+          await updateDoc(patientRef, { tasks: updatedTasks });
+        }
+      } catch (error) {
+        console.error('Error completing task:', error);
+        alert('Erreur lors de la completion de la tâche');
+      }
+    }
+
+    // Edit patient info
+    function editPatientInfo(patientId) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2>✏️ Modifier les informations</h2>
+            <button class="modal-close">&times;</button>
+          </div>
+          <div class="modal-content">
+            <input id="editLocation" placeholder="📍 Localisation">
+            <input id="editNurse" placeholder="📱 Numéro infirmière">
+            <button class="btn-primary" id="saveInfo">Sauvegarder</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Load current values
+      getDoc(doc(db, `users`, currentUser, 'patients', patientId)).then(docSnap => {
+        if (docSnap.exists()) {
+          const patient = docSnap.data();
+          $('#editLocation').value = patient.location || '';
+          $('#editNurse').value = patient.nurse || '';
+        }
+      });
+      
+      // Close handlers
+      modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      
+      // Save info
+      $('#saveInfo').addEventListener('click', () => savePatientInfo(patientId));
+    }
+
+    // Save patient info
+    async function savePatientInfo(patientId) {
+      const location = $('#editLocation').value.trim();
+      const nurse = $('#editNurse').value.trim();
+      
+      try {
+        await updateDoc(doc(db, `users`, currentUser, 'patients', patientId), {
+          location, nurse
+        });
+        $('.modal-overlay').remove();
+      } catch (error) {
+        console.error('Error updating patient info:', error);
+        alert('Erreur lors de la mise à jour');
+      }
+    }
+
+    // Update statistics
+    async function updateStats(field, value) {
+      try {
+        const statsRef = doc(db, `users`, currentUser, 'stats', 'main');
+        await updateDoc(statsRef, {
+          [field]: increment(value)
+        });
+      } catch (error) {
+        // Create stats doc if it doesn't exist
+        const initialStats = { added: 0, hospitalized: 0, discharged: 0, deleted: 0 };
+        initialStats[field] = value;
+        await setDoc(statsRef, initialStats);
+      }
+    }
+
+    // Update statistics display
+    function updateStatisticsDisplay(stats) {
+      $('#sAdded').textContent = stats.added || 0;
+      $('#sHosp').textContent = stats.hospitalized || 0;
+      $('#sHome').textContent = stats.discharged || 0;
+      $('#sDel').textContent = stats.deleted || 0;
+    }
+
+    // Reset statistics
+    async function resetStatistics() {
+      if (!confirm('Êtes-vous sûr de vouloir réinitialiser toutes les statistiques ?')) return;
+      
+      try {
+        const statsRef = doc(db, `users`, currentUser, 'stats', 'main');
+        await setDoc(statsRef, {
+          added: 0,
+          hospitalized: 0,
+          discharged: 0,
+          deleted: 0
+        });
+      } catch (error) {
+        console.error('Error resetting statistics:', error);
+        alert('Erreur lors de la réinitialisation');
+      }
+    }
+
+    // Initialize app when DOM is ready
+    document.addEventListener('DOMContentLoaded', initializeApp);
+  </script>
 </body>
 </html>
