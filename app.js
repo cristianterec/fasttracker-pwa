@@ -212,7 +212,7 @@ function createPatientCardHTML(patient) {
   `;
 }
 
-// Setup other app event listeners
+// Setup other app event listeners - FIXED VERSION
 function setupAppEventListeners() {
   const logoutBtn = $('#logout');
   if (logoutBtn) {
@@ -235,49 +235,56 @@ function setupAppEventListeners() {
     resetStatsBtn.addEventListener('click', resetStatistics);
   }
   
-  // Event delegation for dynamic elements
+  // Event delegation for dynamic elements - FIXED VERSION
   document.addEventListener('click', function(e) {
+    // Prevent multiple event handling
+    if (e.defaultPrevented) return;
+    
     // Task buttons
-    if (e.target.classList.contains('btn') && e.target.classList.contains('task')) {
+    if (e.target.matches('.btn.task')) {
       e.preventDefault();
       e.stopPropagation();
       const patientId = e.target.dataset.patientId;
       showAddTaskModal(patientId);
+      return;
     }
     
     // Decision buttons
-    if (e.target.classList.contains('btn') && e.target.classList.contains('decision')) {
+    if (e.target.matches('.btn.decision')) {
       e.preventDefault();
       e.stopPropagation();
       const patientId = e.target.dataset.patientId;
       showDecisionMenu(patientId, e.target);
+      return;
     }
     
     // Task completion
-    if (e.target.classList.contains('task-check')) {
+    if (e.target.matches('.task-check')) {
       e.preventDefault();
       e.stopPropagation();
       const patientId = e.target.dataset.patientId;
       const taskId = e.target.dataset.taskId;
       completeTask(patientId, taskId);
+      return;
     }
     
-    // Editable info boxes
-    if (e.target.classList.contains('editable') || e.target.closest('.editable')) {
+    // Editable info boxes - FIXED: Only handle the main container
+    if (e.target.matches('.info-box.editable')) {
       e.preventDefault();
       e.stopPropagation();
-      const infoBox = e.target.classList.contains('editable') ? e.target : e.target.closest('.editable');
-      const patientId = infoBox.dataset.patientId;
+      const patientId = e.target.dataset.patientId;
       editPatientInfo(patientId);
+      return;
     }
     
     // Menu items
-    if (e.target.classList.contains('menu-item')) {
+    if (e.target.matches('.menu-item')) {
       e.preventDefault();
       e.stopPropagation();
       const patientId = e.target.dataset.patientId;
       const action = e.target.dataset.action;
       handlePatientDecision(patientId, action);
+      return;
     }
   });
 }
@@ -530,9 +537,19 @@ async function handlePatientDecision(patientId, action) {
   }
 }
 
-// Complete task
+// Complete task with enhanced animation
 async function completeTask(patientId, taskId) {
   console.log('Completing task:', taskId, 'for patient:', patientId);
+  
+  // Find the task element and add animation
+  const taskElement = document.querySelector(`[data-task-id="${taskId}"]`).closest('.task');
+  const checkButton = document.querySelector(`[data-task-id="${taskId}"]`);
+  
+  if (taskElement && checkButton) {
+    // Add completing animations
+    taskElement.classList.add('completing');
+    checkButton.classList.add('completing');
+  }
   
   try {
     if (db && window.firestoreFunctions) {
@@ -554,12 +571,22 @@ async function completeTask(patientId, taskId) {
   } catch (error) {
     console.error('Error completing task:', error);
     alert('Erreur lors de la completion de la tâche');
+    
+    // Remove animation classes if there was an error
+    if (taskElement && checkButton) {
+      taskElement.classList.remove('completing');
+      checkButton.classList.remove('completing');
+    }
   }
 }
 
-// Edit patient info
+// Edit patient info - FIXED VERSION
 function editPatientInfo(patientId) {
   console.log('Edit patient info for:', patientId);
+  
+  // Remove any existing modals to prevent duplicates
+  const existingModals = document.querySelectorAll('.modal-overlay');
+  existingModals.forEach(modal => modal.remove());
   
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -585,19 +612,25 @@ function editPatientInfo(patientId) {
     getDoc(doc(db, `users`, currentUser, 'patients', patientId)).then(docSnap => {
       if (docSnap.exists()) {
         const patient = docSnap.data();
-        $('#editLocation').value = patient.location || '';
-        $('#editNurse').value = patient.nurse || '';
+        const locationInput = document.getElementById('editLocation');
+        const nurseInput = document.getElementById('editNurse');
+        if (locationInput) locationInput.value = patient.location || '';
+        if (nurseInput) nurseInput.value = patient.nurse || '';
       }
     });
   }
   
+  // Close handlers
   modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
   
-  // Save info
-  $('#saveInfo').addEventListener('click', () => savePatientInfo(patientId));
+  // Save info handler
+  const saveBtn = document.getElementById('saveInfo');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => savePatientInfo(patientId));
+  }
 }
 
 // Save patient info
