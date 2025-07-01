@@ -121,24 +121,18 @@ class FastTrackersApp {
     
     // Event Binding
     bindEvents() {
-        // Login events - Fixed binding
-        const loginButtons = document.querySelectorAll('.login-btn');
-        loginButtons.forEach(btn => {
+        // Login events
+        document.querySelectorAll('.login-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                console.log('Login button clicked'); // Debug log
-                const user = e.currentTarget.getAttribute('data-user');
-                console.log('User selected:', user); // Debug log
+                const user = e.currentTarget.dataset.user;
                 this.login(user);
             });
         });
         
         // Logout event
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                this.logout();
-            });
-        }
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            this.logout();
+        });
         
         // Navigation events
         document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -149,76 +143,42 @@ class FastTrackersApp {
         });
         
         // Patient management events
-        const addPatientBtn = document.getElementById('add-patient-btn');
-        if (addPatientBtn) {
-            addPatientBtn.addEventListener('click', () => {
-                this.showPatientModal();
-            });
-        }
+        document.getElementById('add-patient-btn').addEventListener('click', () => {
+            this.showPatientModal();
+        });
         
-        const patientForm = document.getElementById('patient-form');
-        if (patientForm) {
-            patientForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.savePatient();
-            });
-        }
+        document.getElementById('patient-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.savePatient();
+        });
         
         // Modal events
-        const modalClose = document.getElementById('modal-close');
-        if (modalClose) {
-            modalClose.addEventListener('click', () => {
-                this.hidePatientModal();
-            });
-        }
+        document.getElementById('modal-close').addEventListener('click', () => {
+            this.hidePatientModal();
+        });
         
-        const cancelBtn = document.getElementById('cancel-btn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => {
-                this.hidePatientModal();
-            });
-        }
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            this.hidePatientModal();
+        });
         
         // Task management events
-        const taskForm = document.getElementById('task-form');
-        if (taskForm) {
-            taskForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveTask();
-            });
-        }
+        document.getElementById('task-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveTask();
+        });
         
-        const taskModalClose = document.getElementById('task-modal-close');
-        if (taskModalClose) {
-            taskModalClose.addEventListener('click', () => {
-                this.hideTaskModal();
-            });
-        }
+        document.getElementById('task-modal-close').addEventListener('click', () => {
+            this.hideTaskModal();
+        });
         
-        const taskCancelBtn = document.getElementById('task-cancel-btn');
-        if (taskCancelBtn) {
-            taskCancelBtn.addEventListener('click', () => {
-                this.hideTaskModal();
-            });
-        }
-        
-        const timerCheckbox = document.getElementById('task-timer-enabled');
-        if (timerCheckbox) {
-            timerCheckbox.addEventListener('change', (e) => {
-                const timerGroup = document.getElementById('timer-group');
-                if (timerGroup) {
-                    timerGroup.style.display = e.target.checked ? 'block' : 'none';
-                }
-            });
-        }
+        document.getElementById('task-cancel-btn').addEventListener('click', () => {
+            this.hideTaskModal();
+        });
         
         // Statistics events
-        const resetStatsBtn = document.getElementById('reset-stats-btn');
-        if (resetStatsBtn) {
-            resetStatsBtn.addEventListener('click', () => {
-                this.resetStatistics();
-            });
-        }
+        document.getElementById('reset-stats-btn').addEventListener('click', () => {
+            this.resetStatistics();
+        });
         
         // Close modals on outside click
         document.addEventListener('click', (e) => {
@@ -231,7 +191,6 @@ class FastTrackersApp {
     
     // Authentication
     login(user) {
-        console.log('Login called with user:', user); // Debug log
         this.currentUser = user;
         this.loadUserData();
         this.showMainScreen();
@@ -239,7 +198,7 @@ class FastTrackersApp {
     }
     
     logout() {
-        this.saveUserData();
+        this.saveData();
         this.currentUser = null;
         this.patients = {};
         this.stopAllTimers();
@@ -282,21 +241,13 @@ class FastTrackersApp {
     
     // Screen Management
     showLoginScreen() {
-        console.log('Showing login screen'); // Debug log
-        const loginScreen = document.getElementById('login-screen');
-        const mainScreen = document.getElementById('main-screen');
-        
-        if (loginScreen) loginScreen.classList.add('active');
-        if (mainScreen) mainScreen.classList.remove('active');
+        document.getElementById('login-screen').classList.add('active');
+        document.getElementById('main-screen').classList.remove('active');
     }
     
     showMainScreen() {
-        console.log('Showing main screen'); // Debug log
-        const loginScreen = document.getElementById('login-screen');
-        const mainScreen = document.getElementById('main-screen');
-        
-        if (loginScreen) loginScreen.classList.remove('active');
-        if (mainScreen) mainScreen.classList.add('active');
+        document.getElementById('login-screen').classList.remove('active');
+        document.getElementById('main-screen').classList.add('active');
     }
     
     switchTab(tabName) {
@@ -304,15 +255,13 @@ class FastTrackersApp {
         document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.classList.remove('active');
         });
-        const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
-        if (activeTab) activeTab.classList.add('active');
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
         
         // Update tab content
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        const activeContent = document.getElementById(`${tabName}-tab`);
-        if (activeContent) activeContent.classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
         
         if (tabName === 'statistics') {
             this.updateStatistics();
@@ -320,10 +269,7 @@ class FastTrackersApp {
     }
     
     updateUI() {
-        const userHeader = document.getElementById('current-user');
-        if (userHeader) {
-            userHeader.textContent = `FastTrackers - ${this.currentUser}`;
-        }
+        document.getElementById('current-user').textContent = `FastTrackers - ${this.currentUser}`;
         this.renderPatients();
         this.updateStatistics();
     }
@@ -335,18 +281,14 @@ class FastTrackersApp {
         const title = document.getElementById('modal-title');
         const form = document.getElementById('patient-form');
         
-        if (!modal || !title || !form) return;
-        
         if (patientId) {
             title.textContent = 'Modifier Patient';
             const patient = this.patients[patientId];
-            if (patient) {
-                document.getElementById('patient-name').value = patient.name;
-                document.getElementById('patient-complaint').value = patient.complaint;
-                document.getElementById('patient-triage').value = patient.triage;
-                document.getElementById('patient-room').value = patient.room || '';
-                document.getElementById('patient-nurse').value = patient.nurse || '';
-            }
+            document.getElementById('patient-name').value = patient.name;
+            document.getElementById('patient-complaint').value = patient.complaint;
+            document.getElementById('patient-triage').value = patient.triage;
+            document.getElementById('patient-room').value = patient.room || '';
+            document.getElementById('patient-nurse').value = patient.nurse || '';
         } else {
             title.textContent = 'Ajouter Patient';
             form.reset();
@@ -356,27 +298,16 @@ class FastTrackersApp {
     }
     
     hidePatientModal() {
-        const modal = document.getElementById('patient-modal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
+        document.getElementById('patient-modal').classList.remove('active');
         this.currentPatientId = null;
     }
     
     savePatient() {
-        const nameField = document.getElementById('patient-name');
-        const complaintField = document.getElementById('patient-complaint');
-        const triageField = document.getElementById('patient-triage');
-        const roomField = document.getElementById('patient-room');
-        const nurseField = document.getElementById('patient-nurse');
-        
-        if (!nameField || !complaintField || !triageField) return;
-        
-        const name = nameField.value.trim();
-        const complaint = complaintField.value.trim();
-        const triage = triageField.value;
-        const room = roomField ? roomField.value.trim() : '';
-        const nurse = nurseField ? nurseField.value.trim() : '';
+        const name = document.getElementById('patient-name').value.trim();
+        const complaint = document.getElementById('patient-complaint').value.trim();
+        const triage = document.getElementById('patient-triage').value;
+        const room = document.getElementById('patient-room').value.trim();
+        const nurse = document.getElementById('patient-nurse').value.trim();
         
         if (!name || !complaint || !triage) {
             alert('Veuillez remplir tous les champs obligatoires.');
@@ -412,8 +343,6 @@ class FastTrackersApp {
     
     renderPatients() {
         const grid = document.getElementById('patients-grid');
-        if (!grid) return;
-        
         const activePatients = Object.values(this.patients).filter(p => p.status === 'active');
         
         if (activePatients.length === 0) {
@@ -433,7 +362,7 @@ class FastTrackersApp {
     }
     
     renderPatientCard(patient) {
-        const tasksHtml = patient.tasks && patient.tasks.length > 0 ? `
+        const tasksHtml = patient.tasks.length > 0 ? `
             <div class="patient-tasks">
                 <h4>Tâches (${patient.tasks.length})</h4>
                 ${patient.tasks.map(task => `
@@ -459,11 +388,11 @@ class FastTrackersApp {
                     ${tasksHtml}
                     <div class="patient-actions">
                         <button class="action-btn action-btn--task" data-action="add-task" data-patient-id="${patient.id}">
-                            + Tâche
+                            Tâches
                         </button>
                         <div class="dropdown">
                             <button class="action-btn action-btn--disposition" data-action="disposition" data-patient-id="${patient.id}">
-                                Disposition
+                                Décision
                             </button>
                             <div class="dropdown-content">
                                 <button class="dropdown-item" data-action="discharge" data-patient-id="${patient.id}">
@@ -544,36 +473,18 @@ class FastTrackersApp {
     showTaskModal(patientId) {
         this.currentPatientId = patientId;
         const modal = document.getElementById('task-modal');
-        const form = document.getElementById('task-form');
-        const timerGroup = document.getElementById('timer-group');
-        
-        if (!modal || !form) return;
-        
-        form.reset();
-        if (timerGroup) timerGroup.style.display = 'none';
+        document.getElementById('task-form').reset();
         modal.classList.add('active');
     }
     
     hideTaskModal() {
-        const modal = document.getElementById('task-modal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
+        document.getElementById('task-modal').classList.remove('active');
         this.currentPatientId = null;
     }
     
     saveTask() {
-        const descField = document.getElementById('task-description');
-        const timerCheckbox = document.getElementById('task-timer-enabled');
-        const minutesField = document.getElementById('timer-minutes');
-        const secondsField = document.getElementById('timer-seconds');
-        
-        if (!descField) return;
-        
-        const description = descField.value.trim();
-        const timerEnabled = timerCheckbox ? timerCheckbox.checked : false;
-        const minutes = minutesField ? parseInt(minutesField.value) || 0 : 0;
-        const seconds = secondsField ? parseInt(secondsField.value) || 0 : 0;
+        const description = document.getElementById('task-description').value.trim();
+        const minutes = parseInt(document.getElementById('timer-minutes').value) || 0;
         
         if (!description) {
             alert('Veuillez saisir une description de tâche.');
@@ -587,8 +498,9 @@ class FastTrackersApp {
             createdAt: new Date().toISOString()
         };
         
-        if (timerEnabled && (minutes > 0 || seconds > 0)) {
-            const totalSeconds = minutes * 60 + seconds;
+        // Only add timer if minutes > 0 (optional timer)
+        if (minutes > 0) {
+            const totalSeconds = minutes * 60;
             task.timer = {
                 total: totalSeconds,
                 remaining: totalSeconds,
@@ -734,25 +646,16 @@ class FastTrackersApp {
         this.statistics = stats;
         
         // Update UI
-        const elements = {
-            'total-patients': stats.totalPatients,
-            'active-patients': stats.activePatients,
-            'discharged-patients': stats.dischargedPatients,
-            'admitted-patients': stats.admittedPatients,
-            'red-patients': stats.redPatients,
-            'orange-patients': stats.orangePatients,
-            'yellow-patients': stats.yellowPatients,
-            'green-patients': stats.greenPatients,
-            'blue-patients': stats.bluePatients,
-            'purple-patients': stats.purplePatients
-        };
-        
-        Object.keys(elements).forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = elements[id];
-            }
-        });
+        document.getElementById('total-patients').textContent = stats.totalPatients;
+        document.getElementById('active-patients').textContent = stats.activePatients;
+        document.getElementById('discharged-patients').textContent = stats.dischargedPatients;
+        document.getElementById('admitted-patients').textContent = stats.admittedPatients;
+        document.getElementById('red-patients').textContent = stats.redPatients;
+        document.getElementById('orange-patients').textContent = stats.orangePatients;
+        document.getElementById('yellow-patients').textContent = stats.yellowPatients;
+        document.getElementById('green-patients').textContent = stats.greenPatients;
+        document.getElementById('blue-patients').textContent = stats.bluePatients;
+        document.getElementById('purple-patients').textContent = stats.purplePatients;
         
         this.saveUserData();
     }
@@ -776,7 +679,6 @@ class FastTrackersApp {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing FastTrackers app');
     window.fastTrackersApp = new FastTrackersApp();
 });
 
@@ -786,6 +688,9 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
+    
+    // Show install button if desired
+    // For now, we'll just store it for later use
 });
 
 window.addEventListener('appinstalled', () => {
@@ -795,8 +700,10 @@ window.addEventListener('appinstalled', () => {
 // Handle offline/online status
 window.addEventListener('online', () => {
     console.log('App is online');
+    // Could add sync functionality here
 });
 
 window.addEventListener('offline', () => {
     console.log('App is offline');
+    // Could show offline indicator
 });
