@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Login -->
+  <!-- Login Screen -->
   <section id="login" class="login-screen">
     <div class="login-card">
       <div class="login-logo">⚡</div>
@@ -22,7 +22,7 @@
     </div>
   </section>
 
-  <!-- App Shell -->
+  <!-- Main App -->
   <section id="app" class="app-container hidden">
     <header class="app-header">
       <div class="brand">⚡ FastTrackers</div>
@@ -31,18 +31,15 @@
         <button id="logout">Déconnexion</button>
       </div>
     </header>
-
     <nav class="tabs">
       <button class="tab active" data-tab="patients">👥 Patients</button>
       <button class="tab" data-tab="stats">📊 Statistiques</button>
     </nav>
-
     <!-- Patients -->
     <main id="patients" class="tab-content">
       <div id="grid" class="grid"></div>
       <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
     </main>
-
     <!-- Stats -->
     <main id="stats" class="tab-content hidden">
       <div class="stats">
@@ -54,18 +51,13 @@
       <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
     </main>
   </section>
-
-  <!-- Service Worker Registration -->
+  <!-- Service Worker registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('SW registered: ', registration);
-          })
-          .catch((registrationError) => {
-            console.log('SW registration failed: ', registrationError);
-          });
+          .then(reg => console.log('SW registered:', reg))
+          .catch(err => console.warn('SW registration failed:', err));
       });
     }
   </script>
