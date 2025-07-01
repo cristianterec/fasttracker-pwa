@@ -1,11 +1,7 @@
-// FastTrackers PWA with Firebase sync and working login
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import {
-  getFirestore, collection, doc, setDoc, getDoc,
-  deleteDoc, onSnapshot, updateDoc, increment
-} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+// FastTrackers - Simplified working version without module imports
+console.log('FastTrackers script loading...');
 
-// Firebase configuration
+// Use Firebase v8 compat syntax for reliability
 const firebaseConfig = {
   apiKey: "AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU",
   authDomain: "fasttrackers-sync.firebaseapp.com",
@@ -15,242 +11,279 @@ const firebaseConfig = {
   appId: "1:987908003870:web:0e9c19e942df988c5ab60f"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// DOM helpers
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
-const byId = (id) => document.getElementById(id);
-
-// State management
+// Global state
 let currentUser = null;
-let unsubscribePatients = null;
-let unsubscribeStats = null;
+let patients = {};
+let statistics = {};
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
+// DOM helper functions
+function $(selector) {
+  return document.querySelector(selector);
+}
 
+function $$(selector) {
+  return document.querySelectorAll(selector);
+}
+
+// Initialize when DOM and script are ready
 function initializeApp() {
-  setupLoginListeners();
-  setupTabListeners();
-  setupLogoutListener();
+  console.log('Initializing FastTrackers...');
+  
+  // Setup login buttons with multiple approaches for reliability
+  setupLoginButtons();
+  
+  // Setup other event listeners
+  setupAppEventListeners();
+  
   console.log('FastTrackers initialized successfully');
 }
 
-// Setup login button listeners
-function setupLoginListeners() {
+// Multiple approaches to ensure login buttons work
+function setupLoginButtons() {
+  console.log('Setting up login buttons...');
+  
+  // Approach 1: Direct event listeners
   const loginButtons = $$('.user-btn');
-  loginButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
+  console.log('Found login buttons:', loginButtons.length);
+  
+  loginButtons.forEach((button, index) => {
+    console.log(`Setting up button ${index}:`, button.dataset.user);
+    
+    // Remove any existing listeners
+    button.replaceWith(button.cloneNode(true));
+    const newButton = $$('.user-btn')[index];
+    
+    newButton.addEventListener('click', function(e) {
+      console.log('Login button clicked:', e.target.dataset.user);
       const username = e.target.dataset.user;
       if (username) {
         loginUser(username);
       }
     });
+    
+    // Backup approach: onclick handler
+    newButton.onclick = function(e) {
+      console.log('Onclick handler triggered:', e.target.dataset.user);
+      const username = e.target.dataset.user;
+      if (username) {
+        loginUser(username);
+      }
+    };
   });
+  
+  // Approach 2: Event delegation on parent
+  const loginScreen = $('#login');
+  if (loginScreen) {
+    loginScreen.addEventListener('click', function(e) {
+      if (e.target.classList.contains('user-btn')) {
+        console.log('Delegated click handler:', e.target.dataset.user);
+        const username = e.target.dataset.user;
+        if (username) {
+          loginUser(username);
+        }
+      }
+    });
+  }
+  
+  console.log('Login buttons setup complete');
 }
 
 // Login function
-async function loginUser(username) {
+function loginUser(username) {
+  console.log('Logging in user:', username);
+  
   try {
     currentUser = username;
-    byId('username').textContent = username;
     
-    // Hide login screen and show app
-    byId('login').classList.add('hidden');
-    byId('app').classList.remove('hidden');
+    // Update UI
+    const usernameEl = $('#username');
+    if (usernameEl) {
+      usernameEl.textContent = username;
+    }
     
-    // Start real-time listeners
-    startRealtimeListeners();
+    // Hide login screen
+    const loginScreen = $('#login');
+    if (loginScreen) {
+      loginScreen.classList.add('hidden');
+    }
     
-    // Setup app event listeners
-    setupAppListeners();
+    // Show app
+    const appContainer = $('#app');
+    if (appContainer) {
+      appContainer.classList.remove('hidden');
+    }
     
-    console.log(`User ${username} logged in successfully`);
+    // Initialize user data
+    initializeUserData();
+    
+    // Load initial data
+    loadUserData();
+    
+    console.log('Login successful for:', username);
+    
   } catch (error) {
     console.error('Login error:', error);
     alert('Erreur de connexion. Veuillez réessayer.');
   }
 }
 
-// Setup logout listener
-function setupLogoutListener() {
-  byId('logout').addEventListener('click', logoutUser);
+// Initialize user data structure
+function initializeUserData() {
+  if (!patients[currentUser]) {
+    patients[currentUser] = [];
+  }
+  if (!statistics[currentUser]) {
+    statistics[currentUser] = {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      deleted: 0
+    };
+  }
+}
+
+// Load user data from localStorage
+function loadUserData() {
+  try {
+    const savedPatients = localStorage.getItem(`ft_patients_${currentUser}`);
+    const savedStats = localStorage.getItem(`ft_stats_${currentUser}`);
+    
+    if (savedPatients) {
+      patients[currentUser] = JSON.parse(savedPatients);
+    }
+    
+    if (savedStats) {
+      statistics[currentUser] = JSON.parse(savedStats);
+    }
+    
+    renderPatients();
+    updateStatistics();
+    
+  } catch (error) {
+    console.error('Error loading user data:', error);
+  }
+}
+
+// Save user data to localStorage
+function saveUserData() {
+  try {
+    localStorage.setItem(`ft_patients_${currentUser}`, JSON.stringify(patients[currentUser] || []));
+    localStorage.setItem(`ft_stats_${currentUser}`, JSON.stringify(statistics[currentUser] || {}));
+  } catch (error) {
+    console.error('Error saving user data:', error);
+  }
+}
+
+// Setup other app event listeners
+function setupAppEventListeners() {
+  // Logout button
+  const logoutBtn = $('#logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', logoutUser);
+  }
+  
+  // Tab switching
+  $$('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      switchTab(this.dataset.tab);
+    });
+  });
+  
+  // Add patient button
+  const addPatientBtn = $('#addPatient');
+  if (addPatientBtn) {
+    addPatientBtn.addEventListener('click', showAddPatientModal);
+  }
+  
+  // Reset stats button
+  const resetStatsBtn = $('#resetStats');
+  if (resetStatsBtn) {
+    resetStatsBtn.addEventListener('click', resetStatistics);
+  }
 }
 
 // Logout function
 function logoutUser() {
-  // Unsubscribe from real-time listeners
-  if (unsubscribePatients) unsubscribePatients();
-  if (unsubscribeStats) unsubscribeStats();
+  console.log('Logging out user');
   
-  // Reset state
   currentUser = null;
   
-  // Show login screen and hide app
-  byId('app').classList.add('hidden');
-  byId('login').classList.remove('hidden');
+  // Show login screen
+  $('#login').classList.remove('hidden');
   
-  console.log('User logged out successfully');
+  // Hide app
+  $('#app').classList.add('hidden');
 }
 
-// Setup app event listeners
-function setupAppListeners() {
-  // Add patient button
-  byId('addPatient').addEventListener('click', showAddPatientModal);
-  
-  // Reset stats button
-  byId('resetStats').addEventListener('click', resetStatistics);
-}
-
-// Setup tab listeners
-function setupTabListeners() {
+// Switch tabs
+function switchTab(tabName) {
+  // Update tab buttons
   $$('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      // Update active tab
-      $$('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      
-      // Show corresponding content
-      $$('.tab-content').forEach(content => content.classList.add('hidden'));
-      byId(tab.dataset.tab).classList.remove('hidden');
-    });
+    tab.classList.remove('active');
   });
+  $(`[data-tab="${tabName}"]`).classList.add('active');
+  
+  // Update tab content
+  $$('.tab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+  $(`#${tabName}`).classList.remove('hidden');
+  
+  if (tabName === 'stats') {
+    updateStatistics();
+  }
 }
 
-// Start real-time Firestore listeners
-function startRealtimeListeners() {
-  if (!currentUser) return;
+// Render patients
+function renderPatients() {
+  const grid = $('#grid');
+  const userPatients = patients[currentUser] || [];
   
-  // Listen to patients collection
-  unsubscribePatients = onSnapshot(
-    collection(db, `users/${currentUser}/patients`),
-    (snapshot) => {
-      renderPatients(snapshot);
-    },
-    (error) => {
-      console.error('Error listening to patients:', error);
-    }
-  );
-  
-  // Listen to statistics document
-  unsubscribeStats = onSnapshot(
-    doc(db, `users/${currentUser}/stats`, 'main'),
-    (doc) => {
-      updateStatisticsDisplay(doc.data() || {});
-    },
-    (error) => {
-      console.error('Error listening to stats:', error);
-    }
-  );
-}
-
-// Render patients in grid
-function renderPatients(snapshot) {
-  const grid = byId('grid');
-  
-  if (snapshot.empty) {
-    grid.innerHTML = '<p style="opacity:.6; text-align:center; padding:40px;">Aucun patient actif</p>';
+  if (userPatients.length === 0) {
+    grid.innerHTML = '<p style="opacity:0.6; text-align:center; padding:40px;">Aucun patient actif</p>';
     return;
   }
   
-  grid.innerHTML = '';
-  snapshot.forEach(docSnap => {
-    const patient = docSnap.data();
-    grid.appendChild(createPatientCard(patient));
-  });
-  
-  // Attach event listeners to newly created buttons
-  attachPatientButtonListeners();
+  grid.innerHTML = userPatients.map(patient => `
+    <div class="card ${patient.triage}">
+      <div class="info-box" onclick="editPatientInfo('${patient.id}')">
+        📍 ${patient.location || '--'}<br/>📱 ${patient.nurse || '--'}
+      </div>
+      <div class="patient-main">
+        <h3 class="patient-name">${patient.name}</h3>
+        <p class="patient-complaint">${patient.complaint}</p>
+      </div>
+      <div class="tasks">${renderTasks(patient.tasks || [])}</div>
+      <div class="actions">
+        <button class="btn task" onclick="showAddTaskModal('${patient.id}')">📋 Tâches</button>
+        <button class="btn decision" onclick="showDecisionMenu('${patient.id}', this)">⚖️ Décision</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-// Create patient card element
-function createPatientCard(patient) {
-  const card = document.createElement('div');
-  card.className = `card ${patient.triage || 'blue'}`;
-  
-  card.innerHTML = `
-    <div class="info-box" data-id="${patient.id}">
-      📍 ${patient.location || '--'}<br/>📱 ${patient.nurse || '--'}
-    </div>
-    <div class="patient-main">
-      <h3 class="patient-name">${patient.name}</h3>
-      <p class="patient-complaint">${patient.complaint}</p>
-    </div>
-    <div class="tasks">${renderTasks(patient.tasks || [])}</div>
-    <div class="actions">
-      <button class="btn task" data-id="${patient.id}">📋 Tâches</button>
-      <button class="btn decision" data-id="${patient.id}">⚖️ Décision</button>
-    </div>
-  `;
-  
-  return card;
-}
-
-// Render tasks for a patient
+// Render tasks
 function renderTasks(tasks) {
   const activeTasks = tasks.filter(task => !task.completed);
   if (activeTasks.length === 0) return '';
   
-  return activeTasks.map(task => {
-    const timeLeft = task.dueAt ? Math.max(0, new Date(task.dueAt) - Date.now()) : null;
-    const timerText = timeLeft ? formatTime(timeLeft) : '--:--';
-    
-    return `
-      <div class="task">
-        <div class="task-content">
-          <span class="task-desc">${task.description}</span>
-          <span class="task-timer">${timerText}</span>
-        </div>
-        <button class="task-check" data-task-id="${task.id}" data-patient-id="${task.patientId}">✓</button>
+  return activeTasks.map(task => `
+    <div class="task">
+      <div class="task-content">
+        <span class="task-desc">${task.description}</span>
+        <span class="task-timer">${task.dueAt ? formatTime(new Date(task.dueAt) - Date.now()) : '--:--'}</span>
       </div>
-    `;
-  }).join('');
+      <button class="task-check" onclick="completeTask('${task.patientId}', '${task.id}')">✓</button>
+    </div>
+  `).join('');
 }
 
-// Format time in MM:SS format
+// Format time
 function formatTime(ms) {
+  if (ms <= 0) return '00:00';
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-// Attach event listeners to patient card buttons
-function attachPatientButtonListeners() {
-  // Task buttons
-  $$('.btn.task').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const patientId = e.currentTarget.dataset.id;
-      showAddTaskModal(patientId);
-    });
-  });
-  
-  // Decision buttons
-  $$('.btn.decision').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const patientId = e.currentTarget.dataset.id;
-      showDecisionMenu(patientId, e.currentTarget);
-    });
-  });
-  
-  // Task completion buttons
-  $$('.task-check').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const taskId = e.currentTarget.dataset.taskId;
-      const patientId = e.currentTarget.dataset.patientId;
-      completeTask(patientId, taskId);
-    });
-  });
-  
-  // Info box edit buttons
-  $$('.info-box').forEach(box => {
-    box.addEventListener('click', (e) => {
-      const patientId = e.currentTarget.dataset.id;
-      showEditInfoModal(patientId);
-    });
-  });
 }
 
 // Show add patient modal
@@ -261,7 +294,7 @@ function showAddPatientModal() {
     <div class="modal">
       <div class="modal-header">
         <h2>➕ Nouveau patient</h2>
-        <button class="modal-close">&times;</button>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
       </div>
       <div class="modal-content">
         <input id="patientName" placeholder="Nom du patient *" required>
@@ -277,41 +310,34 @@ function showAddPatientModal() {
         </select>
         <input id="patientLocation" placeholder="📍 Localisation">
         <input id="patientNurse" placeholder="📱 Numéro infirmière">
-        <button id="savePatient" class="btn-primary">Enregistrer</button>
+        <button onclick="saveNewPatient()" class="btn-primary">Enregistrer</button>
       </div>
     </div>
   `;
   
   document.body.appendChild(modal);
   
-  // Modal event listeners
-  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+  // Close on overlay click
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
-  
-  byId('savePatient').addEventListener('click', async () => {
-    await saveNewPatient();
-    modal.remove();
-  });
 }
 
-// Save new patient to Firestore
-async function saveNewPatient() {
-  const name = byId('patientName').value.trim();
-  const complaint = byId('patientComplaint').value.trim();
-  const triage = byId('patientTriage').value;
-  const location = byId('patientLocation').value.trim();
-  const nurse = byId('patientNurse').value.trim();
+// Save new patient
+function saveNewPatient() {
+  const name = $('#patientName').value.trim();
+  const complaint = $('#patientComplaint').value.trim();
+  const triage = $('#patientTriage').value;
+  const location = $('#patientLocation').value.trim();
+  const nurse = $('#patientNurse').value.trim();
   
   if (!name || !complaint || !triage) {
     alert('Veuillez remplir tous les champs obligatoires');
     return;
   }
   
-  const patientId = 'patient_' + Date.now();
-  const patientData = {
-    id: patientId,
+  const patient = {
+    id: 'patient_' + Date.now(),
     name,
     complaint,
     triage,
@@ -321,217 +347,84 @@ async function saveNewPatient() {
     createdAt: new Date().toISOString()
   };
   
-  try {
-    await setDoc(doc(db, `users/${currentUser}/patients`, patientId), patientData);
-    await incrementStat('added');
-    console.log('Patient added successfully');
-  } catch (error) {
-    console.error('Error adding patient:', error);
-    alert('Erreur lors de l\'ajout du patient');
-  }
-}
-
-// Show add task modal
-function showAddTaskModal(patientId) {
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal">
-      <div class="modal-header">
-        <h2>📋 Nouvelle tâche</h2>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-content">
-        <input id="taskDescription" placeholder="Description de la tâche *" required>
-        <input id="taskMinutes" type="number" placeholder="⏰ Délai en minutes (optionnel)" min="1" max="1440">
-        <button id="saveTask" class="btn-primary">Ajouter la tâche</button>
-      </div>
-    </div>
-  `;
+  patients[currentUser].push(patient);
+  statistics[currentUser].added++;
   
-  document.body.appendChild(modal);
+  saveUserData();
+  renderPatients();
+  updateStatistics();
   
-  // Modal event listeners
-  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
+  // Close modal
+  $('.modal-overlay').remove();
   
-  byId('saveTask').addEventListener('click', async () => {
-    await saveNewTask(patientId);
-    modal.remove();
-  });
-}
-
-// Save new task
-async function saveNewTask(patientId) {
-  const description = byId('taskDescription').value.trim();
-  const minutes = parseInt(byId('taskMinutes').value) || 0;
-  
-  if (!description) {
-    alert('Veuillez saisir une description pour la tâche');
-    return;
-  }
-  
-  const task = {
-    id: 'task_' + Date.now(),
-    description,
-    dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
-    completed: false,
-    patientId
-  };
-  
-  try {
-    const patientRef = doc(db, `users/${currentUser}/patients`, patientId);
-    const patientSnap = await getDoc(patientRef);
-    
-    if (patientSnap.exists()) {
-      const patientData = patientSnap.data();
-      const updatedTasks = [...(patientData.tasks || []), task];
-      await updateDoc(patientRef, { tasks: updatedTasks });
-      console.log('Task added successfully');
-    }
-  } catch (error) {
-    console.error('Error adding task:', error);
-    alert('Erreur lors de l\'ajout de la tâche');
-  }
-}
-
-// Show decision menu
-function showDecisionMenu(patientId, buttonElement) {
-  // Remove existing menus
-  $$('.floating-menu').forEach(menu => menu.remove());
-  
-  const menu = document.createElement('div');
-  menu.className = 'floating-menu';
-  menu.innerHTML = `
-    <button class="menu-item discharge" data-action="discharge">🏠 Retour à domicile</button>
-    <button class="menu-item hospitalize" data-action="hospitalize">🏥 Hospitalisation</button>
-    <button class="menu-item delete" data-action="delete">🗑️ Supprimer le patient</button>
-  `;
-  
-  buttonElement.closest('.card').appendChild(menu);
-  
-  // Add event listeners to menu items
-  menu.querySelectorAll('.menu-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      const action = e.target.dataset.action;
-      handlePatientDecision(patientId, action);
-      menu.remove();
-    });
-  });
-  
-  // Close menu when clicking outside
-  setTimeout(() => {
-    document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && !buttonElement.contains(e.target)) {
-        menu.remove();
-      }
-    }, { once: true });
-  }, 100);
-}
-
-// Handle patient decision actions
-async function handlePatientDecision(patientId, action) {
-  try {
-    await deleteDoc(doc(db, `users/${currentUser}/patients`, patientId));
-    
-    switch (action) {
-      case 'discharge':
-        await incrementStat('discharged');
-        break;
-      case 'hospitalize':
-        await incrementStat('hospitalized');
-        break;
-      case 'delete':
-        await incrementStat('deleted');
-        break;
-    }
-    
-    console.log(`Patient ${action} action completed`);
-  } catch (error) {
-    console.error(`Error with ${action} action:`, error);
-    alert('Erreur lors du traitement du patient');
-  }
-}
-
-// Complete a task
-async function completeTask(patientId, taskId) {
-  try {
-    const patientRef = doc(db, `users/${currentUser}/patients`, patientId);
-    const patientSnap = await getDoc(patientRef);
-    
-    if (patientSnap.exists()) {
-      const patientData = patientSnap.data();
-      const updatedTasks = patientData.tasks.map(task => 
-        task.id === taskId ? { ...task, completed: true } : task
-      );
-      await updateDoc(patientRef, { tasks: updatedTasks });
-      console.log('Task completed successfully');
-    }
-  } catch (error) {
-    console.error('Error completing task:', error);
-    alert('Erreur lors de la completion de la tâche');
-  }
-}
-
-// Increment statistics
-async function incrementStat(statName) {
-  try {
-    const statsRef = doc(db, `users/${currentUser}/stats`, 'main');
-    await updateDoc(statsRef, {
-      [statName]: increment(1)
-    });
-  } catch (error) {
-    // If document doesn't exist, create it
-    await setDoc(statsRef, {
-      added: statName === 'added' ? 1 : 0,
-      hospitalized: statName === 'hospitalized' ? 1 : 0,
-      discharged: statName === 'discharged' ? 1 : 0,
-      deleted: statName === 'deleted' ? 1 : 0
-    });
-  }
+  console.log('Patient added:', patient.name);
 }
 
 // Update statistics display
-function updateStatisticsDisplay(stats) {
-  byId('sAdded').textContent = stats.added || 0;
-  byId('sHosp').textContent = stats.hospitalized || 0;
-  byId('sHome').textContent = stats.discharged || 0;
-  byId('sDel').textContent = stats.deleted || 0;
+function updateStatistics() {
+  const stats = statistics[currentUser] || {};
+  
+  $('#sAdded').textContent = stats.added || 0;
+  $('#sHosp').textContent = stats.hospitalized || 0;
+  $('#sHome').textContent = stats.discharged || 0;
+  $('#sDel').textContent = stats.deleted || 0;
 }
 
 // Reset statistics
-async function resetStatistics() {
+function resetStatistics() {
   if (confirm('Êtes-vous sûr de vouloir réinitialiser toutes les statistiques ?')) {
-    try {
-      const statsRef = doc(db, `users/${currentUser}/stats`, 'main');
-      await setDoc(statsRef, {
-        added: 0,
-        hospitalized: 0,
-        discharged: 0,
-        deleted: 0
-      });
-      console.log('Statistics reset successfully');
-    } catch (error) {
-      console.error('Error resetting statistics:', error);
-      alert('Erreur lors de la réinitialisation des statistiques');
-    }
+    statistics[currentUser] = {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      deleted: 0
+    };
+    saveUserData();
+    updateStatistics();
+    console.log('Statistics reset');
   }
 }
 
-// Update timers every second
-setInterval(() => {
-  $$('.task-timer').forEach(timer => {
-    const taskElement = timer.closest('.task');
-    const taskCheckBtn = taskElement.querySelector('.task-check');
-    const taskId = taskCheckBtn?.dataset.taskId;
-    
-    if (taskId) {
-      // Timer update logic would go here
-      // This is a simplified version
-    }
-  });
-}, 1000);
+// Global functions for onclick handlers
+window.editPatientInfo = function(patientId) {
+  console.log('Edit patient info:', patientId);
+  // Implementation for editing patient info
+};
 
-console.log('FastTrackers app.js loaded');
+window.showAddTaskModal = function(patientId) {
+  console.log('Show add task modal for:', patientId);
+  // Implementation for task modal
+};
+
+window.showDecisionMenu = function(patientId, buttonElement) {
+  console.log('Show decision menu for:', patientId);
+  // Implementation for decision menu
+};
+
+window.completeTask = function(patientId, taskId) {
+  console.log('Complete task:', taskId, 'for patient:', patientId);
+  // Implementation for task completion
+};
+
+window.saveNewPatient = saveNewPatient;
+
+// Multiple initialization approaches for maximum reliability
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  // DOM already loaded
+  initializeApp();
+}
+
+// Backup initialization
+window.addEventListener('load', function() {
+  if (!currentUser) {
+    console.log('Backup initialization triggered');
+    initializeApp();
+  }
+});
+
+// Immediate initialization attempt
+setTimeout(initializeApp, 100);
+
+console.log('FastTrackers script loaded');
