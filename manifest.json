@@ -1,12 +1,13 @@
 {
- ```ame": "FastTrackers –```stion des Ur```ces",
-  "short_name": "```tTrackers",
- ```escription": "``` de gestion```s patients```urgence avec```nchronisation hors```gne",
-  "start_url": "/```  "display": "```ndalone",
- ```ackground_color": "#```628",
-  "theme_color":```0a1628",
- ```rientation": "```trait-primary",
- ```cons": [
+  "name": "FastTrackers – Gestion des Urgences",
+  "short_name": "FastTrackers",
+  "description": "PWA de gestion des patients d'urgence avec synchronisation hors ligne",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "orientation": "portrait-primary",
+  "icons": [
     {
       "src": "fasttrackers_icon.png",
       "sizes": "192x192",
@@ -14,8 +15,10 @@
     },
     {
       "src": "fasttrackers_icon.png",
-      "sizes": "512x512",
+      "sizes": "512x512", 
       "type": "image/png"
     }
-  ]
+  ],
+  "categories": ["medical", "productivity", "health"],
+  "prefer_related_applications": false
 }
