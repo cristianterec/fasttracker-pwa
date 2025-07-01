@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FastTrackers</title>
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<!-- Manifest for PWA -->
+<link rel="manifest" href="manifest.json" />
+<!-- Theme color for mobile browsers -->
+<meta name="theme-color" content="#0f0f0f" />
+<!-- Apple-specific meta tags for PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<!-- Apple icons -->
+<link rel="apple-touch-icon" href="icon-192.png" />
+<!-- Styles for the app -->
+<style>
+  :root {
+    --color-dark: #0f0f0f;
+    --color-primary: #0a3d62;
+    --color-accent: #1e90ff;
+    --color-success: #2d7d47;
+    --color-warning: #f39c12;
+    --color-danger: #c0392b;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-family);
+    background-color: #121212;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0a3d62, #1e90ff);
+    position: relative;
+  }
+  #logo-container {
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #logo {
+    font-size: 36px;
+    color: #fff;
+  }
+  #logo-text {
+    font-size: 12px;
+    color: #ccc;
+    margin-top: 4px;
+  }
+  h1 {
+    font-size: 2rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #tabs {
+    display: flex;
+    justify-content: space-around;
+    background-color: #222;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background 0.2s;
+  }
+  .tab.active {
+    background-color: #1e90ff;
+    color: #fff;
+  }
+  #content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  #patients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+  .patient-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.1s;
+    min-height: 80px;
+    position: relative;
+  }
+  .patient-card:hover {
+    transform: scale(1.02);
+  }
+  /* Background colors based on triage */
+  .red { background-color: #c0392b; }
+  .orange { background-color: #d35400; }
+  .yellow { background-color: #f39c12; color: #000; }
+  .green { background-color: #27ae60; }
+  .blue { background-color: #2980b9; }
+  .purple { background-color: #8e44ad; }
+  /* Info top right box for room and nurse */
+  .info-box {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  /* Patient name and complaint */
+  .name {
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  .complaint {
+    font-size: 0.9rem;
+  }
+  /* Tasks list inside patient card */
+  .tasks-list {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .task-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+  .task-timer {
+    font-family: monospace;
+    font-weight: bold;
+  }
+  /* Buttons at bottom of patient card */
+  .actions {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 4px;
+  }
+  .action-btn {
+    border: none;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tasks-btn { background: rgba(255,255,255,0.2); color: #fff; }
+  .decision-btn { background: rgba(255,255,255,0.2); color: #fff; }
+  /* Floating menu for decision options */
+  .decision-menu {
+    position: absolute;
+    bottom: 40px;
+    right: 10px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 999;
+  }
+  .decision-option {
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .decision-option:hover {
+    background: rgba(0,0,0,0.1);
+  }
+  /* Modal for tasks */
+  .modal-backdrop {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    max-width: 300px;
+    width: 90%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .modal h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+  }
+  .modal input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-primary { background: #2ecc71; color: #fff; }
+  .btn-secondary { background: #3498db; color: #fff; }
+  .btn-danger { background: #e74c3c; color: #fff; }
+  /* Notification popup */
+  .notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: #222;
+    color: #fff;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    font-size: 1rem;
+    z-index: 9999;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .notification.show {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  /* Stats page styles */
+  #stats {
+    padding: 16px;
+  }
+  #stats h2 {
+    margin-top: 0;
+  }
+  #stats .stats-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .stat-box {
+    flex: 1 1 150px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  /* Reset button in stats */
+  #reset-stats {
+    margin-top: 12px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    background: #e74c3c;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #reset-stats:hover {
+    background: #c0392b;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div id="logo-container">
+    <!-- SVG logo with medical bolt -->
+    <svg id="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+      <circle cx="32" cy="32" r="30" fill="#1e90ff" opacity="0.8"/>
+      <polygon points="32,4 36,20 52,20 38,32 42,48 28,36 22,52 26,36 12,36 26,20 22,4" fill="#fff"/>
+    </svg>
+    <div id="logo-text">Speed & Care</div>
+  </div>
+  <h1>FastTrackers</h1>
+</header>
+<div id="tabs">
+  <div class="tab active" data-tab="patients">Patients</div>
+  <div class="tab" data-tab="stats">Statistiques</div>
+</div>
+<div id="content">
+  <div id="patients" style="display:flex; flex-wrap:wrap; gap:8px; padding:8px;">
+    <!-- Patient cards will be appended here -->
+  </div>
+  <button id="addPatientBtn" style="margin:12px auto; display:block; padding:10px 20px; border:none; border-radius:20px; background:#2ecc71; color:#fff; font-weight:600; font-size:1rem; cursor:pointer;">
+    <i class="fas fa-user-plus"></i> Ajouter un patient
+  </button>
+  <div id="stats" style="display:none;">
+    <h2>Statistiques</h2>
+    <div class="stats-container">
+      <div class="stat-box" id="totalPatients">0</div>
+      <div class="stat-box" id="hospitalizedCount">0</div>
+      <div class="stat-box" id="dischargedCount">0</div>
+      <div class="stat-box" id="deletedCount">0</div>
+    </div>
+    <button id="resetStats">Réinitialiser</button>
+  </div>
+</div>
+
+<!-- Modal container -->
+<div id="modalContainer"></div>
+
+<!-- Notification container -->
+<div id="notification"></div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script>
+  // Data
+  let patients = [];
+  let tasks = [];
+  let currentTab = 'patients';
+
+  // Utility functions
+  function createPatientCard(p) {
+    const bgColor = {
+      red: '#c0392b',
+      orange: '#d35400',
+      yellow: '#f39c12',
+      green: '#27ae60',
+      blue: '#2980b9',
+      purple: '#8e44ad'
+    }[p.triage];
+
+    const card = document.createElement('div');
+    card.className = `patient-card ${p.triage}`;
+    card.style.backgroundColor = bgColor;
+    card.innerHTML = `
+      <div class="info-box" onclick="editLocationNurse('${p.id}')">
+        <div><i class="fas fa-map-pin"></i> <span id="loc-${p.id}">${p.chambre || '---'}</span></div>
+        <div><i class="fas fa-phone"></i> <span id="nurse-${p.id}">${p.ide || '---'}</span></div>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="name">${p.nom}</div>
+        <div class="complaint">${p.motif}</div>
+      </div>
+      <div class="tasks-list" id="tasks-${p.id}">
+        <!-- Tasks will appear here -->
+      </div>
+      <div class="actions">
+        <button class="action-btn tasks" onclick="openTaskModal('${p.id}')"><i class="fas fa-tasks"></i> Tâches</button>
+        <button class="action-btn decision" onclick="openDecisionMenu(event,'${p.id}')"><i class="fas fa-ellipsis-h"></i> Décision</button>
+      </div>
+    `;
+    // Add existing tasks
+    const taskContainer = card.querySelector(`#tasks-${p.id}`);
+    tasks.filter(t => t.patientId===p.id && !t.done).forEach(t => {
+      const tdiv = document.createElement('div');
+      tdiv.className='task-item';
+      tdiv.innerHTML = `
+        <span>${t.desc}</span>
+        <span style="display:flex; align-items:center; gap:4px;">
+          <span id="timer-${t.id}">${formatTimer(t)}</span>
+          <span class="task-complete" title="Terminer" onclick="completeTask('${t.id}')"><i class="fas fa-check"></i></span>
+        </span>
+      `;
+      taskContainer.appendChild(tdiv);
+    });
+    return card;
+  }
+
+  function formatTimer(t) {
+    const remaining = Math.max(0, Math.floor((t.end - Date.now())/1000));
+    const m = Math.floor(remaining/60);
+    const s = remaining%60;
+    return `${m}:${s.toString().padStart(2,'0')}`;
+  }
+
+  function updateTimers() {
+    tasks.filter(t => !t.done).forEach(t => {
+      const el = document.getElementById('timer-'+t.id);
+      if (el) {
+        el.textContent = formatTimer(t);
+        if (t.end - Date.now() <= 0) {
+          showNotification(`Tâche "${t.desc}" pour ${getPatientName(t.patientId)} terminée`, true);
+        }
+      }
+    });
+  }
+  setInterval(updateTimers, 1000);
+
+  function getPatientName(pid) {
+    const p = patients.find(p => p.id===pid);
+    return p ? p.nom : '';
+  }
+
+  // Render all patients
+  function renderPatients() {
+    const container = document.getElementById('patients');
+    container.innerHTML = '';
+    patients.forEach(p => {
+      container.appendChild(createPatientCard(p));
+    });
+    updateStats();
+  }
+
+  // Add patient
+  document.getElementById('addPatientBtn').onclick = () => {
+    openPatientModal();
+  };
+
+  // Modal for adding patient
+function openPatientModal() {
+  const modal = document.createElement('div');
+  modal.className='modal-backdrop';
+  modal.innerHTML=`
+    <div class="modal">
+      <h3>Ajouter un patient</h3>
+      <form id="patientForm">
+        <input type="text" placeholder="Nom" required id="nom">
+        <input type="text" placeholder="Motif" required id="motif">
+        <input type="text" placeholder="Chambre" id="chambre">
+        <input type="text" placeholder="IDE" id="ide">
+        <select id="triage" required>
+          <option value="">Triage</option>
+          <option value="red">Rouge</option>
+          <option value="orange">Orange</option>
+          <option value="yellow">Jaune</option>
+          <option value="green">Vert</option>
+          <option value="blue">Bleu</option>
+          <option value="purple">Violet</option>
+        </select>
+        <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" onclick="closeModal()">Annuler</button>
+          <button type="submit">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById('modalContainer').appendChild(modal);
+  document.getElementById('patientForm').onsubmit = e => {
+    e.preventDefault();
+    const p = {
+      id: 'p'+Date.now(),
+      nom: document.getElementById('nom').value.trim(),
+      motif: document.getElementById('motif').value.trim(),
+      chambre: document.getElementById('chambre').value.trim(),
+      ide: document.getElementById('ide').value.trim(),
+      triage: document.getElementById('triage').value
+    };
+    patients.push(p);
+    closeModal();
+    renderPatients();
+  };
+}
+function closeModal() {
+  document.getElementById('modalContainer').innerHTML='';
+}
+
+// Decision menu
+function openDecisionMenu(e,pid) {
+  closeDecisionMenus();
+  const btn = e.currentTarget;
+  const menu = document.createElement('div');
+  menu.className='decision-menu';
+  menu.innerHTML=`
+    <button class="rad" onclick="setOutcome('${pid}','Retour à domicile')">Retour à domicile</button>
+    <button class="hospit" onclick="setOutcome('${pid}','Hospitalisation')">Hospitalisation</button>
+    <button class="supprimer" onclick="setOutcome('${pid}','Supprimer le patient')">Supprimer le patient</button>
+  `;
+  btn.parentNode.appendChild(menu);
+  document.addEventListener('click', closeDecisionMenus, {once:true});
+}
+function closeDecisionMenus() {
+  document.querySelectorAll('.decision-menu').forEach(m=>m.remove());
+}
+function setOutcome(pid, action) {
+  if (action==='Retour à domicile') {
+    patients = patients.filter(p=>p.id!==pid);
+    // increment discharged count
+    updateStats('discharged');
+  } else if (action==='Hospitalisation') {
+    patients = patients.filter(p=>p.id!==pid);
+    // increment hospitalized count
+    updateStats('hospitalized');
+  } else if (action==='Supprimer le patient') {
+    patients = patients.filter(p=>p.id!==pid);
+    // increment deleted count
+    updateStats('deleted');
+  }
+  closeDecisionMenus();
+  renderPatients();
+}
+
+// Task modal
+function openTaskModal(pid) {
+  const modal = document.createElement('div');
+  modal.className='modal-backdrop';
+  modal.innerHTML=`
+    <div class="modal">
+      <h3>Nouvelle tâche</h3>
+      <form id="taskForm">
+        <input type="text" placeholder="Description" required id="taskDesc">
+        <input type="number" placeholder="Minutes" min="1" max="240" id="taskMin">
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+          <button type="button" onclick="closeModal()">Annuler</button>
+          <button type="submit">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById('modalContainer').appendChild(modal);
+  document.getElementById('taskForm').onsubmit=e=>{
+    e.preventDefault();
+    const desc = document.getElementById('taskDesc').value.trim();
+    const min = parseInt(document.getElementById('taskMin').value,10);
+    if (!desc || !min) return;
+    const t = {
+      id:'t'+Date.now()+Math.random().toString(36).slice(2,6),
+      patientId:pid,
+      desc,
+      end: Date.now() + min*60000,
+      done:false
+    };
+    tasks.push(t);
+    closeModal();
+    renderPatients();
+  };
+}
+
+// Mark task as complete
+function completeTask(tid) {
+  tasks = tasks.map(t=>t.id===tid ? {...t, done:true} : t);
+  renderPatients();
+}
+
+// Stats update
+function updateStats(type) {
+  if (!type) {
+    // initialize
+    document.getElementById('totalPatients').textContent=patients.length;
+    document.getElementById('hospitalizedCount').textContent=0;
+    document.getElementById('dischargedCount').textContent=0;
+    document.getElementById('deletedCount').textContent=0;
+  } else {
+    const el = document.getElementById({
+      'hospitalized':'hospitalizedCount',
+      'discharged':'dischargedCount',
+      'deleted':'deletedCount'
+    }[type]);
+    el.textContent = parseInt(el.textContent,10)+1;
+  }
+}
+
+// Reset stats
+document.getElementById('reset-stats').onclick=()=>{
+  if (confirm('Réinitialiser toutes les statistiques ?')) {
+    document.getElementById('totalPatients').textContent='0';
+    document.getElementById('hospitalizedCount').textContent='0';
+    document.getElementById('dischargedCount').textContent='0';
+    document.getElementById('deletedCount').textContent='0';
+  }
+};
+
+// Add event listeners
+document.getElementById('addPatientBtn').onclick=()=>{ openPatientModal(); };
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=> {
+    document.querySelectorAll('.tab').forEach(tt=>tt.classList.remove('active'));
+    t.classList.add('active');
+    currentTab = t.dataset.tab;
+    document.getElementById('patients').style.display= currentTab==='patients'?'flex':'none';
+    document.getElementById('stats').style.display= currentTab==='stats'?'block':'none';
+  };
+});
+document.getElementById('reset-stats').onclick=()=>{ 
+  if (confirm('Réinitialiser toutes les statistiques ?')) {
+    document.getElementById('totalPatients').textContent='0';
+    document.getElementById('hospitalizedCount').textContent='0';
+    document.getElementById('dischargedCount').textContent='0';
+    document.getElementById('deletedCount').textContent='0';
+  }
+};
+
+// Initialize
+renderPatients();
+</script>
+</body>
+</html>
