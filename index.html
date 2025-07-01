@@ -1,56 +1,55 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FastTrackers – Urgences</title>
-
-  <!-- PWA essentials -->
-  <meta name="theme-color" content="#0a1628" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-
-  <!-- Styles & Firebase SDK -->
-  <link rel="stylesheet" href="styles.css" />
-  <script type="module" src="app.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FastTrackers</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="stylesheet" href="styles.css" />
+<!-- Firebase SDK -->
+<script type="module" src="app.js"></script>
 </head>
-
 <body>
-  <!-- Login -->
-  <section id="login" class="login-screen">
-    <div class="login-card">
-      <div class="login-logo">⚡</div>
-      <h1>FastTrackers</h1>
-      <p>Gestion des patients d’urgence</p>
+<!-- Login Screen -->
+<section id="login" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">⚡</div>
+    <h1>FastTrackers</h1>
+    <p>Gestion des patients d’urgence</p>
+    <div class="user-buttons">
       <button class="user-btn" data-user="Cristian">👨‍⚕️ Cristian</button>
       <button class="user-btn" data-user="Ilinca">👩‍⚕️ Ilinca</button>
       <button class="user-btn" data-user="Guest">👤 Invité</button>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- App Shell -->
-  <section id="app" class="app-container hidden">
-    <header class="app-header">
-      <div class="brand">⚡ FastTrackers</div>
-      <div class="user-panel">
-        <span id="username"></span>
-        <button id="logout">Déconnexion</button>
-      </div>
-    </header>
-
-    <nav class="tabs">
+<!-- Main App -->
+<section id="app" class="app-container hidden">
+  <header class="app-header">
+    <div class="brand">⚡ FastTrackers</div>
+    <div class="user-info" id="user-info">
+      <span id="user-name"></span>
+      <button id="logout">Déconnexion</button>
+    </div>
+  </header>
+  <!-- Tabs -->
+  <div class="tab-container">
+    <div class="tabs">
       <button class="tab active" data-tab="patients">👥 Patients</button>
       <button class="tab" data-tab="stats">📊 Statistiques</button>
-    </nav>
-
+    </div>
+  </div>
+  <!-- Content -->
+  <div class="content">
     <!-- Patients -->
-    <main id="patients" class="tab-content">
+    <div id="patients" class="tab-content active">
       <div id="grid" class="grid"></div>
-      <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
-    </main>
-
+      <button class="add-btn" id="addPatient">➕ Ajouter un patient</button>
+    </div>
     <!-- Stats -->
-    <main id="stats" class="tab-content hidden">
+    <div id="stats" class="tab-content hidden">
       <div class="stats">
         <div class="stat"><span id="sAdded">0</span><label>Ajoutés</label></div>
         <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
@@ -58,9 +57,12 @@
         <div class="stat"><span id="sDel">0</span><label>Supprimés</label></div>
       </div>
       <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
-    </main>
-  </section>
+    </div>
+  </div>
+</section>
 
-  <!-- Modals are injected dynamically -->
-</body>
-</html>
+<!-- Modals (injected dynamically) -->
+<div id="modal-root"></div>
+
+<!-- Notification container -->
+<div id="notification-container"></div>
