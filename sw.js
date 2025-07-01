@@ -9,7 +9,8 @@ const FILES_TO_CACHE = [
   '/styles.css',
   '/app.js',
   '/manifest.json',
-  '/fasttrackers_icon.png',
+  '/my_icon.png',
+  '/my_icon_192.png',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js'
 ];
