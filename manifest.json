@@ -1,38 +1,21 @@
 {
-  "name": "FastTrackers – Gestion des Urgences",
-  "short_name": "FastTrackers",
-  "description": "PWA de gestion des patients d'urgence avec synchronisation hors ligne",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0a1628",
-  "theme_color": "#0a1628",
-  "orientation": "portrait-primary",
-  "icons": [
+ ```ame": "FastTrackers –```stion des Ur```ces",
+  "short_name": "```tTrackers",
+ ```escription": "``` de gestion```s patients```urgence avec```nchronisation hors```gne",
+  "start_url": "/```  "display": "```ndalone",
+ ```ackground_color": "#```628",
+  "theme_color":```0a1628",
+ ```rientation": "```trait-primary",
+ ```cons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iNDAiIGZpbGw9IiMwYTE2MjgiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHA+4pqhPC9wPgo8L3N2Zz4KPC9zdmc+",
+      "src": "fasttrackers_icon.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTA3IiBmaWxsPSIjMGExNjI4Ii8+CjxzdmcgeD0iMTI4IiB5PSIxMjgiIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiPgo8cD7imqE8L3A+Cjwvc3ZnPgo8L3N2Zz4=",
+      "src": "fasttrackers_icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
-  ],
-  "categories": ["medical", "productivity", "health"],
-  "screenshots": [
-    {
-      "src": "screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "screenshot-narrow.png", 
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
-  "prefer_related_applications": false
+  ]
 }
