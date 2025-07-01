@@ -16,12 +16,6 @@ class FastTrackersApp {
             purple: '#7c3aed'
         };
         
-        this.dispositionOptions = [
-            'Retour à domicile',
-            'Hospitalisation',
-            'Supprimer le patient'
-        ];
-        
         this.init();
     }
     
@@ -175,6 +169,20 @@ class FastTrackersApp {
             this.hideTaskModal();
         });
         
+        // Edit meta events
+        document.getElementById('edit-meta-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.savePatientMeta();
+        });
+        
+        document.getElementById('edit-meta-modal-close').addEventListener('click', () => {
+            this.hideEditMetaModal();
+        });
+        
+        document.getElementById('edit-meta-cancel-btn').addEventListener('click', () => {
+            this.hideEditMetaModal();
+        });
+        
         // Statistics events
         document.getElementById('reset-stats-btn').addEventListener('click', () => {
             this.resetStatistics();
@@ -185,6 +193,7 @@ class FastTrackersApp {
             if (e.target.classList.contains('modal')) {
                 this.hidePatientModal();
                 this.hideTaskModal();
+                this.hideEditMetaModal();
             }
         });
     }
@@ -198,7 +207,7 @@ class FastTrackersApp {
     }
     
     logout() {
-        this.saveData();
+        this.saveUserData();
         this.currentUser = null;
         this.patients = {};
         this.stopAllTimers();
@@ -341,6 +350,37 @@ class FastTrackersApp {
         this.updateStatistics();
     }
     
+    // Edit Patient Meta (Location/Nurse)
+    showEditMetaModal(patientId) {
+        this.currentPatientId = patientId;
+        const patient = this.patients[patientId];
+        const modal = document.getElementById('edit-meta-modal');
+        
+        document.getElementById('edit-room').value = patient.room || '';
+        document.getElementById('edit-nurse').value = patient.nurse || '';
+        
+        modal.classList.add('active');
+    }
+    
+    hideEditMetaModal() {
+        document.getElementById('edit-meta-modal').classList.remove('active');
+        this.currentPatientId = null;
+    }
+    
+    savePatientMeta() {
+        const room = document.getElementById('edit-room').value.trim();
+        const nurse = document.getElementById('edit-nurse').value.trim();
+        
+        if (this.currentPatientId && this.patients[this.currentPatientId]) {
+            this.patients[this.currentPatientId].room = room;
+            this.patients[this.currentPatientId].nurse = nurse;
+            
+            this.saveUserData();
+            this.hideEditMetaModal();
+            this.renderPatients();
+        }
+    }
+    
     renderPatients() {
         const grid = document.getElementById('patients-grid');
         const activePatients = Object.values(this.patients).filter(p => p.status === 'active');
@@ -362,12 +402,16 @@ class FastTrackersApp {
     }
     
     renderPatientCard(patient) {
-        const tasksHtml = patient.tasks.length > 0 ? `
+        const tasksHtml = patient.tasks && patient.tasks.length > 0 ? `
             <div class="patient-tasks">
                 <h4>Tâches (${patient.tasks.length})</h4>
                 ${patient.tasks.map(task => `
                     <div class="task-item">
-                        <span>${task.description}</span>
+                        <div class="task-content">
+                            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} 
+                                   data-task-id="${task.id}" data-patient-id="${patient.id}">
+                            <span class="task-description ${task.completed ? 'completed' : ''}">${task.description}</span>
+                        </div>
                         ${task.timer ? `<span class="task-timer" data-timer-id="${task.id}">${this.formatTime(task.timer.remaining)}</span>` : ''}
                     </div>
                 `).join('')}
@@ -379,30 +423,30 @@ class FastTrackersApp {
                 <div class="patient-header">
                     <div class="patient-name">${patient.name}</div>
                     <div class="patient-complaint">${patient.complaint}</div>
-                    <div class="patient-meta">
-                        ${patient.room ? `<span>📍 ${patient.room}</span>` : ''}
-                        ${patient.nurse ? `<span>👤 ${patient.nurse}</span>` : ''}
+                    <div class="patient-meta-box" data-action="edit-meta" data-patient-id="${patient.id}">
+                        ${patient.room ? `<span>📍 ${patient.room}</span>` : '<span>📍 Salle...</span>'}
+                        ${patient.nurse ? `<span>📱 ${patient.nurse}</span>` : '<span>📱 Infirmier...</span>'}
                     </div>
                 </div>
                 <div class="patient-body">
                     ${tasksHtml}
                     <div class="patient-actions">
                         <button class="action-btn action-btn--task" data-action="add-task" data-patient-id="${patient.id}">
-                            Tâches
+                            📋 Tâches
                         </button>
                         <div class="dropdown">
                             <button class="action-btn action-btn--disposition" data-action="disposition" data-patient-id="${patient.id}">
-                                Décision
+                                ⚖️ Décision
                             </button>
                             <div class="dropdown-content">
                                 <button class="dropdown-item" data-action="discharge" data-patient-id="${patient.id}">
-                                    Retour à domicile
+                                    🏠 Retour à domicile
                                 </button>
                                 <button class="dropdown-item" data-action="admit" data-patient-id="${patient.id}">
-                                    Hospitalisation
+                                    🏥 Hospitalisation
                                 </button>
                                 <button class="dropdown-item danger" data-action="delete" data-patient-id="${patient.id}">
-                                    Supprimer le patient
+                                    🗑️ Supprimer le patient
                                 </button>
                             </div>
                         </div>
@@ -413,6 +457,23 @@ class FastTrackersApp {
     }
     
     bindPatientEvents() {
+        // Task completion checkboxes
+        document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const taskId = e.currentTarget.dataset.taskId;
+                const patientId = e.currentTarget.dataset.patientId;
+                this.toggleTaskCompletion(patientId, taskId, e.currentTarget.checked);
+            });
+        });
+        
+        // Edit meta boxes
+        document.querySelectorAll('[data-action="edit-meta"]').forEach(box => {
+            box.addEventListener('click', (e) => {
+                const patientId = e.currentTarget.dataset.patientId;
+                this.showEditMetaModal(patientId);
+            });
+        });
+        
         // Task buttons
         document.querySelectorAll('[data-action="add-task"]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -495,6 +556,7 @@ class FastTrackersApp {
         const task = {
             id: taskId,
             description,
+            completed: false,
             createdAt: new Date().toISOString()
         };
         
@@ -519,6 +581,18 @@ class FastTrackersApp {
         this.renderPatients();
     }
     
+    toggleTaskCompletion(patientId, taskId, completed) {
+        const patient = this.patients[patientId];
+        if (patient && patient.tasks) {
+            const task = patient.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = completed;
+                this.saveUserData();
+                this.renderPatients();
+            }
+        }
+    }
+    
     // Timer Management
     startPatientTimers() {
         // Stop existing timers
@@ -528,7 +602,7 @@ class FastTrackersApp {
         Object.values(this.patients).forEach(patient => {
             if (patient.tasks) {
                 patient.tasks.forEach(task => {
-                    if (task.timer && task.timer.remaining > 0) {
+                    if (task.timer && task.timer.remaining > 0 && !task.completed) {
                         this.startTimer(task);
                     }
                 });
@@ -688,9 +762,6 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    
-    // Show install button if desired
-    // For now, we'll just store it for later use
 });
 
 window.addEventListener('appinstalled', () => {
@@ -700,10 +771,8 @@ window.addEventListener('appinstalled', () => {
 // Handle offline/online status
 window.addEventListener('online', () => {
     console.log('App is online');
-    // Could add sync functionality here
 });
 
 window.addEventListener('offline', () => {
     console.log('App is offline');
-    // Could show offline indicator
 });
