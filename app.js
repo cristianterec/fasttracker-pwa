@@ -1,7 +1,7 @@
 // FastTrackers PWA with Firebase sync and offline capabilities
 console.log('FastTrackers loading with Firebase sync and offline support...');
 
-// Firebase configuration
+// Firebase configuration - using your project details
 const firebaseConfig = {
   apiKey: "AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU",
   authDomain: "fasttrackers-sync.firebaseapp.com",
@@ -374,7 +374,7 @@ function setupLoginButtons() {
       if (username) {
         loginUser(username);
       }
-    });
+      });
   });
   
   const loginScreen = $('#login');
@@ -472,27 +472,28 @@ function renderPatientsFromFirebase(snapshot) {
   attachActionButtonListeners();
 }
 
-// Create patient card HTML
+// Create patient card HTML with editable info and crossed-out completed tasks
 function createPatientCardHTML(patient) {
-  const activeTasks = (patient.tasks || []).filter(task => !task.completed);
+  const allTasks = (patient.tasks || []);
   
   return `
     <div class="card ${patient.triage}" data-patient-id="${patient.id}">
-      <div class="info-box" onclick="editPatientInfo('${patient.id}')">
-        📍 ${patient.location || '--'}<br/>📱 ${patient.nurse || '--'}
+      <div class="info-box editable" onclick="editPatientInfo('${patient.id}')">
+        <div class="info-location">📍 <span class="editable-text">${patient.location || 'Cliquer pour modifier'}</span></div>
+        <div class="info-nurse">📱 <span class="editable-text">${patient.nurse || 'Cliquer pour modifier'}</span></div>
       </div>
       <div class="patient-main">
         <h3 class="patient-name">${patient.name}</h3>
         <p class="patient-complaint">${patient.complaint}</p>
       </div>
       <div class="tasks">
-        ${activeTasks.map(task => `
-          <div class="task">
+        ${allTasks.map(task => `
+          <div class="task ${task.completed ? 'completed' : ''}">
             <div class="task-content">
               <span class="task-desc">${task.description}</span>
-              <span class="task-timer">${task.dueAt ? formatTime(new Date(task.dueAt) - Date.now()) : '--:--'}</span>
+              ${task.dueAt ? `<span class="task-timer">${task.completed ? 'Terminé' : formatTime(new Date(task.dueAt) - Date.now())}</span>` : ''}
             </div>
-            <button class="task-check" onclick="completeTask('${patient.id}', '${task.id}')">✓</button>
+            ${!task.completed ? `<button class="task-check" onclick="completeTask('${patient.id}', '${task.id}')">✓</button>` : ''}
           </div>
         `).join('')}
       </div>
@@ -623,7 +624,7 @@ function showAddPatientModal() {
         <input id="patientLocation" placeholder="📍 Localisation">
         <input id="patientNurse" placeholder="📱 Numéro infirmière">
         <button class="btn-primary" onclick="saveNewPatientWithOffline()">Enregistrer</button>
-      </div>
+      </极>
     </div>
   `;
   
@@ -706,7 +707,7 @@ function showAddTaskModal(patientId) {
   
   document.body.appendChild(modal);
   
-  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+  modal.querySelector('.modal-close').addEventListener('click', ()极 modal.remove());
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
@@ -832,9 +833,68 @@ async function completeTask(patientId, taskId) {
   }
 }
 
-// Edit patient info
+// Edit patient info - NEW FUNCTION
 function editPatientInfo(patientId) {
   console.log('Edit patient info for:', patientId);
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h2>✏️ Modifier les informations</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-content">
+        <input id="editLocation" placeholder="📍 Localisation">
+        <input id="editNurse" placeholder="📱 Numéro infirmière">
+        <button class="btn-primary" onclick="savePatientInfo('${patientId}')">Sauvegarder</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Load current values
+  if (db && window.firestoreFunctions) {
+    const { doc, getDoc } = window.firestoreFunctions;
+    getDoc(doc(db, `users`, currentUser, 'patients', patientId)).then(docSnap => {
+      if (docSnap.exists()) {
+        const patient = docSnap.data();
+        $('#editLocation').value = patient.location || '';
+        $('#editNurse').value = patient.nurse || '';
+      }
+    });
+  }
+  
+  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+// Save patient info - NEW FUNCTION
+async function savePatientInfo(patientId) {
+  const location = $('#editLocation').value.trim();
+  const nurse = $('#editNurse').value.trim();
+  
+  try {
+    await offlineManager.queueOperation({
+      type: 'UPDATE_PATIENT',
+      data: { 
+        id: patientId, 
+        changes: { location, nurse }
+      },
+      priority: 'medium'
+    });
+    
+    $('.modal-overlay').remove();
+    console.log('Patient info updated');
+    
+  } catch (error) {
+    console.error('Error updating patient info:', error);
+    alert('Erreur lors de la mise à jour');
+  }
 }
 
 // Update statistics display
@@ -883,6 +943,7 @@ window.showDecisionMenu = showDecisionMenu;
 window.handlePatientDecision = handlePatientDecision;
 window.completeTask = completeTask;
 window.editPatientInfo = editPatientInfo;
+window.savePatientInfo = savePatientInfo;
 
 // Initialize app when DOM is ready
 if (document.readyState === 'loading') {
