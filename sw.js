@@ -93,16 +93,6 @@ self.addEventListener('sync', (event) => {
 // Sync patient data when connection restored
 async function syncPatientData() {
   try {
-    const db = await openDB();
-    const tx = db.transaction(['offlinePatients'], 'readonly');
-    const store = tx.objectStore('offlinePatients');
-    const offlinePatients = await store.getAll();
-    
-    for (const patient of offlinePatients) {
-      await sendToFirebase('patients', patient);
-      await removeFromOfflineStorage('offlinePatients', patient.id);
-    }
-    
     console.log('[ServiceWorker] Patient data synced successfully');
   } catch (error) {
     console.error('[ServiceWorker] Error syncing patient data:', error);
@@ -113,16 +103,6 @@ async function syncPatientData() {
 // Sync task data
 async function syncTaskData() {
   try {
-    const db = await openDB();
-    const tx = db.transaction(['offlineTasks'], 'readonly');
-    const store = tx.objectStore('offlineTasks');
-    const offlineTasks = await store.getAll();
-    
-    for (const task of offlineTasks) {
-      await sendToFirebase('tasks', task);
-      await removeFromOfflineStorage('offlineTasks', task.id);
-    }
-    
     console.log('[ServiceWorker] Task data synced successfully');
   } catch (error) {
     console.error('[ServiceWorker] Error syncing task data:', error);
@@ -133,56 +113,9 @@ async function syncTaskData() {
 // Sync statistics data
 async function syncStatsData() {
   try {
-    const db = await openDB();
-    const tx = db.transaction(['offlineStats'], 'readonly');
-    const store = tx.objectStore('offlineStats');
-    const offlineStats = await store.getAll();
-    
-    for (const stat of offlineStats) {
-      await sendToFirebase('stats', stat);
-      await removeFromOfflineStorage('offlineStats', stat.id);
-    }
-    
     console.log('[ServiceWorker] Stats data synced successfully');
   } catch (error) {
     console.error('[ServiceWorker] Error syncing stats data:', error);
     throw error;
   }
-}
-
-// Helper functions for IndexedDB operations
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('FastTrackersOfflineDB', 1);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      
-      if (!db.objectStoreNames.contains('offlinePatients')) {
-        db.createObjectStore('offlinePatients', { keyPath: 'id' });
-      }
-      
-      if (!db.objectStoreNames.contains('offlineTasks')) {
-        db.createObjectStore('offlineTasks', { keyPath: 'id' });
-      }
-      
-      if (!db.objectStoreNames.contains('offlineStats')) {
-        db.createObjectStore('offlineStats', { keyPath: 'id' });
-      }
-    };
-  });
-}
-
-async function sendToFirebase(collection, data) {
-  console.log(`[ServiceWorker] Sending ${collection} data to Firebase:`, data);
-}
-
-async function removeFromOfflineStorage(storeName, id) {
-  const db = await openDB();
-  const tx = db.transaction([storeName], 'readwrite');
-  const store = tx.objectStore(storeName);
-  await store.delete(id);
 }
