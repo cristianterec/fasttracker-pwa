@@ -1,5 +1,5 @@
-// FastTrackers PWA with Firebase sync, live countdown timers, and offline capabilities
-console.log('FastTrackers loading with Firebase sync and offline support...');
+// FastTrackers PWA with Enhanced Features - Complete Authentication System
+console.log('FastTrackers loading with enhanced features...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -13,23 +13,20 @@ const firebaseConfig = {
 
 // Global state
 let currentUser = null;
+let currentUserId = null;
 let db = null;
 let unsubscribePatients = null;
 let unsubscribeStats = null;
+let unsubscribeNotes = null;
 let app = null;
 let updateTimerHandle = null;
 
 // DOM helpers
-function $(selector) {
-  return document.querySelector(selector);
-}
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => document.querySelectorAll(selector);
 
-function $$(selector) {
-  return document.querySelectorAll(selector);
-}
-
-// Enhanced Firebase initialization with offline capabilities
-async function initializeFirebaseWithOffline() {
+// Initialize Firebase
+async function initializeFirebase() {
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
     const { 
@@ -42,13 +39,18 @@ async function initializeFirebaseWithOffline() {
       onSnapshot, 
       increment,
       getDoc,
-      enableIndexedDbPersistence
+      getDocs,
+      query,
+      where,
+      orderBy,
+      enableIndexedDbPersistence,
+      writeBatch,
+      serverTimestamp
     } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
     
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
     
-    // Enable offline persistence for your specific scenario
     try {
       await enableIndexedDbPersistence(db);
       console.log('Firebase offline persistence enabled');
@@ -57,10 +59,10 @@ async function initializeFirebaseWithOffline() {
     }
     
     window.firestoreFunctions = {
-      collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, getDoc
+      collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, getDoc, getDocs, query, where, orderBy, writeBatch, serverTimestamp
     };
     
-    console.log('Firebase initialized with offline capabilities');
+    console.log('Firebase initialized successfully');
     return true;
   } catch (error) {
     console.error('Firebase initialization failed:', error);
@@ -72,97 +74,359 @@ async function initializeFirebaseWithOffline() {
 async function initializeApp() {
   console.log('Initializing FastTrackers...');
   
-  const firebaseReady = await initializeFirebaseWithOffline();
-  if (!firebaseReady) {
-    console.error('Firebase failed to initialize');
-  }
-  
-  setupLoginButtons();
+  await initializeFirebase();
+  await loadUsers();
+  setupAuthEventListeners();
   setupAppEventListeners();
   
   console.log('FastTrackers initialized successfully');
 }
 
-// Setup login buttons
-function setupLoginButtons() {
-  console.log('Setting up login buttons...');
-  
-  const loginButtons = $$('.user-btn');
-  
-  loginButtons.forEach((button) => {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const username = this.dataset.user;
-      console.log('Login button clicked:', username);
-      if (username) {
-        loginUser(username);
-      }
+// Load users for login dropdown
+async function loadUsers() {
+  try {
+    const { collection, getDocs } = window.firestoreFunctions;
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    const userSelect = $('#userSelect');
+    
+    userSelect.innerHTML = '<option value="">Sélectionner un utilisateur</option>';
+    
+    usersSnapshot.forEach(doc => {
+      const user = doc.data();
+      const option = document.createElement('option');
+      option.value = doc.id;
+      option.textContent = user.name;
+      userSelect.appendChild(option);
     });
+  } catch (error) {
+    console.error('Error loading users:', error);
+  }
+}
+
+// Authentication event listeners
+function setupAuthEventListeners() {
+  $('#userSelect').addEventListener('change', (e) => {
+    const userId = e.target.value;
+    const pinInput = $('#pinInput');
+    const loginBtn = $('#loginBtn');
+    
+    if (userId) {
+      pinInput.classList.remove('hidden');
+      loginBtn.classList.remove('hidden');
+      pinInput.focus();
+    } else {
+      pinInput.classList.add('hidden');
+      loginBtn.classList.add('hidden');
+      pinInput.value = '';
+    }
+  });
+
+  $('#pinInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  });
+
+  $('#loginBtn').addEventListener('click', handleLogin);
+  $('#showRegisterBtn').addEventListener('click', showRegisterForm);
+  $('#showLoginBtn').addEventListener('click', showLoginForm);
+  $('#registerBtn').addEventListener('click', handleRegister);
+  
+  // Enter key support
+  $('#pinInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
   });
 }
 
-// Login function
-async function loginUser(username) {
-  console.log('Logging in user:', username);
+// Show/hide auth forms
+function showRegisterForm() {
+  $('#loginForm').classList.add('hidden');
+  $('#registerForm').classList.remove('hidden');
+}
+
+function showLoginForm() {
+  $('#registerForm').classList.add('hidden');
+  $('#loginForm').classList.remove('hidden');
+}
+
+// Handle user registration
+async function handleRegister() {
+  const name = $('#registerName').value.trim();
+  const pin = $('#registerPin').value.trim();
+  const confirmPin = $('#confirmPin').value.trim();
+  
+  if (!name || !pin || !confirmPin) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    alert('Le PIN doit contenir exactement 4 chiffres');
+    return;
+  }
+  
+  if (pin !== confirmPin) {
+    alert('Les codes PIN ne correspondent pas');
+    return;
+  }
   
   try {
-    currentUser = username;
+    const { collection, doc, setDoc, getDocs, query, where } = window.firestoreFunctions;
     
-    const usernameEl = $('#username');
-    if (usernameEl) {
-      usernameEl.textContent = username;
+    // Check if user already exists
+    const existingUsers = await getDocs(query(collection(db, 'users'), where('name', '==', name)));
+    if (!existingUsers.empty) {
+      alert('Un utilisateur avec ce nom existe déjà');
+      return;
     }
     
-    $('#login').classList.add('hidden');
+    // Create new user
+    const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const userData = {
+      id: userId,
+      name: name,
+      pin: pin,
+      createdAt: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'users', userId), userData);
+    
+    // Initialize user stats
+    await setDoc(doc(db, 'users', userId, 'stats', 'main'), {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      deleted: 0,
+      totalTime: 0,
+      totalPatients: 0
+    });
+    
+    alert('Compte créé avec succès!');
+    await loadUsers();
+    showLoginForm();
+    
+    // Auto-select the new user
+    $('#userSelect').value = userId;
+    $('#userSelect').dispatchEvent(new Event('change'));
+    
+  } catch (error) {
+    console.error('Error registering user:', error);
+    alert('Erreur lors de la création du compte');
+  }
+}
+
+// Handle user login
+async function handleLogin() {
+  const userId = $('#userSelect').value;
+  const pin = $('#pinInput').value;
+  
+  if (!userId || !pin) {
+    alert('Veuillez sélectionner un utilisateur et saisir le PIN');
+    return;
+  }
+  
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    
+    if (!userDoc.exists()) {
+      alert('Utilisateur non trouvé');
+      return;
+    }
+    
+    const userData = userDoc.data();
+    if (userData.pin !== pin) {
+      alert('PIN incorrect');
+      return;
+    }
+    
+    // Login successful
+    currentUser = userData.name;
+    currentUserId = userId;
+    
+    $('#username').textContent = currentUser;
+    $('#profileName').textContent = currentUser;
+    
+    $('#auth').classList.add('hidden');
     $('#app').classList.remove('hidden');
     
-    if (db && window.firestoreFunctions) {
-      await startFirebaseListeners();
-    } else {
-      console.warn('Firebase not available');
-    }
+    await startRealtimeListeners();
+    startLiveTimers();
     
-    startLiveTimers(); // Start live countdown timers
-    
-    console.log('Login successful for:', username);
+    console.log('Login successful for:', currentUser);
     
   } catch (error) {
     console.error('Login error:', error);
-    alert('Erreur de connexion. Veuillez réessayer.');
+    alert('Erreur de connexion');
   }
 }
 
-// Start Firebase real-time listeners
-async function startFirebaseListeners() {
-  console.log('Starting Firebase real-time listeners for:', currentUser);
-  
+// Start real-time listeners
+async function startRealtimeListeners() {
   try {
-    const { collection, doc, onSnapshot } = window.firestoreFunctions;
+    const { collection, doc, onSnapshot, orderBy, query } = window.firestoreFunctions;
     
-    const patientsCollection = collection(db, `users`, currentUser, 'patients');
-    unsubscribePatients = onSnapshot(patientsCollection, (snapshot) => {
-      console.log('Patients updated from Firebase');
-      renderPatientsFromFirebase(snapshot);
-    }, (error) => {
-      console.error('Error listening to patients:', error);
+    // Patients listener
+    const patientsQuery = query(
+      collection(db, 'users', currentUserId, 'patients'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    unsubscribePatients = onSnapshot(patientsQuery, (snapshot) => {
+      renderPatients(snapshot);
     });
     
-    const statsDoc = doc(db, `users`, currentUser, 'stats', 'main');
-    unsubscribeStats = onSnapshot(statsDoc, (doc) => {
-      console.log('Stats updated from Firebase');
+    // Stats listener
+    unsubscribeStats = onSnapshot(doc(db, 'users', currentUserId, 'stats', 'main'), (doc) => {
       const stats = doc.exists() ? doc.data() : {};
-      updateStatisticsDisplay(stats);
-    }, (error) => {
-      console.error('Error listening to stats:', error);
+      updateStatsDisplay(stats);
     });
+    
+    // Notes listener
+    const notesQuery = query(
+      collection(db, 'users', currentUserId, 'notes'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    unsubscribeNotes = onSnapshot(notesQuery, (snapshot) => {
+      renderNotes(snapshot);
+    });
+    
+    // Load daily stats
+    await loadDailyStats();
     
   } catch (error) {
-    console.error('Error setting up Firebase listeners:', error);
+    console.error('Error setting up listeners:', error);
   }
 }
 
-// Live countdown timers
+// Setup app event listeners
+function setupAppEventListeners() {
+  // Navigation
+  $$('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+  
+  $('#logout').addEventListener('click', logout);
+  $('#profileBtn').addEventListener('click', () => switchTab('profile'));
+  
+  // Patient management
+  $('#addPatient').addEventListener('click', showAddPatientModal);
+  $('#transferBtn').addEventListener('click', showTransferModal);
+  
+  // Profile management
+  $('#editNameBtn').addEventListener('click', showEditNameModal);
+  $('#changePinBtn').addEventListener('click', showChangePinModal);
+  $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
+  
+  // Notes management
+  $('#notesBtn').addEventListener('click', toggleNotesPanel);
+  $('#addNoteBtn').addEventListener('click', showAddNoteModal);
+  
+  // Stats
+  $('#resetStats').addEventListener('click', resetStats);
+  
+  // Global click delegation
+  document.addEventListener('click', globalClickHandler);
+}
+
+// Global click handler
+function globalClickHandler(e) {
+  if (e.defaultPrevented) return;
+  
+  // Task buttons
+  if (e.target.matches('.btn.task')) {
+    e.preventDefault();
+    showAddTaskModal(e.target.dataset.pid);
+    return;
+  }
+  
+  // Decision buttons
+  if (e.target.matches('.btn.decision')) {
+    e.preventDefault();
+    showDecisionMenu(e.target.dataset.pid, e.target);
+    return;
+  }
+  
+  // Task actions
+  if (e.target.matches('.task-check')) {
+    e.preventDefault();
+    completeTask(e.target.dataset.pid, e.target.dataset.tid);
+    return;
+  }
+  
+  if (e.target.matches('.task-delete')) {
+    e.preventDefault();
+    deleteTask(e.target.dataset.pid, e.target.dataset.tid);
+    return;
+  }
+  
+  // Patient info editing
+  if (e.target.matches('.info-box.editable') || e.target.closest('.info-box.editable')) {
+    e.preventDefault();
+    const infoBox = e.target.matches('.info-box.editable') ? e.target : e.target.closest('.info-box.editable');
+    editPatientInfo(infoBox.dataset.pid);
+    return;
+  }
+  
+  // Decision menu items
+  if (e.target.matches('.menu-item')) {
+    e.preventDefault();
+    handlePatientDecision(e.target.dataset.pid, e.target.dataset.action);
+    return;
+  }
+  
+  // Note actions
+  if (e.target.matches('.note-edit')) {
+    e.preventDefault();
+    editNote(e.target.dataset.noteid);
+    return;
+  }
+  
+  if (e.target.matches('.note-delete')) {
+    e.preventDefault();
+    deleteNote(e.target.dataset.noteid);
+    return;
+  }
+  
+  // Close notes panel if clicked outside
+  if (!e.target.closest('.notes-panel') && !e.target.closest('.notes-btn')) {
+    const notesPanel = $('#notesPanel');
+    if (!notesPanel.classList.contains('hidden')) {
+      notesPanel.classList.add('hidden');
+    }
+  }
+}
+
+// Logout function
+function logout() {
+  if (unsubscribePatients) unsubscribePatients();
+  if (unsubscribeStats) unsubscribeStats();
+  if (unsubscribeNotes) unsubscribeNotes();
+  stopLiveTimers();
+  
+  currentUser = null;
+  currentUserId = null;
+  
+  $('#auth').classList.remove('hidden');
+  $('#app').classList.add('hidden');
+  
+  // Reset forms
+  $('#userSelect').value = '';
+  $('#pinInput').value = '';
+  $('#pinInput').classList.add('hidden');
+  $('#loginBtn').classList.add('hidden');
+  showLoginForm();
+}
+
+// Tab switching
+function switchTab(tabName) {
+  $$('.tab').forEach(tab => tab.classList.remove('active'));
+  $(`[data-tab="${tabName}"]`).classList.add('active');
+  
+  $$('.tab-content').forEach(content => content.classList.add('hidden'));
+  $(`#${tabName}`).classList.remove('hidden');
+}
+
+// Live timers
 function startLiveTimers() {
   if (updateTimerHandle) return;
   updateTimerHandle = setInterval(updateAllTimers, 1000);
@@ -188,7 +452,6 @@ function updateAllTimers() {
   });
 }
 
-// Format time
 function formatTime(ms) {
   if (ms <= 0) return '00:00';
   const minutes = Math.floor(ms / 60000);
@@ -196,8 +459,8 @@ function formatTime(ms) {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// Render patients from Firebase snapshot
-function renderPatientsFromFirebase(snapshot) {
+// Patient management
+function renderPatients(snapshot) {
   const grid = $('#grid');
   
   if (snapshot.empty) {
@@ -216,30 +479,21 @@ function renderPatientsFromFirebase(snapshot) {
   grid.innerHTML = patients.map(patient => createPatientCardHTML(patient)).join('');
 }
 
-// Create patient card HTML with editable info and completed tasks
 function createPatientCardHTML(patient) {
-  const allTasks = (patient.tasks || []);
+  const tasks = patient.tasks || [];
   
   return `
     <div class="card ${patient.triage}" data-patient-id="${patient.id}">
       <div class="info-box editable" data-pid="${patient.id}">
-        <div class="info-location">📍 <span class="editable-text">${patient.location || 'Cliquer pour modifier'}</span></div>
-        <div class="info-nurse">📱 <span class="editable-text">${patient.nurse || 'Cliquer pour modifier'}</span></div>
+        <div class="info-location">📍 <span class="editable-text">${patient.location || 'Modifier'}</span></div>
+        <div class="info-nurse">📱 <span class="editable-text">${patient.nurse || 'Modifier'}</span></div>
       </div>
       <div class="patient-main">
         <h3 class="patient-name">${patient.name}</h3>
         <p class="patient-complaint">${patient.complaint}</p>
       </div>
       <div class="tasks">
-        ${allTasks.map(task => `
-          <div class="task ${task.completed ? 'completed' : ''}">
-            <div class="task-content">
-              <span class="task-desc">${task.description}</span>
-              ${task.dueAt && !task.completed ? `<span class="task-timer" data-dueat="${task.dueAt}">${formatTime(new Date(task.dueAt) - Date.now())}</span>` : ''}
-            </div>
-            ${!task.completed ? `<button class="task-check" data-pid="${patient.id}" data-tid="${task.id}">✓</button>` : ''}
-          </div>
-        `).join('')}
+        ${tasks.map(task => createTaskHTML(patient.id, task)).join('')}
       </div>
       <div class="actions">
         <button class="btn task" data-pid="${patient.id}">📋 Tâches</button>
@@ -249,156 +503,48 @@ function createPatientCardHTML(patient) {
   `;
 }
 
-// Setup other app event listeners - FIXED VERSION
-function setupAppEventListeners() {
-  const logoutBtn = $('#logout');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', logoutUser);
-  }
+function createTaskHTML(patientId, task) {
+  const isCompleted = task.completed;
+  const timer = task.dueAt && !isCompleted ? `<span class="task-timer" data-dueat="${task.dueAt}">${formatTime(new Date(task.dueAt) - Date.now())}</span>` : '';
   
-  $$('.tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      switchTab(this.dataset.tab);
-    });
-  });
-  
-  const addPatientBtn = $('#addPatient');
-  if (addPatientBtn) {
-    addPatientBtn.addEventListener('click', showAddPatientModal);
-  }
-  
-  const resetStatsBtn = $('#resetStats');
-  if (resetStatsBtn) {
-    resetStatsBtn.addEventListener('click', resetStatistics);
-  }
-  
-  // Event delegation for dynamic elements - FIXED VERSION
-  document.addEventListener('click', function(e) {
-    // Prevent multiple event handling
-    if (e.defaultPrevented) return;
-    
-    // Task buttons
-    if (e.target.matches('.btn.task')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const patientId = e.target.dataset.pid;
-      showAddTaskModal(patientId);
-      return;
-    }
-    
-    // Decision buttons
-    if (e.target.matches('.btn.decision')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const patientId = e.target.dataset.pid;
-      showDecisionMenu(patientId, e.target);
-      return;
-    }
-    
-    // Task completion
-    if (e.target.matches('.task-check')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const patientId = e.target.dataset.pid;
-      const taskId = e.target.dataset.tid;
-      completeTask(patientId, taskId);
-      return;
-    }
-    
-    // Editable info boxes - FIXED: Only handle the main container
-    if (e.target.matches('.info-box.editable') || e.target.closest('.info-box.editable')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const infoBox = e.target.matches('.info-box.editable') ? e.target : e.target.closest('.info-box.editable');
-      const patientId = infoBox.dataset.pid;
-      editPatientInfo(patientId);
-      return;
-    }
-    
-    // Menu items
-    if (e.target.matches('.menu-item')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const patientId = e.target.dataset.pid;
-      const action = e.target.dataset.action;
-      handlePatientDecision(patientId, action);
-      return;
-    }
-  });
-}
-
-// Logout function
-function logoutUser() {
-  console.log('Logging out user');
-  
-  if (unsubscribePatients) {
-    unsubscribePatients();
-    unsubscribePatients = null;
-  }
-  if (unsubscribeStats) {
-    unsubscribeStats();
-    unsubscribeStats = null;
-  }
-  
-  stopLiveTimers(); // Stop live timers on logout
-  
-  currentUser = null;
-  $('#login').classList.remove('hidden');
-  $('#app').classList.add('hidden');
-}
-
-// Switch tabs
-function switchTab(tabName) {
-  $$('.tab').forEach(tab => tab.classList.remove('active'));
-  $(`[data-tab="${tabName}"]`).classList.add('active');
-  
-  $$('.tab-content').forEach(content => content.classList.add('hidden'));
-  $(`#${tabName}`).classList.remove('hidden');
-}
-
-// Show add patient modal
-function showAddPatientModal() {
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal">
-      <div class="modal-header">
-        <h2>➕ Nouveau patient</h2>
-        <button class="modal-close">&times;</button>
+  return `
+    <div class="task ${isCompleted ? 'completed' : ''}">
+      <div class="task-content">
+        <span class="task-desc">${task.description}</span>
+        ${timer}
       </div>
-      <div class="modal-content">
-        <input id="patientName" placeholder="Nom du patient *" required>
-        <input id="patientComplaint" placeholder="Motif de consultation *" required>
-        <select id="patientTriage" required>
-          <option value="">Niveau de triage *</option>
-          <option value="red">Rouge - Critique</option>
-          <option value="orange">Orange - Très urgent</option>
-          <option value="yellow">Jaune - Urgent</option>
-          <option value="green">Vert - Semi-urgent</option>
-          <option value="blue">Bleu - Moins urgent</option>
-          <option value="purple">Violet - Non urgent</option>
-        </select>
-        <input id="patientLocation" placeholder="📍 Localisation">
-        <input id="patientNurse" placeholder="📱 Numéro infirmière">
-        <button class="btn-primary" id="savePatient">Enregistrer</button>
-      </div>
+      ${!isCompleted ? `
+        <div class="task-actions">
+          <button class="task-check" data-pid="${patientId}" data-tid="${task.id}">✓</button>
+          <button class="task-delete" data-pid="${patientId}" data-tid="${task.id}">🗑️</button>
+        </div>
+      ` : ''}
     </div>
   `;
-  
-  document.body.appendChild(modal);
-  
-  // Close handlers
-  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
-  
-  // Save patient
-  $('#savePatient').addEventListener('click', saveNewPatient);
 }
 
-// Save new patient
-async function saveNewPatient() {
+function showAddPatientModal() {
+  const modal = createModal('➕ Nouveau patient', `
+    <input id="patientName" placeholder="Nom du patient *" required>
+    <input id="patientComplaint" placeholder="Motif de consultation *" required>
+    <select id="patientTriage" required>
+      <option value="">Niveau de triage *</option>
+      <option value="red">Rouge - Critique</option>
+      <option value="orange">Orange - Très urgent</option>
+      <option value="yellow">Jaune - Urgent</option>
+      <option value="green">Vert - Semi-urgent</option>
+      <option value="blue">Bleu - Moins urgent</option>
+      <option value="purple">Violet - Non urgent</option>
+    </select>
+    <input id="patientLocation" placeholder="📍 Localisation">
+    <input id="patientNurse" placeholder="📱 Numéro infirmière">
+    <button class="btn-primary" id="savePatient">Enregistrer</button>
+  `);
+  
+  $('#savePatient').addEventListener('click', savePatient);
+}
+
+async function savePatient() {
   const name = $('#patientName').value.trim();
   const complaint = $('#patientComplaint').value.trim();
   const triage = $('#patientTriage').value;
@@ -410,24 +556,26 @@ async function saveNewPatient() {
     return;
   }
   
-  const patientId = 'patient_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  const patientData = {
-    id: patientId,
-    name,
-    complaint,
-    triage,
-    location,
-    nurse,
-    tasks: [],
-    createdAt: new Date().toISOString()
-  };
-  
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, setDoc } = window.firestoreFunctions;
-      await setDoc(doc(db, `users`, currentUser, 'patients', patientId), patientData);
-      await updateStats('added', 1);
-    }
+    const { doc, setDoc } = window.firestoreFunctions;
+    const patientId = generateId('patient');
+    const now = new Date().toISOString();
+    
+    const patientData = {
+      id: patientId,
+      name,
+      complaint,
+      triage,
+      location,
+      nurse,
+      tasks: [],
+      createdAt: now,
+      userId: currentUserId
+    };
+    
+    await setDoc(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
+    await updateStats('added', 1);
+    await updateDailyStats('added', 1);
     
     $('.modal-overlay').remove();
     console.log('Patient added:', name);
@@ -438,71 +586,45 @@ async function saveNewPatient() {
   }
 }
 
-// Show add task modal
 function showAddTaskModal(patientId) {
-  console.log('Showing task modal for patient:', patientId);
+  const modal = createModal('📋 Nouvelle tâche', `
+    <input id="taskDescription" placeholder="Description de la tâche *" required>
+    <input id="taskMinutes" type="number" placeholder="⏰ Délai en minutes (optionnel)" min="1" max="1440">
+    <button class="btn-primary" id="saveTask">Ajouter la tâche</button>
+  `);
   
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal">
-      <div class="modal-header">
-        <h2>📋 Nouvelle tâche</h2>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-content">
-        <input id="taskDescription" placeholder="Description de la tâche *" required>
-        <input id="taskMinutes" type="number" placeholder="⏰ Délai en minutes (optionnel)" min="1" max="1440">
-        <button class="btn-primary" id="saveTask">Ajouter la tâche</button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  // Close handlers
-  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
-  
-  // Save task
-  $('#saveTask').addEventListener('click', () => saveNewTask(patientId));
+  $('#saveTask').addEventListener('click', () => saveTask(patientId));
 }
 
-// Save new task
-async function saveNewTask(patientId) {
+async function saveTask(patientId) {
   const description = $('#taskDescription').value.trim();
   const minutes = parseInt($('#taskMinutes').value) || 0;
   
   if (!description) {
-    alert('Veuillez saisir une description pour la tâche');
+    alert('Veuillez saisir une description');
     return;
   }
   
-  const task = {
-    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-    description,
-    dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
-    completed: false,
-    createdAt: new Date().toISOString()
-  };
-  
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, getDoc, updateDoc } = window.firestoreFunctions;
-      const patientRef = doc(db, `users`, currentUser, 'patients', patientId);
-      const patientSnap = await getDoc(patientRef);
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, 'users', currentUserId, 'patients', patientId);
+    const patientSnap = await getDoc(patientRef);
+    
+    if (patientSnap.exists()) {
+      const patientData = patientSnap.data();
+      const task = {
+        id: generateId('task'),
+        description,
+        dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
       
-      if (patientSnap.exists()) {
-        const patientData = patientSnap.data();
-        const updatedTasks = [...(patientData.tasks || []), task];
-        await updateDoc(patientRef, { tasks: updatedTasks });
-      }
+      const updatedTasks = [...(patientData.tasks || []), task];
+      await updateDoc(patientRef, { tasks: updatedTasks });
     }
     
     $('.modal-overlay').remove();
-    console.log('Task added:', description);
     
   } catch (error) {
     console.error('Error adding task:', error);
@@ -510,10 +632,91 @@ async function saveNewTask(patientId) {
   }
 }
 
-// Show decision menu
-function showDecisionMenu(patientId, buttonElement) {
-  console.log('Showing decision menu for patient:', patientId);
+async function completeTask(patientId, taskId) {
+  try {
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, 'users', currentUserId, 'patients', patientId);
+    const patientSnap = await getDoc(patientRef);
+    
+    if (patientSnap.exists()) {
+      const patientData = patientSnap.data();
+      const updatedTasks = patientData.tasks.map(task => 
+        task.id === taskId ? { ...task, completed: true } : task
+      );
+      await updateDoc(patientRef, { tasks: updatedTasks });
+    }
+    
+  } catch (error) {
+    console.error('Error completing task:', error);
+  }
+}
+
+async function deleteTask(patientId, taskId) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) return;
   
+  try {
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, 'users', currentUserId, 'patients', patientId);
+    const patientSnap = await getDoc(patientRef);
+    
+    if (patientSnap.exists()) {
+      const patientData = patientSnap.data();
+      const updatedTasks = patientData.tasks.filter(task => task.id !== taskId);
+      await updateDoc(patientRef, { tasks: updatedTasks });
+    }
+    
+  } catch (error) {
+    console.error('Error deleting task:', error);
+  }
+}
+
+function editPatientInfo(patientId) {
+  const modal = createModal('✏️ Modifier les informations', `
+    <input id="editLocation" placeholder="📍 Localisation">
+    <input id="editNurse" placeholder="📱 Numéro infirmière">
+    <button class="btn-primary" id="saveInfo">Sauvegarder</button>
+  `);
+  
+  // Load current values
+  loadPatientInfo(patientId);
+  
+  $('#saveInfo').addEventListener('click', () => savePatientInfo(patientId));
+}
+
+async function loadPatientInfo(patientId) {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
+    
+    if (patientSnap.exists()) {
+      const patient = patientSnap.data();
+      $('#editLocation').value = patient.location || '';
+      $('#editNurse').value = patient.nurse || '';
+    }
+  } catch (error) {
+    console.error('Error loading patient info:', error);
+  }
+}
+
+async function savePatientInfo(patientId) {
+  const location = $('#editLocation').value.trim();
+  const nurse = $('#editNurse').value.trim();
+  
+  try {
+    const { doc, updateDoc } = window.firestoreFunctions;
+    await updateDoc(doc(db, 'users', currentUserId, 'patients', patientId), {
+      location,
+      nurse
+    });
+    
+    $('.modal-overlay').remove();
+    
+  } catch (error) {
+    console.error('Error updating patient info:', error);
+  }
+}
+
+function showDecisionMenu(patientId, buttonElement) {
   $$('.floating-menu').forEach(menu => menu.remove());
   
   const menu = document.createElement('div');
@@ -541,100 +744,586 @@ function showDecisionMenu(patientId, buttonElement) {
   }, 100);
 }
 
-// Handle patient decision
 async function handlePatientDecision(patientId, action) {
-  console.log('Handling patient decision:', action, 'for patient:', patientId);
-  
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, deleteDoc } = window.firestoreFunctions;
-      await deleteDoc(doc(db, `users`, currentUser, 'patients', patientId));
-      
-      const statMap = {
-        'discharge': 'discharged',
-        'hospitalize': 'hospitalized',
-        'delete': 'deleted'
-      };
-      
-      await updateStats(statMap[action], 1);
+    const { doc, getDoc, deleteDoc } = window.firestoreFunctions;
+    
+    // Get patient data for time calculation
+    const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
+    let timeSpent = 0;
+    
+    if (patientSnap.exists()) {
+      const patient = patientSnap.data();
+      const createdAt = new Date(patient.createdAt);
+      const now = new Date();
+      timeSpent = Math.floor((now - createdAt) / 60000); // minutes
+    }
+    
+    await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
+    
+    const statMap = {
+      'discharge': 'discharged',
+      'hospitalize': 'hospitalized',
+      'delete': 'deleted'
+    };
+    
+    const statKey = statMap[action];
+    await updateStats(statKey, 1);
+    await updateDailyStats(statKey, 1);
+    
+    // Update time statistics if not deleted
+    if (action !== 'delete') {
+      await updateStats('totalTime', timeSpent);
+      await updateStats('totalPatients', 1);
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
     
-    console.log(`Patient ${action} completed`);
-    
   } catch (error) {
-    console.error(`Error with ${action}:`, error);
-    alert('Erreur lors du traitement du patient');
+    console.error('Error handling patient decision:', error);
   }
 }
 
-// Complete task with enhanced animation
-async function completeTask(patientId, taskId) {
-  console.log('Completing task:', taskId, 'for patient:', patientId);
+// Patient Transfer
+function showTransferModal() {
+  const modal = createModal('🔄 Relève - Transfert de patients', `
+    <div class="transfer-section">
+      <h3>Sélectionner les utilisateurs destinataires:</h3>
+      <div id="userCheckboxes" class="user-checkbox-group"></div>
+    </div>
+    <div class="transfer-section">
+      <h3>Sélectionner les patients à transférer:</h3>
+      <div id="patientCheckboxes" class="patient-checkbox-group"></div>
+    </div>
+    <button class="btn-primary" id="transferPatients">Transférer</button>
+  `);
+  
+  loadTransferUsers();
+  loadTransferPatients();
+  
+  $('#transferPatients').addEventListener('click', executeTransfer);
+}
+
+async function loadTransferUsers() {
+  try {
+    const { collection, getDocs } = window.firestoreFunctions;
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    const container = $('#userCheckboxes');
+    
+    container.innerHTML = '';
+    
+    usersSnapshot.forEach(doc => {
+      if (doc.id !== currentUserId) {
+        const user = doc.data();
+        const item = document.createElement('div');
+        item.className = 'checkbox-item';
+        item.innerHTML = `
+          <input type="checkbox" id="user_${doc.id}" value="${doc.id}">
+          <label for="user_${doc.id}">${user.name}</label>
+        `;
+        container.appendChild(item);
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error loading transfer users:', error);
+  }
+}
+
+async function loadTransferPatients() {
+  try {
+    const { collection, getDocs } = window.firestoreFunctions;
+    const patientsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'patients'));
+    const container = $('#patientCheckboxes');
+    
+    container.innerHTML = '';
+    
+    patientsSnapshot.forEach(doc => {
+      const patient = doc.data();
+      const item = document.createElement('div');
+      item.className = 'checkbox-item';
+      item.innerHTML = `
+        <input type="checkbox" id="patient_${doc.id}" value="${doc.id}">
+        <label for="patient_${doc.id}">${patient.name} - ${patient.complaint}</label>
+      `;
+      container.appendChild(item);
+    });
+    
+  } catch (error) {
+    console.error('Error loading transfer patients:', error);
+  }
+}
+
+async function executeTransfer() {
+  const selectedUsers = Array.from($$('#userCheckboxes input:checked')).map(cb => cb.value);
+  const selectedPatients = Array.from($$('#patientCheckboxes input:checked')).map(cb => cb.value);
+  
+  if (selectedUsers.length === 0 || selectedPatients.length === 0) {
+    alert('Veuillez sélectionner au moins un utilisateur et un patient');
+    return;
+  }
   
   try {
-    if (db && window.firestoreFunctions) {
-      const { doc, getDoc, updateDoc } = window.firestoreFunctions;
-      const patientRef = doc(db, `users`, currentUser, 'patients', patientId);
-      const patientSnap = await getDoc(patientRef);
+    const { doc, getDoc, setDoc, deleteDoc, writeBatch } = window.firestoreFunctions;
+    const batch = writeBatch(db);
+    
+    for (const patientId of selectedPatients) {
+      const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
       
       if (patientSnap.exists()) {
         const patientData = patientSnap.data();
-        const updatedTasks = patientData.tasks.map(task => 
-          task.id === taskId ? { ...task, completed: true } : task
-        );
-        await updateDoc(patientRef, { tasks: updatedTasks });
+        
+        // Transfer to each selected user
+        for (const userId of selectedUsers) {
+          const newPatientId = generateId('patient');
+          const newPatientData = {
+            ...patientData,
+            id: newPatientId,
+            userId: userId,
+            transferredFrom: currentUserId,
+            transferredAt: new Date().toISOString()
+          };
+          
+          batch.set(doc(db, 'users', userId, 'patients', newPatientId), newPatientData);
+        }
+        
+        // Delete from current user
+        batch.delete(doc(db, 'users', currentUserId, 'patients', patientId));
       }
     }
     
-    console.log('Task completed');
+    await batch.commit();
+    
+    $('.modal-overlay').remove();
+    alert('Transfert effectué avec succès!');
     
   } catch (error) {
-    console.error('Error completing task:', error);
-    alert('Erreur lors de la completion de la tâche');
+    console.error('Error transferring patients:', error);
+    alert('Erreur lors du transfert');
   }
 }
 
-// Edit patient info - FIXED VERSION
-function editPatientInfo(patientId) {
-  console.log('Edit patient info for:', patientId);
+// Notes Management
+function toggleNotesPanel() {
+  const panel = $('#notesPanel');
+  panel.classList.toggle('hidden');
+}
+
+function renderNotes(snapshot) {
+  const container = $('#notesList');
   
-  // Remove any existing modals to prevent duplicates
-  const existingModals = document.querySelectorAll('.modal-overlay');
-  existingModals.forEach(modal => modal.remove());
+  if (snapshot.empty) {
+    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Aucune note</p>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  snapshot.forEach(doc => {
+    const note = doc.data();
+    const noteElement = document.createElement('div');
+    noteElement.className = 'note-item';
+    noteElement.innerHTML = `
+      <div class="note-content">${note.content}</div>
+      <div class="note-actions">
+        <button class="note-edit" data-noteid="${doc.id}">✏️</button>
+        <button class="note-delete" data-noteid="${doc.id}">🗑️</button>
+      </div>
+    `;
+    container.appendChild(noteElement);
+  });
+}
+
+function showAddNoteModal() {
+  const modal = createModal('📝 Nouvelle note', `
+    <textarea id="noteContent" placeholder="Écrivez votre note ici..." rows="4"></textarea>
+    <button class="btn-primary" id="saveNote">Ajouter la note</button>
+  `);
+  
+  $('#saveNote').addEventListener('click', saveNote);
+}
+
+async function saveNote() {
+  const content = $('#noteContent').value.trim();
+  
+  if (!content) {
+    alert('Veuillez saisir le contenu de la note');
+    return;
+  }
+  
+  try {
+    const { doc, setDoc } = window.firestoreFunctions;
+    const noteId = generateId('note');
+    
+    const noteData = {
+      id: noteId,
+      content,
+      createdAt: new Date().toISOString(),
+      userId: currentUserId
+    };
+    
+    await setDoc(doc(db, 'users', currentUserId, 'notes', noteId), noteData);
+    
+    $('.modal-overlay').remove();
+    
+  } catch (error) {
+    console.error('Error saving note:', error);
+  }
+}
+
+async function editNote(noteId) {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const noteSnap = await getDoc(doc(db, 'users', currentUserId, 'notes', noteId));
+    
+    if (noteSnap.exists()) {
+      const note = noteSnap.data();
+      
+      const modal = createModal('✏️ Modifier la note', `
+        <textarea id="editNoteContent" rows="4">${note.content}</textarea>
+        <button class="btn-primary" id="updateNote">Mettre à jour</button>
+      `);
+      
+      $('#updateNote').addEventListener('click', () => updateNote(noteId));
+    }
+    
+  } catch (error) {
+    console.error('Error loading note:', error);
+  }
+}
+
+async function updateNote(noteId) {
+  const content = $('#editNoteContent').value.trim();
+  
+  if (!content) {
+    alert('Veuillez saisir le contenu de la note');
+    return;
+  }
+  
+  try {
+    const { doc, updateDoc } = window.firestoreFunctions;
+    await updateDoc(doc(db, 'users', currentUserId, 'notes', noteId), {
+      content,
+      updatedAt: new Date().toISOString()
+    });
+    
+    $('.modal-overlay').remove();
+    
+  } catch (error) {
+    console.error('Error updating note:', error);
+  }
+}
+
+async function deleteNote(noteId) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette note ?')) return;
+  
+  try {
+    const { doc, deleteDoc } = window.firestoreFunctions;
+    await deleteDoc(doc(db, 'users', currentUserId, 'notes', noteId));
+    
+  } catch (error) {
+    console.error('Error deleting note:', error);
+  }
+}
+
+// Profile Management
+function showEditNameModal() {
+  const modal = createModal('✏️ Modifier le nom', `
+    <input id="newName" placeholder="Nouveau nom" value="${currentUser}">
+    <button class="btn-primary" id="updateName">Mettre à jour</button>
+  `);
+  
+  $('#updateName').addEventListener('click', updateUserName);
+}
+
+async function updateUserName() {
+  const newName = $('#newName').value.trim();
+  
+  if (!newName) {
+    alert('Veuillez saisir un nom');
+    return;
+  }
+  
+  try {
+    const { doc, updateDoc } = window.firestoreFunctions;
+    await updateDoc(doc(db, 'users', currentUserId), {
+      name: newName,
+      updatedAt: new Date().toISOString()
+    });
+    
+    currentUser = newName;
+    $('#username').textContent = newName;
+    $('#profileName').textContent = newName;
+    
+    $('.modal-overlay').remove();
+    alert('Nom mis à jour avec succès!');
+    
+  } catch (error) {
+    console.error('Error updating name:', error);
+  }
+}
+
+function showChangePinModal() {
+  const modal = createModal('🔑 Changer le PIN', `
+    <input type="password" id="currentPin" placeholder="PIN actuel" maxlength="4">
+    <input type="password" id="newPin" placeholder="Nouveau PIN" maxlength="4">
+    <input type="password" id="confirmNewPin" placeholder="Confirmer le nouveau PIN" maxlength="4">
+    <button class="btn-primary" id="updatePin">Mettre à jour</button>
+  `);
+  
+  // PIN input validation
+  $$('#currentPin, #newPin, #confirmNewPin').forEach(input => {
+    input.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+  });
+  
+  $('#updatePin').addEventListener('click', updateUserPin);
+}
+
+async function updateUserPin() {
+  const currentPin = $('#currentPin').value;
+  const newPin = $('#newPin').value;
+  const confirmPin = $('#confirmNewPin').value;
+  
+  if (!currentPin || !newPin || !confirmPin) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+    alert('Le nouveau PIN doit contenir 4 chiffres');
+    return;
+  }
+  
+  if (newPin !== confirmPin) {
+    alert('Les nouveaux PINs ne correspondent pas');
+    return;
+  }
+  
+  try {
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const userSnap = await getDoc(doc(db, 'users', currentUserId));
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      
+      if (userData.pin !== currentPin) {
+        alert('PIN actuel incorrect');
+        return;
+      }
+      
+      await updateDoc(doc(db, 'users', currentUserId), {
+        pin: newPin,
+        updatedAt: new Date().toISOString()
+      });
+      
+      $('.modal-overlay').remove();
+      alert('PIN mis à jour avec succès!');
+    }
+    
+  } catch (error) {
+    console.error('Error updating PIN:', error);
+  }
+}
+
+async function handleDeleteAccount() {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) return;
+  
+  const pin = prompt('Veuillez saisir votre PIN pour confirmer la suppression:');
+  if (!pin) return;
+  
+  try {
+    const { doc, getDoc, deleteDoc, collection, getDocs } = window.firestoreFunctions;
+    
+    // Verify PIN
+    const userSnap = await getDoc(doc(db, 'users', currentUserId));
+    if (!userSnap.exists() || userSnap.data().pin !== pin) {
+      alert('PIN incorrect');
+      return;
+    }
+    
+    // Delete all user data
+    const collections = ['patients', 'notes', 'stats', 'dailyStats'];
+    
+    for (const collectionName of collections) {
+      const snapshot = await getDocs(collection(db, 'users', currentUserId, collectionName));
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+    }
+    
+    // Delete user document
+    await deleteDoc(doc(db, 'users', currentUserId));
+    
+    alert('Compte supprimé avec succès');
+    logout();
+    
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    alert('Erreur lors de la suppression du compte');
+  }
+}
+
+// Statistics
+async function updateStats(field, value) {
+  try {
+    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
+    const statsRef = doc(db, 'users', currentUserId, 'stats', 'main');
+    
+    try {
+      await updateDoc(statsRef, {
+        [field]: increment(value)
+      });
+    } catch (error) {
+      const initialStats = {
+        added: 0,
+        hospitalized: 0,
+        discharged: 0,
+        deleted: 0,
+        totalTime: 0,
+        totalPatients: 0
+      };
+      initialStats[field] = value;
+      await setDoc(statsRef, initialStats);
+    }
+  } catch (error) {
+    console.error('Error updating stats:', error);
+  }
+}
+
+function updateStatsDisplay(stats) {
+  $('#sAdded').textContent = stats.added || 0;
+  $('#sHosp').textContent = stats.hospitalized || 0;
+  $('#sHome').textContent = stats.discharged || 0;
+  $('#sDel').textContent = stats.deleted || 0;
+  
+  // Calculate average time
+  const totalPatients = stats.totalPatients || 0;
+  const totalTime = stats.totalTime || 0;
+  const avgTime = totalPatients > 0 ? Math.round(totalTime / totalPatients) : 0;
+  $('#sAvgTime').textContent = `${avgTime}m`;
+}
+
+async function updateDailyStats(field, value) {
+  try {
+    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
+    const today = new Date().toISOString().split('T')[0];
+    const dailyStatsRef = doc(db, 'users', currentUserId, 'dailyStats', today);
+    
+    try {
+      await updateDoc(dailyStatsRef, {
+        [field]: increment(value),
+        date: today
+      });
+    } catch (error) {
+      const initialStats = {
+        date: today,
+        added: 0,
+        hospitalized: 0,
+        discharged: 0,
+        deleted: 0
+      };
+      initialStats[field] = value;
+      await setDoc(dailyStatsRef, initialStats);
+    }
+  } catch (error) {
+    console.error('Error updating daily stats:', error);
+  }
+}
+
+async function loadDailyStats() {
+  try {
+    const { collection, getDocs, orderBy, query } = window.firestoreFunctions;
+    const dailyStatsQuery = query(
+      collection(db, 'users', currentUserId, 'dailyStats'),
+      orderBy('date', 'desc')
+    );
+    
+    const snapshot = await getDocs(dailyStatsQuery);
+    const container = $('#dailyStatsContainer');
+    
+    if (snapshot.empty) {
+      container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Aucune statistique journalière</p>';
+      return;
+    }
+    
+    container.innerHTML = '';
+    
+    snapshot.forEach(doc => {
+      const stats = doc.data();
+      const date = new Date(stats.date).toLocaleDateString('fr-FR');
+      
+      const statElement = document.createElement('div');
+      statElement.className = 'daily-stat';
+      statElement.innerHTML = `
+        <div class="daily-stat-date">${date}</div>
+        <div class="daily-stat-content">
+          <div>Ajoutés: ${stats.added || 0}</div>
+          <div>Hospitalisés: ${stats.hospitalized || 0}</div>
+          <div>Sortis: ${stats.discharged || 0}</div>
+          <div>Supprimés: ${stats.deleted || 0}</div>
+        </div>
+      `;
+      container.appendChild(statElement);
+    });
+    
+  } catch (error) {
+    console.error('Error loading daily stats:', error);
+  }
+}
+
+async function resetStats() {
+  if (!confirm('Êtes-vous sûr de vouloir réinitialiser toutes les statistiques ?')) return;
+  
+  try {
+    const { doc, setDoc, collection, getDocs } = window.firestoreFunctions;
+    
+    // Reset main stats
+    await setDoc(doc(db, 'users', currentUserId, 'stats', 'main'), {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      deleted: 0,
+      totalTime: 0,
+      totalPatients: 0
+    });
+    
+    // Reset daily stats
+    const dailyStatsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'dailyStats'));
+    const deletePromises = dailyStatsSnapshot.docs.map(doc => doc.ref.delete());
+    await Promise.all(deletePromises);
+    
+    $('#dailyStatsContainer').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Aucune statistique journalière</p>';
+    
+  } catch (error) {
+    console.error('Error resetting stats:', error);
+  }
+}
+
+// Utility functions
+function generateId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function createModal(title, content) {
+  // Remove existing modals
+  $$('.modal-overlay').forEach(modal => modal.remove());
   
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
     <div class="modal">
       <div class="modal-header">
-        <h2>✏️ Modifier les informations</h2>
+        <h2>${title}</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-content">
-        <input id="editLocation" placeholder="📍 Localisation">
-        <input id="editNurse" placeholder="📱 Numéro infirmière">
-        <button class="btn-primary" id="saveInfo">Sauvegarder</button>
+        ${content}
       </div>
     </div>
   `;
   
   document.body.appendChild(modal);
-  
-  // Load current values
-  if (db && window.firestoreFunctions) {
-    const { doc, getDoc } = window.firestoreFunctions;
-    getDoc(doc(db, `users`, currentUser, 'patients', patientId)).then(docSnap => {
-      if (docSnap.exists()) {
-        const patient = docSnap.data();
-        const locationInput = document.getElementById('editLocation');
-        const nurseInput = document.getElementById('editNurse');
-        if (locationInput) locationInput.value = patient.location || '';
-        if (nurseInput) nurseInput.value = patient.nurse || '';
-      }
-    });
-  }
   
   // Close handlers
   modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
@@ -642,89 +1331,7 @@ function editPatientInfo(patientId) {
     if (e.target === modal) modal.remove();
   });
   
-  // Save info handler
-  const saveBtn = document.getElementById('saveInfo');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => savePatientInfo(patientId));
-  }
-}
-
-// Save patient info
-async function savePatientInfo(patientId) {
-  const location = $('#editLocation').value.trim();
-  const nurse = $('#editNurse').value.trim();
-  
-  try {
-    if (db && window.firestoreFunctions) {
-      const { doc, updateDoc } = window.firestoreFunctions;
-      await updateDoc(doc(db, `users`, currentUser, 'patients', patientId), {
-        location, nurse
-      });
-    }
-    
-    $('.modal-overlay').remove();
-    console.log('Patient info updated');
-    
-  } catch (error) {
-    console.error('Error updating patient info:', error);
-    alert('Erreur lors de la mise à jour');
-  }
-}
-
-// Update statistics
-async function updateStats(field, value) {
-  try {
-    if (db && window.firestoreFunctions) {
-      const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
-      const statsRef = doc(db, `users`, currentUser, 'stats', 'main');
-      
-      try {
-        await updateDoc(statsRef, {
-          [field]: increment(value)
-        });
-      } catch (error) {
-        const initialStats = { added: 0, hospitalized: 0, discharged: 0, deleted: 0 };
-        initialStats[field] = value;
-        await setDoc(statsRef, initialStats);
-      }
-    }
-  } catch (error) {
-    console.error('Error updating stats:', error);
-  }
-}
-
-// Update statistics display
-function updateStatisticsDisplay(stats) {
-  $('#sAdded').textContent = stats.added || 0;
-  $('#sHosp').textContent = stats.hospitalized || 0;
-  $('#sHome').textContent = stats.discharged || 0;
-  $('#sDel').textContent = stats.deleted || 0;
-}
-
-// Reset statistics
-async function resetStatistics() {
-  if (!confirm('Êtes-vous sûr de vouloir réinitialiser toutes les statistiques ?')) {
-    return;
-  }
-  
-  try {
-    if (db && window.firestoreFunctions) {
-      const { doc, setDoc } = window.firestoreFunctions;
-      const statsRef = doc(db, `users`, currentUser, 'stats', 'main');
-      await setDoc(statsRef, {
-        added: 0,
-        hospitalized: 0,
-        discharged: 0,
-        deleted: 0
-      });
-    }
-    
-    console.log('Statistics reset');
-    
-  } catch (error) {
-    console.error('Error resetting statistics:', error);
-    alert('Erreur lors de la réinitialisation');
-  }
+  return modal;
 }
 
 // Initialize app when DOM is ready
@@ -734,6 +1341,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-window.addEventListener('load', initializeApp);
-
-console.log('FastTrackers script loaded with Firebase sync and offline support');
+console.log('FastTrackers script loaded with enhanced features');
