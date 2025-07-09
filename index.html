@@ -9,27 +9,41 @@
   <meta name="theme-color" content="#0a1628" />
   <link rel="manifest" href="manifest.json" />
 
-  <!-- Homescreen icons (iOS & Android) -->
-<link rel="apple-touch-icon" sizes="192x192" href="my_icon_192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="my_icon.png">
-
-<!-- Favicon for desktop tabs (optional) -->
-<link rel="icon" type="image/png" sizes="512x512" href="my_icon.png">
+  <!-- Homescreen icons (iOS / Android) -->
+  <link rel="apple-touch-icon" sizes="512x512" href="fasttrackers_icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="fasttrackers_icon.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="fasttrackers_icon.png" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
-  <!-- Login -->
-  <section id="login" class="login-screen">
-    <div class="login-card">
-      <div class="login-logo">⚡</div>
+  <!-- Login/Registration Screen -->
+  <section id="auth" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">⚡</div>
       <h1>FastTrackers</h1>
       <p>Gestion des patients d'urgence</p>
-      <button class="user-btn" data-user="Cristian">👨‍⚕️ Cristian</button>
-      <button class="user-btn" data-user="Ilinca">👩‍⚕️ Ilinca</button>
-      <button class="user-btn" data-user="Guest">👤 Invité</button>
+      
+      <!-- Login Form -->
+      <div id="loginForm" class="auth-form">
+        <select id="userSelect" class="auth-select">
+          <option value="">Sélectionner un utilisateur</option>
+        </select>
+        <input type="password" id="pinInput" placeholder="Code PIN (4 chiffres)" maxlength="4" class="auth-input hidden">
+        <button id="loginBtn" class="auth-btn primary hidden">Se connecter</button>
+        <button id="showRegisterBtn" class="auth-btn secondary">Nouvel utilisateur</button>
+      </div>
+
+      <!-- Registration Form -->
+      <div id="registerForm" class="auth-form hidden">
+        <input type="text" id="registerName" placeholder="Nom d'utilisateur" class="auth-input">
+        <input type="password" id="registerPin" placeholder="Code PIN (4 chiffres)" maxlength="4" class="auth-input">
+        <input type="password" id="confirmPin" placeholder="Confirmer le PIN" maxlength="4" class="auth-input">
+        <button id="registerBtn" class="auth-btn primary">S'inscrire</button>
+        <button id="showLoginBtn" class="auth-btn secondary">Retour à la connexion</button>
+      </div>
     </div>
   </section>
 
@@ -39,6 +53,7 @@
       <div class="brand">⚡ FastTrackers</div>
       <div class="user-panel">
         <span id="username"></span>
+        <button id="profileBtn">👤 Profil</button>
         <button id="logout">Déconnexion</button>
       </div>
     </header>
@@ -46,23 +61,67 @@
     <nav class="tabs">
       <button class="tab active" data-tab="patients">👥 Patients</button>
       <button class="tab" data-tab="stats">📊 Statistiques</button>
+      <button class="tab" data-tab="profile">👤 Profil</button>
     </nav>
 
-    <!-- Patients -->
+    <!-- Patients Tab -->
     <main id="patients" class="tab-content">
+      <div class="patients-header">
+        <button id="transferBtn" class="transfer-btn">🔄 Relève</button>
+      </div>
       <div id="grid" class="grid"></div>
       <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
+      
+      <!-- Notes Button -->
+      <button id="notesBtn" class="notes-btn">📝</button>
+      
+      <!-- Notes Panel -->
+      <div id="notesPanel" class="notes-panel hidden">
+        <div class="notes-header">
+          <h3>📝 Notes personnelles</h3>
+          <button id="addNoteBtn" class="add-note-btn">➕</button>
+        </div>
+        <div id="notesList" class="notes-list"></div>
+      </div>
     </main>
 
-    <!-- Stats -->
+    <!-- Statistics Tab -->
     <main id="stats" class="tab-content hidden">
+      <div class="stats-header">
+        <h2>📊 Statistiques générales</h2>
+      </div>
       <div class="stats">
         <div class="stat"><span id="sAdded">0</span><label>Ajoutés</label></div>
         <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
         <div class="stat"><span id="sHome">0</span><label>Sortis</label></div>
         <div class="stat"><span id="sDel">0</span><label>Supprimés</label></div>
+        <div class="stat"><span id="sAvgTime">0m</span><label>Temps moyen</label></div>
       </div>
+      
+      <div class="daily-stats">
+        <h3>📅 Statistiques par jour</h3>
+        <div id="dailyStatsContainer" class="daily-stats-container"></div>
+      </div>
+      
       <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
+    </main>
+
+    <!-- Profile Tab -->
+    <main id="profile" class="tab-content hidden">
+      <div class="profile-card">
+        <h2>👤 Profil utilisateur</h2>
+        <div class="profile-info">
+          <label>Nom d'utilisateur:</label>
+          <div class="profile-field">
+            <span id="profileName"></span>
+            <button id="editNameBtn" class="edit-btn">✏️</button>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button id="changePinBtn" class="profile-btn">🔑 Changer le PIN</button>
+          <button id="deleteAccountBtn" class="profile-btn danger">🗑️ Supprimer le compte</button>
+        </div>
+      </div>
     </main>
   </section>
 
