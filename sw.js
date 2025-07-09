@@ -1,6 +1,6 @@
 // sw.js - Enhanced Service Worker for FastTrackers PWA
-const CACHE_NAME = 'fasttrackers-v2.3';
-const DATA_CACHE_NAME = 'fasttrackers-data-v1';
+const CACHE_NAME = 'fasttrackers-v3.0';
+const DATA_CACHE_NAME = 'fasttrackers-data-v2';
 
 // Assets to cache for offline use
 const FILES_TO_CACHE = [
@@ -9,8 +9,7 @@ const FILES_TO_CACHE = [
   '/styles.css',
   '/app.js',
   '/manifest.json',
-  '/my_icon.png',
-  '/my_icon_192.png',
+  '/fasttrackers_icon.png',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js'
 ];
@@ -83,8 +82,8 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(syncPatientData());
   }
   
-  if (event.tag === 'task-sync') {
-    event.waitUntil(syncTaskData());
+  if (event.tag === 'user-sync') {
+    event.waitUntil(syncUserData());
   }
   
   if (event.tag === 'stats-sync') {
@@ -92,32 +91,30 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Sync patient data when connection restored
+// Sync functions
 async function syncPatientData() {
   try {
     console.log('[ServiceWorker] Patient data synced successfully');
   } catch (error) {
-    console.error('[ServiceWorker] Error syncing patient ', error);
+    console.error('[ServiceWorker] Error syncing patient data:', error);
     throw error;
   }
 }
 
-// Sync task data
-async function syncTaskData() {
+async function syncUserData() {
   try {
-    console.log('[ServiceWorker] Task data synced successfully');
+    console.log('[ServiceWorker] User data synced successfully');
   } catch (error) {
-    console.error('[ServiceWorker] Error syncing task ', error);
+    console.error('[ServiceWorker] Error syncing user data:', error);
     throw error;
   }
 }
 
-// Sync statistics data
 async function syncStatsData() {
   try {
     console.log('[ServiceWorker] Stats data synced successfully');
   } catch (error) {
-    console.error('[ServiceWorker] Error syncing stats ', error);
+    console.error('[ServiceWorker] Error syncing stats data:', error);
     throw error;
   }
 }
