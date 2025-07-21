@@ -1,5 +1,5 @@
-// FastTrackers PWA - Complete Version with Modal Popups
-console.log('FastTrackers loading - version française avec modales centrées...');
+// FastTrackers PWA - Complete Version with Phone Numbers Bug Fix
+console.log('FastTrackers loading - version française avec correctifs FAB...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -462,7 +462,7 @@ async function startRealtimeListeners() {
   }
 }
 
-// Setup app event listeners
+// FIXED: Enhanced modal event handling setup
 function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
@@ -493,65 +493,109 @@ function setupAppEventListeners() {
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
   
-  // Modal handling
+  // FIXED: Enhanced modal handling with better event management
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay') && !e.target.closest('.modal')) {
       e.target.classList.add('hidden');
+      // FIXED: Immediate removal
+      if (e.target.parentNode) {
+        e.target.parentNode.removeChild(e.target);
+      }
     }
     
     if (e.target.matches('.modal-close')) {
-      e.target.closest('.modal-overlay').classList.add('hidden');
+      const modal = e.target.closest('.modal-overlay');
+      if (modal) {
+        modal.classList.add('hidden');
+        // FIXED: Immediate removal
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      }
     }
   });
 }
 
-// FAB Functionality - Modal Popups
+// FIXED: Enhanced FAB initialization - More robust event handling
 function initializeFABs() {
-  console.log('Initializing FABs with center modal popups...');
+  console.log('Initializing FABs with robust event handling...');
   
-  // Phone Book FAB click handler
+  // FIXED: Remove existing listeners first to prevent duplicates
   const phoneBookFab = $('#phoneBookFab');
-  if (phoneBookFab) {
-    phoneBookFab.addEventListener('click', showPhoneBookModal);
-  }
-  
-  // Templates FAB click handler
   const templatesFab = $('#templatesFab');
+  
+  if (phoneBookFab) {
+    // FIXED: Clone and replace to remove all existing listeners
+    const newPhoneBookFab = phoneBookFab.cloneNode(true);
+    phoneBookFab.parentNode.replaceChild(newPhoneBookFab, phoneBookFab);
+    newPhoneBookFab.addEventListener('click', showPhoneBookModal);
+  }
+  
   if (templatesFab) {
-    templatesFab.addEventListener('click', showTemplatesModal);
+    // FIXED: Clone and replace to remove all existing listeners
+    const newTemplatesFab = templatesFab.cloneNode(true);
+    templatesFab.parentNode.replaceChild(newTemplatesFab, templatesFab);
+    newTemplatesFab.addEventListener('click', showTemplatesModal);
   }
 }
 
-// Show Phone Book Modal (Center Screen)
+// FIXED: Enhanced showPhoneBookModal - Better error handling
 function showPhoneBookModal() {
-  $('#phoneBookModal').classList.remove('hidden');
-  loadPhoneBookData();
-  
-  // Attach event listeners
-  const addPhoneBtn = $('#addPhoneBtn');
-  if (addPhoneBtn) {
-    addPhoneBtn.addEventListener('click', showAddPhoneForm);
+  try {
+    // FIXED: Ensure only one modal is open
+    closeAllModals();
+    
+    const phoneModal = $('#phoneBookModal');
+    if (phoneModal) {
+      phoneModal.classList.remove('hidden');
+      loadPhoneBookData();
+      
+      // FIXED: Attach event listeners with error handling
+      const addPhoneBtn = $('#addPhoneBtn');
+      if (addPhoneBtn) {
+        // FIXED: Remove existing listener first
+        addPhoneBtn.onclick = null;
+        addPhoneBtn.addEventListener('click', showAddPhoneForm);
+      }
+    }
+  } catch (error) {
+    console.error('Error showing phone book modal:', error);
+    alert('Erreur lors de l\'ouverture du carnet de numéros');
   }
 }
 
-// Show Templates Modal (Center Screen)  
+// FIXED: Enhanced showTemplatesModal - Better error handling
 function showTemplatesModal() {
-  $('#templatesModal').classList.remove('hidden');
-  loadTemplatesData();
-  
-  // Attach event listeners
-  const saveTemplatesBtn = $('#saveTemplatesBtn');
-  if (saveTemplatesBtn) {
-    saveTemplatesBtn.addEventListener('click', saveTemplates);
+  try {
+    // FIXED: Ensure only one modal is open
+    closeAllModals();
+    
+    const templatesModal = $('#templatesModal');
+    if (templatesModal) {
+      templatesModal.classList.remove('hidden');
+      loadTemplatesData();
+      
+      // FIXED: Attach event listeners with error handling
+      const saveTemplatesBtn = $('#saveTemplatesBtn');
+      if (saveTemplatesBtn) {
+        // FIXED: Remove existing listener first
+        saveTemplatesBtn.onclick = null;
+        saveTemplatesBtn.addEventListener('click', saveTemplates);
+      }
+      
+      // FIXED: Attach copy button listeners
+      $$('.copy-template-btn').forEach(btn => {
+        btn.onclick = null;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          copyTemplateToClipboard(btn.dataset.field);
+        });
+      });
+    }
+  } catch (error) {
+    console.error('Error showing templates modal:', error);
+    alert('Erreur lors de l\'ouverture des modèles');
   }
-  
-  // Copy button functionality
-  $$('.copy-template-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      copyTemplateToClipboard(btn.dataset.field);
-    });
-  });
 }
 
 // Load phone book data for modal
@@ -715,7 +759,7 @@ function showAddPhoneForm() {
   $('#savePhoneBtn').addEventListener('click', saveNewPhone);
 }
 
-// Save new phone number
+// FIXED: Save new phone number - Simplified modal management
 async function saveNewPhone() {
   const name = $('#phoneName').value.trim();
   const number = $('#phoneNumber').value.trim();
@@ -747,12 +791,11 @@ async function saveNewPhone() {
       lastUpdated: new Date().toISOString()
     });
     
+    // FIXED: Simply close all modals - no automatic reopening
     closeAllModals();
     
-    // Re-show phone book modal
-    setTimeout(() => {
-      showPhoneBookModal();
-    }, 100);
+    // FIXED: Show success message
+    alert('Numéro ajouté avec succès!');
     
   } catch (error) {
     console.error('Error saving phone:', error);
@@ -783,7 +826,7 @@ async function editPhone(index) {
   }
 }
 
-// Update phone number
+// FIXED: Update phone number - Simplified modal management  
 async function updatePhone(index) {
   const name = $('#editPhoneName').value.trim();
   const number = $('#editPhoneNumber').value.trim();
@@ -812,10 +855,11 @@ async function updatePhone(index) {
         lastUpdated: new Date().toISOString()
       });
       
+      // FIXED: Simply close all modals - no automatic reopening
       closeAllModals();
-      setTimeout(() => {
-        showPhoneBookModal();
-      }, 100);
+      
+      // FIXED: Show success message
+      alert('Numéro modifié avec succès!');
     }
   } catch (error) {
     console.error('Error updating phone:', error);
@@ -823,7 +867,7 @@ async function updatePhone(index) {
   }
 }
 
-// Delete phone number
+// FIXED: Delete phone number - Simplified logic
 async function deletePhone(index) {
   if (!confirm('Supprimer ce numéro ?')) return;
   
@@ -834,6 +878,7 @@ async function deletePhone(index) {
     
     if (phoneDoc.exists()) {
       const phones = phoneDoc.data().phones || [];
+      const deletedPhone = phones[index];
       phones.splice(index, 1);
       
       await setDoc(phoneDocRef, {
@@ -841,10 +886,15 @@ async function deletePhone(index) {
         lastUpdated: new Date().toISOString()
       });
       
+      // FIXED: Refresh the current modal view instead of closing
       loadPhoneBookData();
+      
+      // FIXED: Show success message
+      alert(`${deletedPhone.name} supprimé avec succès!`);
     }
   } catch (error) {
     console.error('Error deleting phone:', error);
+    alert('Erreur lors de la suppression');
   }
 }
 
@@ -1948,15 +1998,18 @@ function createModal(title, content) {
   return modal;
 }
 
+// FIXED: Improved closeAllModals function - More reliable
 function closeAllModals() {
   $$('.modal-overlay').forEach(modal => {
     modal.classList.add('hidden');
-    setTimeout(() => {
-      if (modal.parentNode) {
-        modal.parentNode.removeChild(modal);
-      }
-    }, 300);
+    // FIXED: Immediate removal instead of delayed
+    if (modal.parentNode) {
+      modal.parentNode.removeChild(modal);
+    }
   });
+  
+  // FIXED: Clear any lingering timeouts
+  clearTimeout(window.modalTimeout);
 }
 
 // Initialize app when DOM is ready
@@ -1966,4 +2019,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded - version française COMPLÈTE avec modales centrées');
+console.log('FastTrackers script loaded - version française CORRIGÉE');
