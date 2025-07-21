@@ -24,7 +24,8 @@
       <div class="auth-logo">
         <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
       </div>
-      <p>Gestion des patients aux urgences</p>
+      <h1>FastTrackers</h1>
+      <p>Gestion des patients d'urgence</p>
 
       <!-- LOGIN FORM -->
       <div id="loginForm" class="auth-form">
@@ -51,7 +52,7 @@
   <section id="app" class="app-container hidden">
     <header class="app-header">
       <div class="brand">
-        <img src="my_icon_192_F.png" width="42" height="42" style="vertical-align:middle;margin-right:4px;">
+        <img src="my_icon.png" width="32" height="32" style="vertical-align:middle;margin-right:8px;">
         FastTrackers
       </div>
       <div class="user-panel">
@@ -81,37 +82,34 @@
       <button id="templatesBtn" class="fab templates">📋</button>
     </main>
 
-    <!-- STATISTICS TAB -->
+    <!-- STATISTICS TAB (Simplified) -->
     <main id="stats" class="tab-content hidden">
       <div class="stats-header">
         <h2>📊 Statistiques</h2>
       </div>
       
       <!-- Global Stats -->
-      <div class="stats" id="globalStats">
-        <div class="stat"><span id="sAdded">0</span><label>Ajoutés</label></div>
-        <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
-        <div class="stat"><span id="sHome">0</span><label>Sortis</label></div>
-        <div class="stat"><span id="sTransfer">0</span><label>Transférés</label></div>
-        <div class="stat"><span id="sAvgTime">0h 0m</span><label>Temps moyen</label></div>
-      </div>
-
-      <!-- Daily Stats -->
-      <div class="daily-stats-section">
-        <h3>📅 Statistiques journalières</h3>
-        <div id="dailyStatsCarousel" class="daily-stats-carousel">
-          <button id="prevDay" class="carousel-btn">‹</button>
-          <div id="dailyCharts" class="charts-container">
-            <div class="daily-chart-placeholder">Chargement...</div>
-          </div>
-          <button id="nextDay" class="carousel-btn">›</button>
+      <div class="stats-section">
+        <h3>📈 Statistiques globales</h3>
+        <div class="stats" id="globalStats">
+          <div class="stat"><span id="sAdded">0</span><label>Patients ajoutés</label></div>
+          <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
+          <div class="stat"><span id="sHome">0</span><label>Sortis à domicile</label></div>
+          <div class="stat"><span id="sTransfer">0</span><label>Transférés</label></div>
+          <div class="stat"><span id="sAvgTime">0h 0m</span><label>Temps moyen par patient</label></div>
         </div>
       </div>
 
-      <!-- Triage Matrix -->
-      <div class="triage-section">
-        <h3>🔍 Analyse par triage</h3>
-        <div id="triageMatrix" class="triage-matrix"></div>
+      <!-- Triage Stats -->
+      <div class="stats-section">
+        <h3>🎯 Statistiques par triage</h3>
+        <div id="triageStats" class="triage-stats-grid"></div>
+      </div>
+
+      <!-- Daily Stats -->
+      <div class="stats-section">
+        <h3>📅 Activité journalière</h3>
+        <div id="dailyStatsGrid" class="daily-stats-grid"></div>
       </div>
 
       <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
