@@ -1,7 +1,7 @@
 {
-  "name": "FastTrackers – Gestion des Urgences",
+  "name": "FastTrackers - Gestion des Urgences",
   "short_name": "FastTrackers",
-  "description": "PWA de gestion des patients d'urgence avec authentification et fonctionnalités avancées",
+  "description": "Application de gestion des patients d'urgence",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a1628",
@@ -19,6 +19,6 @@
       "type": "image/png"
     }
   ],
-  "categories": ["medical", "productivity", "health"],
-  "prefer_related_applications": false
+  "categories": ["medical", "productivity"],
+  "lang": "fr"
 }
