@@ -1,126 +1,123 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FastTrackers – Urgences</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FastTrackers – Urgences</title>
+<!-- PWA meta -->
+<meta name="theme-color" content="#0a1628" />
+<link rel="manifest" href="manifest.json" />
 
-  <!-- PWA -->
-  <meta name="theme-color" content="#0a1628" />
-  <link rel="manifest" href="manifest.json" />
+<!-- Icon for Home Screen iOS / Android -->
+<link rel="apple-touch-icon" sizes="512x512" href="fasttrackers_icon.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="fasttrackers_icon.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="fasttrackers_icon.png" />
 
-  <!-- Homescreen icons -->
-  <link rel="apple-touch-icon" sizes="512x512" href="my_icon.png" />
-  <link rel="apple-touch-icon" sizes="192x192" href="my_icon_192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="my_icon.png" />
-
-  <link rel="stylesheet" href="styles.css" />
+<!-- Stylesheet -->
+<link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
-  <!-- AUTH SCREEN -->
-  <section id="auth" class="auth-screen">
-    <div class="auth-card">
-      <div class="auth-logo">
-        <img src="my_icon_192.png" width="192" height="192" alt="FastTrackers logo"/>
-      </div>
-      <h1>FastTrackers</h1>
-      <p>Gestion des patients d'urgence</p>
-
-      <!-- LOGIN -->
-      <div id="loginForm" class="auth-form">
-        <select id="userSelect" class="auth-select">
-          <option value="">Sélectionner un utilisateur</option>
-        </select>
-        <input type="password" id="pinInput" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input hidden">
+<!-- AUTH & REGISTRATION PAGE -->
+<section id="auth" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="fasttrackers_icon.png" width="96" height="96" alt="FastTrackers logo" />
+    </div>
+    <h1>FastTrackers</h1>
+    <p>Gestion des patients d'urgence</p>
+    <div id="auth-form" class="auth-form">
+      <!-- Login/Register toggler buttons -->
+      <button id="showLogin" class="auth-toggle btn-secondary">Connexion</button>
+      <button id="showRegister" class="auth-toggle btn-secondary">Inscription</button>
+      
+      <!-- Login -->
+      <div id="loginContainer">
+        <select id="userSelect" class="auth-select"></select>
+        <input type="password" id="pinField" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input hidden" />
         <button id="loginBtn" class="auth-btn primary hidden">Se connecter</button>
-        <button id="showRegisterBtn" class="auth-btn secondary">Nouvel utilisateur</button>
       </div>
 
-      <!-- REGISTER -->
-      <div id="registerForm" class="auth-form hidden">
-        <input id="registerName" placeholder="Nom d'utilisateur" class="auth-input">
-        <input id="registerPin" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input">
-        <input id="confirmPin" placeholder="Confirmer le PIN" maxlength="4" class="auth-input">
+      <!-- Registration -->
+      <div id="registerContainer" class="hidden">
+        <input type="text" id="regName" placeholder="Nom d'utilisateur" />
+        <input type="password" id="regPIN" placeholder="PIN (4 chiffres)" maxlength="4" />
+        <input type="password" id="regPINConfirm" placeholder="Confirmer PIN" maxlength="4" />
         <button id="registerBtn" class="auth-btn primary">S'inscrire</button>
-        <button id="showLoginBtn" class="auth-btn secondary">Retour à la connexion</button>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- APP SHELL -->
-  <section id="app" class="app-container hidden">
-    <header class="app-header">
-      <div class="brand">⚡ FastTrackers</div>
-      <div class="user-panel">
-        <span id="username"></span>
-        <button id="profileBtn">👤 Profil</button>
-        <button id="logout">Déconnexion</button>
-      </div>
-    </header>
+<!-- APP SHELL -->
+<section id="app" class="app-container hidden">
+  <header class="app-header">
+    <div class="brand">⚡ FastTrackers</div>
+    <div class="user-panel">
+      <span id="username"></span>
+      <button id="profileBtn" class="profile-btn">👤 Profil</button>
+      <button id="logoutBtn" class="profile-btn danger">🔓 Déconnexion</button>
+    </div>
+  </header>
 
-    <nav class="tabs">
-      <button class="tab active" data-tab="patients">👥 Patients</button>
-      <button class="tab" data-tab="stats">📊 Statistiques</button>
-      <button class="tab" data-tab="profile">👤 Profil</button>
-    </nav>
+  <!-- Tabs Navigation -->
+<nav class="tabs">
+  <button class="tab active" data-tab="patients">👥 Patients</button>
+  <button class="tab" data-tab="stats">📊 Statistiques</button>
+  <button class="tab" data-tab="profile">👤 Profil</button>
+</nav>
 
-    <!-- PATIENTS TAB -->
-    <main id="patients" class="tab-content">
-      <div class="patients-header">
-        <button id="transferBtn" class="transfer-btn">🔄 Relève</button>
-      </div>
+<!-- Patients -->
+<main id="patients" class="tab-content">
+  <div class="patients-header">
+    <button id="transferBtn" class="transfer-btn">🔄 Relève</button>
+  </div>
+  <div id="grid" class="grid"></div>
+  <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
 
-      <div id="grid" class="grid"></div>
-      <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
+  <!-- Useful Numbers Button (Reused from notes) -->
+  <button id="contactsBtn" class="fab phone" title="Numéros utiles">📞</button>
+  <!-- Templates Button -->
+  <button id="templatesBtn" class="fab templates" title="Modèles"></button>
+</main>
 
-      <!-- Floating buttons -->
-      <button id="phoneBookBtn" class="fab phone">📞</button>
-      <button id="templatesBtn" class="fab templates">📋</button>
-    </main>
+<!-- Notes/Profile Modal (hidden) -->
+<div id="myModal" class="modal hidden"></div>
 
-    <!-- STATISTICS TAB -->
-    <main id="stats" class="tab-content hidden">
-      <div class="stats-header"><h2>📊 Statistiques</h2></div>
-      <div class="stats" id="globalStats"></div>
+<!-- Stats -->
+<main id="stats" class="tab-content hidden">
+  <div class="stats-header"><h2>📊 Statistiques</h2></div>
+  <div id="mainStats" class="stats"></div>
+  <h3>📅 Par date</h3>
+  <div class="charts-carousel" id="chartsCarousel"></div>
+  <h3>🩺 Par niveau de triage</h3>
+  <div id="triageStats"></div>
+  <button id="statsReset" class="reset-btn">🔄 Réinitialiser</button>
+</main>
 
-      <h3>📅 Aujourd'hui</h3>
-      <div id="dailyCharts" class="charts-carousel"></div>
+<!-- Profile -->
+<main id="profile" class="tab-content hidden">
+  <h2>👤 Profil</h2>
+  <div class="profile-section">
+    <div><strong>Nom:</strong> <span id="profileName"></span></div>
+    <button id="editNameBtn" class="edit-btn">✏️ Modifier nom</button>
+  </div>
+  <div class="profile-section">
+    <button id="changePinBtn" class="profile-btn">🔑 Changer PIN</button>
+  </div>
+  <div class="profile-section danger">
+    <button id="deleteAccountBtn" class="profile-btn">🗑️ Supprimer compte</button>
+  </div>
+</main>
+</section>
 
-      <h3>🔍 Triage & Décision</h3>
-      <div id="triageMatrix" class="triage-matrix"></div>
-
-      <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
-    </main>
-
-    <!-- PROFILE TAB -->
-    <main id="profile" class="tab-content hidden">
-      <div class="profile-card">
-        <h2>👤 Profil utilisateur</h2>
-        <div class="profile-info">
-          <label>Nom :</label>
-          <div class="profile-field">
-            <span id="profileName"></span>
-            <button id="editNameBtn" class="edit-btn">✏️</button>
-          </div>
-        </div>
-        <button id="changePinBtn" class="profile-btn">🔑 Changer le PIN</button>
-        <button id="deleteAccountBtn" class="profile-btn danger">🗑️ Supprimer le compte</button>
-      </div>
-    </main>
-  </section>
-
-  <!-- SERVICE WORKER -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () =>
-        navigator.serviceWorker.register('/sw.js')
-          .then(r => console.log('SW OK', r))
-          .catch(e => console.warn('SW KO', e))
-      );
-    }
-  </script>
-
-  <script src="app.js"></script>
+<!-- Scripts -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW OK', reg)).catch(e => console.warn('SW KO', e));
+    });
+  }
+</script>
+<script src="app.js"></script>
 </body>
 </html>
