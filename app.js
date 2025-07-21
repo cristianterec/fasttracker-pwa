@@ -1,5 +1,5 @@
-// FastTrackers PWA - Final Version with French Interface
-console.log('FastTrackers loading - version française avec tous les correctifs...');
+// FastTrackers PWA - Fixed Version with French Interface
+console.log('FastTrackers loading - version française avec correctifs FAB et stats...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -412,7 +412,7 @@ async function declineTransfer(transferId, transfer) {
   }
 }
 
-// Start real-time listeners
+// Start real-time listeners - FIXED STATS LISTENER
 async function startRealtimeListeners() {
   try {
     const { collection, doc, onSnapshot, orderBy, query } = window.firestoreFunctions;
@@ -427,10 +427,22 @@ async function startRealtimeListeners() {
       renderPatients(snapshot);
     });
     
-    // Stats listener
+    // Stats listener - FIXED
     unsubscribeStats = onSnapshot(doc(db, 'users', currentUserId, 'stats', 'main'), (doc) => {
-      const stats = doc.exists() ? doc.data() : {};
-      updateStatsDisplay(stats);
+      if (doc.exists()) {
+        const stats = doc.data();
+        updateStatsDisplay(stats);
+      } else {
+        // Initialize stats if they don't exist
+        updateStatsDisplay({
+          added: 0,
+          hospitalized: 0,
+          discharged: 0,
+          transferred: 0,
+          totalTime: 0,
+          totalPatients: 0
+        });
+      }
     });
 
     // Transfers listener
@@ -450,7 +462,7 @@ async function startRealtimeListeners() {
   }
 }
 
-// Setup app event listeners - FIXED FAB BUTTONS
+// Setup app event listeners - FIXED FAB BUTTONS WITH EVENT DELEGATION
 function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
@@ -475,12 +487,16 @@ function setupAppEventListeners() {
   $('#changePinBtn').addEventListener('click', showChangePinModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
   
-  // FAB BUTTONS - FIXED with delegated event listeners
-  document.body.addEventListener('click', (e) => {
-    if (e.target.id === 'phoneBookBtn') {
+  // FAB BUTTONS - FIXED with persistent event delegation
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'phoneBookBtn' || e.target.closest('#phoneBookBtn')) {
+      e.preventDefault();
+      e.stopPropagation();
       showPhoneBookModal();
     }
-    if (e.target.id === 'templatesBtn') {
+    if (e.target.id === 'templatesBtn' || e.target.closest('#templatesBtn')) {
+      e.preventDefault();
+      e.stopPropagation();
       showTemplatesModal();
     }
   });
@@ -629,15 +645,15 @@ function switchTab(tabName) {
   $(`#${tabName}`).classList.remove('hidden');
 }
 
-// Live timers - UPDATED with improved formatting
+// Live timers
 function startLiveTimers() {
   if (updateTimerHandle) clearInterval(updateTimerHandle);
   if (liveTimerHandle) clearInterval(liveTimerHandle);
   
-  // Task countdown timers (existing)
+  // Task countdown timers
   updateTimerHandle = setInterval(updateAllTimers, 1000);
   
-  // Live elapsed time timers (IMPROVED)
+  // Live elapsed time timers
   liveTimerHandle = setInterval(updateLiveTimers, 1000);
 }
 
@@ -663,7 +679,6 @@ function updateAllTimers() {
   });
 }
 
-// IMPROVED: Update live elapsed time timers
 function updateLiveTimers() {
   const now = Date.now();
   $$('.live-timer').forEach(el => {
@@ -680,7 +695,6 @@ function formatTime(ms) {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// IMPROVED: Format elapsed time - seconds → minutes:seconds → hours:minutes
 function formatElapsedTime(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   
@@ -1341,12 +1355,16 @@ async function executeTransfer() {
   }
 }
 
-// Phone book functionality
+// Phone book functionality - FIXED
 function showPhoneBookModal() {
   $('#phoneBookModal').classList.remove('hidden');
   loadPhoneBook();
   
-  $('#addPhoneNumber').onclick = showAddPhoneModal;
+  // Re-attach event listener to ensure it works
+  const addBtn = $('#addPhoneNumber');
+  if (addBtn) {
+    addBtn.onclick = showAddPhoneModal;
+  }
 }
 
 async function loadPhoneBook() {
@@ -1421,8 +1439,10 @@ async function savePhone() {
     });
 
     closeAllModals();
-    $('#phoneBookModal').classList.remove('hidden');
-    loadPhoneBook();
+    // Re-show phone book modal
+    setTimeout(() => {
+      showPhoneBookModal();
+    }, 100);
 
   } catch (error) {
     console.error('Error saving phone:', error);
@@ -1470,8 +1490,9 @@ async function updatePhone(phoneId) {
     });
 
     closeAllModals();
-    $('#phoneBookModal').classList.remove('hidden');
-    loadPhoneBook();
+    setTimeout(() => {
+      showPhoneBookModal();
+    }, 100);
 
   } catch (error) {
     console.error('Error updating phone:', error);
@@ -1488,12 +1509,16 @@ async function deletePhone(phoneId) {
   }
 }
 
-// Templates functionality
+// Templates functionality - FIXED
 function showTemplatesModal() {
   $('#templatesModal').classList.remove('hidden');
   loadTemplates();
 
-  $('#saveTemplates').onclick = saveTemplates;
+  // Re-attach event listener
+  const saveBtn = $('#saveTemplates');
+  if (saveBtn) {
+    saveBtn.onclick = saveTemplates;
+  }
 }
 
 async function loadTemplates() {
@@ -1565,7 +1590,7 @@ async function copyTemplateText(button) {
   }
 }
 
-// Statistics functions - SIMPLIFIED
+// Statistics functions - FIXED
 function updateStatsDisplay(stats) {
   $('#sAdded').textContent = stats.added || 0;
   $('#sHosp').textContent = stats.hospitalized || 0;
@@ -1579,18 +1604,23 @@ function updateStatsDisplay(stats) {
   const avgHours = Math.floor(avgTimeMinutes / 60);
   const avgMins = avgTimeMinutes % 60;
   $('#sAvgTime').textContent = `${avgHours}h ${avgMins}m`;
+  
+  console.log('Stats updated:', stats);
 }
 
 async function updateStats(field, value) {
   try {
-    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
+    const { doc, updateDoc, increment, setDoc, getDoc } = window.firestoreFunctions;
     const statsRef = doc(db, 'users', currentUserId, 'stats', 'main');
     
     try {
+      // Try to update existing document
       await updateDoc(statsRef, {
         [field]: increment(value)
       });
     } catch (error) {
+      // If document doesn't exist, create it
+      const statsDoc = await getDoc(statsRef);
       const initialStats = {
         added: 0,
         hospitalized: 0,
@@ -1826,4 +1856,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded - version française finale');
+console.log('FastTrackers script loaded - version française FIXÉE');
