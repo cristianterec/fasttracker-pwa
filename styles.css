@@ -1,4 +1,4 @@
-/* FastTrackers PWA - Final Version with Enhanced Text Sizing */
+/* FastTrackers PWA - Final Version with Patient Notes & Live Timer */
 
 :root {
   /* Core Colors */
@@ -44,16 +44,16 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
   
-  /* Enhanced Typography - Larger base sizes */
+  /* Enhanced Typography */
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-size-xs: 0.8rem;    /* Increased from 0.75rem */
-  --font-size-sm: 0.95rem;   /* Increased from 0.875rem */
-  --font-size-base: 1.05rem; /* Increased from 1rem */
-  --font-size-lg: 1.2rem;    /* Increased from 1.125rem */
-  --font-size-xl: 1.35rem;   /* Increased from 1.25rem */
-  --font-size-2xl: 1.6rem;   /* Increased from 1.5rem */
-  --font-size-3xl: 2rem;     /* Increased from 1.875rem */
-  --font-size-4xl: 2.4rem;   /* Increased from 2.25rem */
+  --font-size-xs: 0.8rem;
+  --font-size-sm: 0.95rem;
+  --font-size-base: 1.05rem;
+  --font-size-lg: 1.2rem;
+  --font-size-xl: 1.35rem;
+  --font-size-2xl: 1.6rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.4rem;
   
   /* Spacing */
   --space-1: 0.25rem;
@@ -377,7 +377,7 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
-  min-height: 180px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -410,7 +410,8 @@ body {
 
 .card.yellow .patient-name,
 .card.yellow .patient-complaint,
-.card.yellow .task-desc {
+.card.yellow .task-desc,
+.card.yellow .patient-notes {
   color: #1f2937;
 }
 
@@ -442,9 +443,25 @@ body {
   z-index: 10;
 }
 
+/* Live Timer - NEW */
+.live-timer {
+  position: absolute;
+  top: var(--space-4);
+  right: 120px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid var(--accent-blue);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--accent-blue);
+  font-weight: 600;
+  z-index: 15;
+  animation: pulse 2s infinite;
+}
+
 /* Patient Main */
 .patient-main {
-  margin-right: 100px;
+  margin-right: 140px;
   margin-bottom: var(--space-4);
 }
 
@@ -471,6 +488,29 @@ body {
 .patient-complaint {
   font-size: var(--font-size-lg);
   margin-bottom: var(--space-3);
+}
+
+/* Patient Notes Display - NEW */
+.patient-notes {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-base);
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.patient-notes .objective-emoji {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.patient-notes .notes-text {
+  flex: 1;
 }
 
 /* Tasks */
@@ -671,18 +711,30 @@ body {
   box-shadow: var(--shadow-xl);
 }
 
-/* Statistics */
+/* Statistics - Simplified without carousel */
 .stats-header h2 {
   font-size: var(--font-size-2xl);
   margin-bottom: var(--space-6);
   text-align: center;
 }
 
+.stats-section {
+  margin-bottom: var(--space-8);
+}
+
+.stats-section h3 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+  border-left: 4px solid var(--accent-blue);
+  padding-left: var(--space-4);
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .stat {
@@ -715,159 +767,107 @@ body {
   font-size: var(--font-size-base);
 }
 
-/* Daily Stats - Fixed carousel */
-.daily-stats-section {
-  margin-bottom: var(--space-8);
-}
-
-.daily-stats-section h3 {
-  font-size: var(--font-size-xl);
-  margin-bottom: var(--space-4);
-  text-align: center;
-}
-
-.daily-stats-carousel {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  justify-content: center;
-}
-
-.carousel-btn {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: var(--font-size-xl);
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.carousel-btn:hover:not(:disabled) {
-  background: var(--accent-blue);
-  color: white;
-}
-
-.carousel-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.charts-container {
-  flex: 1;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  min-height: 240px;
-  max-width: 600px;
-}
-
-/* Daily chart with bars */
-.daily-chart {
-  text-align: center;
-  width: 100%;
-  height: 100%;
-}
-
-.daily-chart h4 {
-  margin-bottom: var(--space-4);
-  font-size: var(--font-size-lg);
-  color: var(--text-primary);
-}
-
-.chart-bars {
-  display: flex;
-  justify-content: space-around;
-  align-items: end;
-  height: 140px;
-  margin-bottom: var(--space-4);
-  gap: var(--space-2);
-}
-
-.chart-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-}
-
-.bar {
-  min-height: 10px;
-  width: 100%;
-  max-width: 50px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  transition: height 0.3s ease;
-}
-
-.bar.added { background: var(--accent-blue); }
-.bar.hospitalized { background: var(--accent-red); }
-.bar.discharged { background: var(--accent-green); }
-.bar.transferred { background: var(--accent-orange); }
-
-.chart-bar label {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  text-align: center;
-  line-height: 1.2;
-}
-
-.daily-chart-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: var(--text-muted);
-  font-size: var(--font-size-base);
-}
-
-/* Triage Matrix - French labels */
-.triage-section h3 {
-  font-size: var(--font-size-xl);
-  margin-bottom: var(--space-4);
-  text-align: center;
-}
-
-.triage-matrix {
+/* Triage Stats Grid - NEW */
+.triage-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-8);
 }
 
-.triage-stat {
+.triage-stat-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
+  transition: all 0.3s ease;
 }
 
-.triage-stat h4 {
-  font-size: var(--font-size-lg);
-  margin-bottom: var(--space-3);
+.triage-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.triage-stat-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
-.triage-color-indicator {
-  width: 18px;
-  height: 18px;
+.triage-color-dot {
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
+  border: 2px solid white;
+}
+
+.triage-stat-header h4 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
 }
 
 .triage-breakdown {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-2);
+}
+
+.breakdown-item {
   font-size: var(--font-size-base);
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1) 0;
+}
+
+/* Daily Stats Grid - NEW */
+.daily-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--glass-bg);
+}
+
+.daily-stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  transition: all 0.3s ease;
+}
+
+.daily-stat-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.daily-stat-header {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  text-align: center;
+  color: var(--accent-blue);
+}
+
+.daily-stat-values {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.daily-stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1) 0;
+}
+
+.daily-stat-item .value {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 /* Reset Button */
@@ -876,7 +876,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  margin: 0 auto;
+  margin: var(--space-6) auto 0;
   padding: var(--space-4) var(--space-6);
   background: linear-gradient(135deg, var(--accent-red), #dc2626);
   border: none;
@@ -980,7 +980,7 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* Modals - Fixed text selection issue */
+/* Modals */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1204,7 +1204,7 @@ body {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* Templates - Fixed copy button positioning */
+/* Templates */
 .templates-sections {
   display: flex;
   flex-direction: column;
@@ -1439,8 +1439,14 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
 }
 
 /* Responsive Design */
@@ -1453,7 +1459,11 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .triage-matrix {
+  .triage-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .daily-stats-grid {
     grid-template-columns: 1fr;
   }
   
@@ -1466,15 +1476,6 @@ body {
     margin: var(--space-4);
   }
   
-  .daily-stats-carousel {
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  
-  .charts-container {
-    max-width: 100%;
-  }
-  
   .triage-circles {
     gap: var(--space-2);
   }
@@ -1482,6 +1483,23 @@ body {
   .triage-circle {
     width: 36px;
     height: 36px;
+  }
+  
+  /* Adjust patient card layout for mobile */
+  .patient-main {
+    margin-right: 10px;
+  }
+  
+  .live-timer {
+    right: 10px;
+    font-size: var(--font-size-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+  
+  .info-box {
+    position: relative;
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-2);
   }
 }
 
