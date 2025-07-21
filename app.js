@@ -1,5 +1,5 @@
-// FastTrackers PWA - Fixed Version with French Interface
-console.log('FastTrackers loading - version française avec correctifs FAB et stats...');
+// FastTrackers PWA - Rebuilt Version with Fixed FAB and Stats
+console.log('FastTrackers loading - version française avec fonctions reconstruites...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -219,14 +219,32 @@ async function handleRegister() {
 async function initializeUserData(userId) {
   const { doc, setDoc } = window.firestoreFunctions;
   
-  // Initialize stats
-  await setDoc(doc(db, 'users', userId, 'stats', 'main'), {
+  // Initialize stats with proper structure
+  await setDoc(doc(db, 'userStats', userId), {
     added: 0,
     hospitalized: 0,
     discharged: 0,
     transferred: 0,
-    totalTime: 0,
-    totalPatients: 0
+    totalTimeMinutes: 0,
+    totalPatients: 0,
+    lastUpdated: new Date().toISOString()
+  });
+  
+  // Initialize templates
+  await setDoc(doc(db, 'userTemplates', userId), {
+    hemodynamique: '',
+    respiratoire: '',
+    digestif: '',
+    neurologique: '',
+    osteoarticulaire: '',
+    autre: '',
+    lastUpdated: new Date().toISOString()
+  });
+  
+  // Initialize phone book
+  await setDoc(doc(db, 'userPhoneBook', userId), {
+    phones: [],
+    lastUpdated: new Date().toISOString()
   });
   
   // Initialize task suggestions
@@ -237,16 +255,6 @@ async function initializeUserData(userId) {
       { description: "ECG", timer: 0, frequency: 1 },
       { description: "BU", timer: 0, frequency: 1 }
     ]
-  });
-
-  // Initialize templates
-  await setDoc(doc(db, 'users', userId, 'templates', 'main'), {
-    templateHemo: '',
-    templateResp: '',
-    templateDig: '',
-    templateNeuro: '',
-    templateOsteo: '',
-    templateAutre: ''
   });
 }
 
@@ -281,6 +289,7 @@ async function handleLogin() {
     
     $('#username').textContent = currentUser;
     $('#profileName').textContent = currentUser;
+    $('#statsUsername').textContent = currentUser;
     
     $('#auth').classList.add('hidden');
     $('#app').classList.remove('hidden');
@@ -288,6 +297,7 @@ async function handleLogin() {
     await startRealtimeListeners();
     await checkForTransfers();
     startLiveTimers();
+    initializeFABs();
     
     console.log('Login successful for:', currentUser);
     
@@ -412,7 +422,7 @@ async function declineTransfer(transferId, transfer) {
   }
 }
 
-// Start real-time listeners - FIXED STATS LISTENER
+// Start real-time listeners - REBUILT FOR ACCURATE STATS
 async function startRealtimeListeners() {
   try {
     const { collection, doc, onSnapshot, orderBy, query } = window.firestoreFunctions;
@@ -427,21 +437,11 @@ async function startRealtimeListeners() {
       renderPatients(snapshot);
     });
     
-    // Stats listener - FIXED
-    unsubscribeStats = onSnapshot(doc(db, 'users', currentUserId, 'stats', 'main'), (doc) => {
+    // REBUILT: Stats listener for real-time updates
+    unsubscribeStats = onSnapshot(doc(db, 'userStats', currentUserId), (doc) => {
       if (doc.exists()) {
         const stats = doc.data();
         updateStatsDisplay(stats);
-      } else {
-        // Initialize stats if they don't exist
-        updateStatsDisplay({
-          added: 0,
-          hospitalized: 0,
-          discharged: 0,
-          transferred: 0,
-          totalTime: 0,
-          totalPatients: 0
-        });
       }
     });
 
@@ -462,7 +462,7 @@ async function startRealtimeListeners() {
   }
 }
 
-// Setup app event listeners - FIXED FAB BUTTONS WITH EVENT DELEGATION
+// Setup app event listeners
 function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
@@ -487,22 +487,8 @@ function setupAppEventListeners() {
   $('#changePinBtn').addEventListener('click', showChangePinModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
   
-  // FAB BUTTONS - FIXED with persistent event delegation
-  document.addEventListener('click', (e) => {
-    if (e.target.id === 'phoneBookBtn' || e.target.closest('#phoneBookBtn')) {
-      e.preventDefault();
-      e.stopPropagation();
-      showPhoneBookModal();
-    }
-    if (e.target.id === 'templatesBtn' || e.target.closest('#templatesBtn')) {
-      e.preventDefault();
-      e.stopPropagation();
-      showTemplatesModal();
-    }
-  });
-  
-  // Stats
-  $('#resetStats').addEventListener('click', resetStats);
+  // REBUILT: Stats reset button
+  $('#resetStatsBtn').addEventListener('click', resetUserStats);
   
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
@@ -517,6 +503,468 @@ function setupAppEventListeners() {
       e.target.closest('.modal-overlay').classList.add('hidden');
     }
   });
+}
+
+// COMPLETELY REBUILT: FAB Functionality
+function initializeFABs() {
+  console.log('Initializing rebuilt FABs...');
+  
+  // Phone FAB hover functionality
+  const phoneFab = $('.fab-phone');
+  const phonePopup = $('.fab-phone-popup');
+  let phoneTimeout;
+  
+  if (phoneFab && phonePopup) {
+    phoneFab.addEventListener('mouseenter', () => {
+      clearTimeout(phoneTimeout);
+      loadPhoneNumbers();
+      phonePopup.classList.remove('hidden');
+    });
+    
+    phoneFab.addEventListener('mouseleave', () => {
+      phoneTimeout = setTimeout(() => {
+        if (!phonePopup.matches(':hover')) {
+          phonePopup.classList.add('hidden');
+        }
+      }, 300);
+    });
+    
+    phonePopup.addEventListener('mouseenter', () => {
+      clearTimeout(phoneTimeout);
+    });
+    
+    phonePopup.addEventListener('mouseleave', () => {
+      phonePopup.classList.add('hidden');
+    });
+  }
+  
+  // Templates FAB hover functionality
+  const templatesFab = $('.fab-templates');
+  const templatesPopup = $('.fab-templates-popup');
+  let templatesTimeout;
+  
+  if (templatesFab && templatesPopup) {
+    templatesFab.addEventListener('mouseenter', () => {
+      clearTimeout(templatesTimeout);
+      loadTemplates();
+      templatesPopup.classList.remove('hidden');
+    });
+    
+    templatesFab.addEventListener('mouseleave', () => {
+      templatesTimeout = setTimeout(() => {
+        if (!templatesPopup.matches(':hover')) {
+          templatesPopup.classList.add('hidden');
+        }
+      }, 300);
+    });
+    
+    templatesPopup.addEventListener('mouseenter', () => {
+      clearTimeout(templatesTimeout);
+    });
+    
+    templatesPopup.addEventListener('mouseleave', () => {
+      templatesPopup.classList.add('hidden');
+    });
+  }
+  
+  // Phone number management
+  $('.add-phone-btn').addEventListener('click', showAddPhoneForm);
+  
+  // Template management
+  $('.save-templates-btn').addEventListener('click', saveTemplates);
+  
+  // Copy button functionality
+  $$('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyTemplateToClipboard(btn.dataset.field);
+    });
+  });
+}
+
+// REBUILT: Load phone numbers from Firebase
+async function loadPhoneNumbers() {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const phoneDoc = await getDoc(doc(db, 'userPhoneBook', currentUserId));
+    
+    const phoneList = $('#phoneList');
+    if (!phoneList) return;
+    
+    if (phoneDoc.exists()) {
+      const data = phoneDoc.data();
+      const phones = data.phones || [];
+      
+      if (phones.length === 0) {
+        phoneList.innerHTML = '<div class="no-phones">Aucun numéro enregistré</div>';
+        return;
+      }
+      
+      phoneList.innerHTML = phones.map((phone, index) => `
+        <div class="phone-item" data-index="${index}">
+          <div class="phone-info">
+            <strong>${phone.name}</strong>
+            <span>${phone.number}</span>
+          </div>
+          <div class="phone-actions">
+            <button class="edit-phone-btn" data-index="${index}">✏️</button>
+            <button class="delete-phone-btn" data-index="${index}">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+      
+      // Add event listeners for phone actions
+      $$('.edit-phone-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          editPhone(parseInt(btn.dataset.index));
+        });
+      });
+      
+      $$('.delete-phone-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deletePhone(parseInt(btn.dataset.index));
+        });
+      });
+      
+    } else {
+      phoneList.innerHTML = '<div class="no-phones">Aucun numéro enregistré</div>';
+    }
+  } catch (error) {
+    console.error('Error loading phone numbers:', error);
+  }
+}
+
+// REBUILT: Show add phone form
+function showAddPhoneForm() {
+  const modal = createModal('➕ Ajouter un numéro', `
+    <input id="phoneName" placeholder="Nom (ex: Cardiologue)" required>
+    <input id="phoneNumber" placeholder="Numéro DECT" required>
+    <button class="btn-primary" id="savePhoneBtn">Ajouter</button>
+  `);
+  
+  $('#savePhoneBtn').addEventListener('click', saveNewPhone);
+}
+
+// REBUILT: Save new phone number
+async function saveNewPhone() {
+  const name = $('#phoneName').value.trim();
+  const number = $('#phoneNumber').value.trim();
+  
+  if (!name || !number) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
+    const phoneDoc = await getDoc(phoneDocRef);
+    
+    let phones = [];
+    if (phoneDoc.exists()) {
+      phones = phoneDoc.data().phones || [];
+    }
+    
+    phones.push({
+      id: generateId('phone'),
+      name,
+      number,
+      createdAt: new Date().toISOString()
+    });
+    
+    await setDoc(phoneDocRef, {
+      phones,
+      lastUpdated: new Date().toISOString()
+    });
+    
+    closeAllModals();
+    loadPhoneNumbers();
+    
+  } catch (error) {
+    console.error('Error saving phone:', error);
+    alert('Erreur lors de la sauvegarde');
+  }
+}
+
+// REBUILT: Edit phone number
+async function editPhone(index) {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const phoneDoc = await getDoc(doc(db, 'userPhoneBook', currentUserId));
+    
+    if (phoneDoc.exists()) {
+      const phones = phoneDoc.data().phones || [];
+      const phone = phones[index];
+      
+      const modal = createModal('✏️ Modifier le numéro', `
+        <input id="editPhoneName" placeholder="Nom" value="${phone.name}">
+        <input id="editPhoneNumber" placeholder="Numéro" value="${phone.number}">
+        <button class="btn-primary" id="updatePhoneBtn">Mettre à jour</button>
+      `);
+      
+      $('#updatePhoneBtn').addEventListener('click', () => updatePhone(index));
+    }
+  } catch (error) {
+    console.error('Error loading phone for edit:', error);
+  }
+}
+
+// REBUILT: Update phone number
+async function updatePhone(index) {
+  const name = $('#editPhoneName').value.trim();
+  const number = $('#editPhoneNumber').value.trim();
+  
+  if (!name || !number) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
+    const phoneDoc = await getDoc(phoneDocRef);
+    
+    if (phoneDoc.exists()) {
+      const phones = phoneDoc.data().phones || [];
+      phones[index] = {
+        ...phones[index],
+        name,
+        number,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await setDoc(phoneDocRef, {
+        phones,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      closeAllModals();
+      loadPhoneNumbers();
+    }
+  } catch (error) {
+    console.error('Error updating phone:', error);
+    alert('Erreur lors de la mise à jour');
+  }
+}
+
+// REBUILT: Delete phone number
+async function deletePhone(index) {
+  if (!confirm('Supprimer ce numéro ?')) return;
+  
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
+    const phoneDoc = await getDoc(phoneDocRef);
+    
+    if (phoneDoc.exists()) {
+      const phones = phoneDoc.data().phones || [];
+      phones.splice(index, 1);
+      
+      await setDoc(phoneDocRef, {
+        phones,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      loadPhoneNumbers();
+    }
+  } catch (error) {
+    console.error('Error deleting phone:', error);
+  }
+}
+
+// REBUILT: Load templates
+async function loadTemplates() {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const templatesDoc = await getDoc(doc(db, 'userTemplates', currentUserId));
+    
+    if (templatesDoc.exists()) {
+      const templates = templatesDoc.data();
+      
+      const fields = ['hemodynamique', 'respiratoire', 'digestif', 'neurologique', 'osteoarticulaire', 'autre'];
+      fields.forEach(field => {
+        const textarea = $(`.template-field-group textarea[data-field="${field}"]`);
+        if (textarea) {
+          textarea.value = templates[field] || '';
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error loading templates:', error);
+  }
+}
+
+// REBUILT: Save templates
+async function saveTemplates() {
+  try {
+    const { doc, setDoc } = window.firestoreFunctions;
+    
+    const templates = {};
+    const fields = ['hemodynamique', 'respiratoire', 'digestif', 'neurologique', 'osteoarticulaire', 'autre'];
+    
+    fields.forEach(field => {
+      const textarea = $(`.template-field-group textarea[data-field="${field}"]`);
+      if (textarea) {
+        templates[field] = textarea.value.trim();
+      }
+    });
+    
+    templates.lastUpdated = new Date().toISOString();
+    
+    await setDoc(doc(db, 'userTemplates', currentUserId), templates);
+    
+    // Show success feedback
+    const saveBtn = $('.save-templates-btn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = '✅ Sauvegardé!';
+    saveBtn.style.backgroundColor = '#10b981';
+    
+    setTimeout(() => {
+      saveBtn.textContent = originalText;
+      saveBtn.style.backgroundColor = '';
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Error saving templates:', error);
+    alert('Erreur lors de la sauvegarde');
+  }
+}
+
+// REBUILT: Copy template to clipboard
+async function copyTemplateToClipboard(field) {
+  const textarea = $(`.template-field-group textarea[data-field="${field}"]`);
+  const copyBtn = $(`.copy-btn[data-field="${field}"]`);
+  
+  if (textarea && textarea.value.trim()) {
+    try {
+      await navigator.clipboard.writeText(textarea.value);
+      
+      // Visual feedback
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = '✅';
+      copyBtn.style.backgroundColor = '#10b981';
+      
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.backgroundColor = '';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      
+      // Fallback for older browsers
+      textarea.select();
+      document.execCommand('copy');
+    }
+  }
+}
+
+// COMPLETELY REBUILT: Statistics Functions
+async function updateUserStats(action, timeSpent = 0) {
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const statsRef = doc(db, 'userStats', currentUserId);
+    
+    // Get current stats
+    const statsDoc = await getDoc(statsRef);
+    let stats = {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      transferred: 0,
+      totalTimeMinutes: 0,
+      totalPatients: 0
+    };
+    
+    if (statsDoc.exists()) {
+      stats = { ...stats, ...statsDoc.data() };
+    }
+    
+    // Update stats based on action
+    switch (action) {
+      case 'added':
+        stats.added += 1;
+        break;
+      case 'hospitalized':
+        stats.hospitalized += 1;
+        stats.totalTimeMinutes += timeSpent;
+        stats.totalPatients += 1;
+        break;
+      case 'discharged':
+        stats.discharged += 1;
+        stats.totalTimeMinutes += timeSpent;
+        stats.totalPatients += 1;
+        break;
+      case 'transferred':
+        stats.transferred += 1;
+        stats.totalTimeMinutes += timeSpent;
+        stats.totalPatients += 1;
+        break;
+    }
+    
+    stats.lastUpdated = new Date().toISOString();
+    
+    // Save updated stats
+    await setDoc(statsRef, stats);
+    
+    console.log('Stats updated:', action, stats);
+    
+  } catch (error) {
+    console.error('Error updating user stats:', error);
+  }
+}
+
+// REBUILT: Update stats display
+function updateStatsDisplay(stats) {
+  $('#statAdded').textContent = stats.added || 0;
+  $('#statHospitalized').textContent = stats.hospitalized || 0;
+  $('#statDischarged').textContent = stats.discharged || 0;
+  $('#statTransferred').textContent = stats.transferred || 0;
+  
+  // Calculate average time
+  const totalPatients = stats.totalPatients || 0;
+  const totalTimeMinutes = stats.totalTimeMinutes || 0;
+  
+  if (totalPatients > 0) {
+    const avgTimeMinutes = Math.round(totalTimeMinutes / totalPatients);
+    const hours = Math.floor(avgTimeMinutes / 60);
+    const minutes = avgTimeMinutes % 60;
+    $('#statAvgTime').textContent = `${hours}h ${minutes}m`;
+  } else {
+    $('#statAvgTime').textContent = '0h 0m';
+  }
+}
+
+// REBUILT: Reset user statistics
+async function resetUserStats() {
+  if (!confirm('Êtes-vous sûr de vouloir réinitialiser toutes vos statistiques ? Cette action est irréversible.')) {
+    return;
+  }
+  
+  try {
+    const { doc, setDoc } = window.firestoreFunctions;
+    
+    const resetStats = {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      transferred: 0,
+      totalTimeMinutes: 0,
+      totalPatients: 0,
+      lastUpdated: new Date().toISOString(),
+      resetAt: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'userStats', currentUserId), resetStats);
+    
+    alert('Statistiques réinitialisées avec succès!');
+    
+  } catch (error) {
+    console.error('Error resetting stats:', error);
+    alert('Erreur lors de la réinitialisation');
+  }
 }
 
 // Global click handler
@@ -588,28 +1036,6 @@ function globalClickHandler(e) {
   if (e.target.matches('.suggestion-chip')) {
     e.preventDefault();
     applySuggestion(e.target);
-    return;
-  }
-
-  // Template copy buttons
-  if (e.target.matches('.copy-template-btn')) {
-    e.preventDefault();
-    copyTemplateText(e.target);
-    return;
-  }
-
-  // Phone book actions
-  if (e.target.matches('.edit-phone')) {
-    e.preventDefault();
-    editPhone(e.target.dataset.id);
-    return;
-  }
-
-  if (e.target.matches('.delete-phone')) {
-    e.preventDefault();
-    if (confirm('Supprimer ce numéro ?')) {
-      deletePhone(e.target.dataset.id);
-    }
     return;
   }
 }
@@ -834,7 +1260,7 @@ function selectTriageCircle(circle) {
   if (saveBtn) saveBtn.disabled = false;
 }
 
-// Save patient
+// Save patient - UPDATED TO TRACK STATS
 async function savePatient() {
   const name = $('#patientName').value.trim();
   const complaint = $('#patientComplaint').value.trim();
@@ -866,7 +1292,9 @@ async function savePatient() {
     };
     
     await setDoc(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
-    await updateStats('added', 1);
+    
+    // REBUILT: Update stats immediately
+    await updateUserStats('added');
     
     closeAllModals();
     console.log('Patient ajouté:', name);
@@ -1138,39 +1566,28 @@ function showDecisionMenu(patientId, buttonElement) {
   }, 100);
 }
 
-// Handle patient decision
+// Handle patient decision - UPDATED WITH STATS TRACKING
 async function handlePatientDecision(patientId, action) {
   try {
     const { doc, getDoc, deleteDoc } = window.firestoreFunctions;
     
     // Get patient data for time calculation
     const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
-    let timeSpent = 0;
+    let timeSpentMinutes = 0;
     let patientData = null;
     
     if (patientSnap.exists()) {
       patientData = patientSnap.data();
       const createdAt = new Date(patientData.createdAt);
       const now = new Date();
-      timeSpent = Math.floor((now - createdAt) / 60000); // minutes
+      timeSpentMinutes = Math.floor((now - createdAt) / 60000); // minutes
     }
     
     await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
     
-    const statMap = {
-      'discharge': 'discharged',
-      'hospitalize': 'hospitalized',
-      'transfer': 'transferred',
-      'delete': 'deleted'
-    };
-    
-    const statKey = statMap[action];
-    await updateStats(statKey, 1);
-    
-    // Update time statistics (exclude deleted patients)
+    // REBUILT: Update stats based on action (exclude delete)
     if (action !== 'delete' && patientData) {
-      await updateStats('totalTime', timeSpent);
-      await updateStats('totalPatients', 1);
+      await updateUserStats(action === 'discharge' ? 'discharged' : action, timeSpentMinutes);
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
@@ -1355,311 +1772,6 @@ async function executeTransfer() {
   }
 }
 
-// Phone book functionality - FIXED
-function showPhoneBookModal() {
-  $('#phoneBookModal').classList.remove('hidden');
-  loadPhoneBook();
-  
-  // Re-attach event listener to ensure it works
-  const addBtn = $('#addPhoneNumber');
-  if (addBtn) {
-    addBtn.onclick = showAddPhoneModal;
-  }
-}
-
-async function loadPhoneBook() {
-  try {
-    const { collection, getDocs, orderBy, query } = window.firestoreFunctions;
-    const phoneQuery = query(
-      collection(db, 'users', currentUserId, 'phoneBook'),
-      orderBy('name', 'asc')
-    );
-    
-    const phoneSnapshot = await getDocs(phoneQuery);
-    const container = $('#phoneBookList');
-    
-    if (container) {
-      if (phoneSnapshot.empty) {
-        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">Aucun numéro enregistré</p>';
-        return;
-      }
-      
-      container.innerHTML = '';
-      phoneSnapshot.forEach(doc => {
-        const phone = doc.data();
-        const item = document.createElement('div');
-        item.className = 'phone-item';
-        item.innerHTML = `
-          <div class="phone-info">
-            <strong>${phone.name}</strong>
-            <span>${phone.number}</span>
-          </div>
-          <div class="phone-actions">
-            <button class="edit-phone" data-id="${doc.id}">✏️</button>
-            <button class="delete-phone" data-id="${doc.id}">🗑️</button>
-          </div>
-        `;
-        container.appendChild(item);
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error loading phone book:', error);
-  }
-}
-
-function showAddPhoneModal() {
-  const modal = createModal('➕ Ajouter un numéro', `
-    <input id="phoneName" placeholder="Nom (ex: Cardiologue)" required>
-    <input id="phoneNumber" placeholder="Numéro DECT" required>
-    <button class="btn-primary" id="savePhone">Ajouter</button>
-  `);
-
-  $('#savePhone').addEventListener('click', savePhone);
-}
-
-async function savePhone() {
-  const name = $('#phoneName').value.trim();
-  const number = $('#phoneNumber').value.trim();
-
-  if (!name || !number) {
-    alert('Veuillez remplir tous les champs');
-    return;
-  }
-
-  try {
-    const { doc, setDoc } = window.firestoreFunctions;
-    const phoneId = generateId('phone');
-
-    await setDoc(doc(db, 'users', currentUserId, 'phoneBook', phoneId), {
-      id: phoneId,
-      name,
-      number,
-      createdAt: new Date().toISOString()
-    });
-
-    closeAllModals();
-    // Re-show phone book modal
-    setTimeout(() => {
-      showPhoneBookModal();
-    }, 100);
-
-  } catch (error) {
-    console.error('Error saving phone:', error);
-  }
-}
-
-async function editPhone(phoneId) {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const phoneSnap = await getDoc(doc(db, 'users', currentUserId, 'phoneBook', phoneId));
-
-    if (phoneSnap.exists()) {
-      const phone = phoneSnap.data();
-
-      const modal = createModal('✏️ Modifier le numéro', `
-        <input id="editPhoneName" placeholder="Nom" value="${phone.name}">
-        <input id="editPhoneNumber" placeholder="Numéro" value="${phone.number}">
-        <button class="btn-primary" id="updatePhone">Mettre à jour</button>
-      `);
-
-      $('#updatePhone').addEventListener('click', () => updatePhone(phoneId));
-    }
-
-  } catch (error) {
-    console.error('Error loading phone:', error);
-  }
-}
-
-async function updatePhone(phoneId) {
-  const name = $('#editPhoneName').value.trim();
-  const number = $('#editPhoneNumber').value.trim();
-
-  if (!name || !number) {
-    alert('Veuillez remplir tous les champs');
-    return;
-  }
-
-  try {
-    const { doc, updateDoc } = window.firestoreFunctions;
-
-    await updateDoc(doc(db, 'users', currentUserId, 'phoneBook', phoneId), {
-      name,
-      number,
-      updatedAt: new Date().toISOString()
-    });
-
-    closeAllModals();
-    setTimeout(() => {
-      showPhoneBookModal();
-    }, 100);
-
-  } catch (error) {
-    console.error('Error updating phone:', error);
-  }
-}
-
-async function deletePhone(phoneId) {
-  try {
-    const { doc, deleteDoc } = window.firestoreFunctions;
-    await deleteDoc(doc(db, 'users', currentUserId, 'phoneBook', phoneId));
-    loadPhoneBook();
-  } catch (error) {
-    console.error('Error deleting phone:', error);
-  }
-}
-
-// Templates functionality - FIXED
-function showTemplatesModal() {
-  $('#templatesModal').classList.remove('hidden');
-  loadTemplates();
-
-  // Re-attach event listener
-  const saveBtn = $('#saveTemplates');
-  if (saveBtn) {
-    saveBtn.onclick = saveTemplates;
-  }
-}
-
-async function loadTemplates() {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const templatesSnap = await getDoc(doc(db, 'users', currentUserId, 'templates', 'main'));
-
-    if (templatesSnap.exists()) {
-      const templates = templatesSnap.data();
-      
-      const templateIds = ['templateHemo', 'templateResp', 'templateDig', 'templateNeuro', 'templateOsteo', 'templateAutre'];
-      templateIds.forEach(id => {
-        const element = $(`#${id}`);
-        if (element) {
-          element.value = templates[id] || '';
-        }
-      });
-    }
-
-  } catch (error) {
-    console.error('Error loading templates:', error);
-  }
-}
-
-async function saveTemplates() {
-  const templates = {
-    templateHemo: $('#templateHemo').value || '',
-    templateResp: $('#templateResp').value || '',
-    templateDig: $('#templateDig').value || '',
-    templateNeuro: $('#templateNeuro').value || '',
-    templateOsteo: $('#templateOsteo').value || '',
-    templateAutre: $('#templateAutre').value || ''
-  };
-
-  try {
-    const { doc, setDoc } = window.firestoreFunctions;
-    await setDoc(doc(db, 'users', currentUserId, 'templates', 'main'), templates);
-    
-    closeAllModals();
-    alert('Modèles sauvegardés!');
-    
-  } catch (error) {
-    console.error('Error saving templates:', error);
-  }
-}
-
-// Copy template text
-async function copyTemplateText(button) {
-  const fieldId = button.dataset.field;
-  const textarea = $(`#${fieldId}`);
-  
-  if (textarea && textarea.value.trim()) {
-    try {
-      await navigator.clipboard.writeText(textarea.value);
-      
-      button.classList.add('copied');
-      button.textContent = '✅';
-      
-      setTimeout(() => {
-        button.classList.remove('copied');
-        button.textContent = '📋';
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      textarea.select();
-      document.execCommand('copy');
-    }
-  }
-}
-
-// Statistics functions - FIXED
-function updateStatsDisplay(stats) {
-  $('#sAdded').textContent = stats.added || 0;
-  $('#sHosp').textContent = stats.hospitalized || 0;
-  $('#sHome').textContent = stats.discharged || 0;
-  $('#sTransfer').textContent = stats.transferred || 0;
-  
-  // Calculate average time per patient
-  const totalPatients = stats.totalPatients || 0;
-  const totalTime = stats.totalTime || 0;
-  const avgTimeMinutes = totalPatients > 0 ? Math.round(totalTime / totalPatients) : 0;
-  const avgHours = Math.floor(avgTimeMinutes / 60);
-  const avgMins = avgTimeMinutes % 60;
-  $('#sAvgTime').textContent = `${avgHours}h ${avgMins}m`;
-  
-  console.log('Stats updated:', stats);
-}
-
-async function updateStats(field, value) {
-  try {
-    const { doc, updateDoc, increment, setDoc, getDoc } = window.firestoreFunctions;
-    const statsRef = doc(db, 'users', currentUserId, 'stats', 'main');
-    
-    try {
-      // Try to update existing document
-      await updateDoc(statsRef, {
-        [field]: increment(value)
-      });
-    } catch (error) {
-      // If document doesn't exist, create it
-      const statsDoc = await getDoc(statsRef);
-      const initialStats = {
-        added: 0,
-        hospitalized: 0,
-        discharged: 0,
-        transferred: 0,
-        totalTime: 0,
-        totalPatients: 0
-      };
-      initialStats[field] = value;
-      await setDoc(statsRef, initialStats);
-    }
-  } catch (error) {
-    console.error('Error updating stats:', error);
-  }
-}
-
-async function resetStats() {
-  if (!confirm('Êtes-vous sûr de vouloir réinitialiser toutes les statistiques ?')) return;
-  
-  try {
-    const { doc, setDoc } = window.firestoreFunctions;
-    
-    // Reset main stats
-    await setDoc(doc(db, 'users', currentUserId, 'stats', 'main'), {
-      added: 0,
-      hospitalized: 0,
-      discharged: 0,
-      transferred: 0,
-      totalTime: 0,
-      totalPatients: 0
-    });
-    
-    alert('Statistiques réinitialisées!');
-    
-  } catch (error) {
-    console.error('Error resetting stats:', error);
-  }
-}
-
 // Profile management
 function showEditNameModal() {
   const modal = createModal('✏️ Modifier le nom', `
@@ -1688,6 +1800,7 @@ async function updateUserName() {
     currentUser = newName;
     $('#username').textContent = newName;
     $('#profileName').textContent = newName;
+    $('#statsUsername').textContent = newName;
     
     closeAllModals();
     alert('Nom mis à jour avec succès!');
@@ -1780,7 +1893,7 @@ async function handleDeleteAccount() {
     }
     
     // Delete all user data
-    const collections = ['patients', 'stats', 'taskSuggestions', 'phoneBook', 'templates'];
+    const collections = ['patients', 'taskSuggestions'];
     
     for (const collectionName of collections) {
       const snapshot = await getDocs(collection(db, 'users', currentUserId, collectionName));
@@ -1788,8 +1901,11 @@ async function handleDeleteAccount() {
       await Promise.all(deletePromises);
     }
     
-    // Delete user document
+    // Delete user documents
     await deleteDoc(doc(db, 'users', currentUserId));
+    await deleteDoc(doc(db, 'userStats', currentUserId));
+    await deleteDoc(doc(db, 'userTemplates', currentUserId));
+    await deleteDoc(doc(db, 'userPhoneBook', currentUserId));
     
     alert('Compte supprimé avec succès');
     logout();
@@ -1856,4 +1972,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded - version française FIXÉE');
+console.log('FastTrackers script loaded - version française COMPLÈTEMENT RECONSTRUITE');
