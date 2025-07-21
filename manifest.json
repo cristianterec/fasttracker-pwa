@@ -1,24 +1,13 @@
 {
   "name": "FastTrackers – Gestion des Urgences",
   "short_name": "FastTrackers",
-  "description": "PWA de gestion des patients d'urgence avec authentification et fonctionnalités avancées",
+  "description": "PWA de triage d'urgence avec statistiques avancées",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a1628",
   "theme_color": "#0a1628",
-  "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "fasttrackers_icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "fasttrackers_icon.png",
-      "sizes": "512x512", 
-      "type": "image/png"
-    }
-  ],
-  "categories": ["medical", "productivity", "health"],
-  "prefer_related_applications": false
+    { "src": "my_icon_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "my_icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
 }
