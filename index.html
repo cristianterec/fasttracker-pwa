@@ -76,62 +76,14 @@
       <div id="grid" class="grid"></div>
       <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
 
-      <!-- NEW: Floating Action Buttons with Hover Functionality -->
+      <!-- UPDATED: Simple FAB Buttons (No Hover Popups) -->
       <div class="fab-container">
-        <!-- Phone Book FAB -->
-        <div class="fab-group">
-          <button class="fab fab-phone" data-tooltip="Numéros utiles">📞</button>
-          <div class="fab-popup fab-phone-popup hidden">
-            <div class="fab-popup-header">
-              <h3>📞 Numéros utiles</h3>
-              <button class="add-phone-btn">➕</button>
-            </div>
-            <div class="fab-popup-content" id="phoneList">
-              <!-- Phone numbers will be loaded here -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Templates FAB -->
-        <div class="fab-group">
-          <button class="fab fab-templates" data-tooltip="Modèles">📋</button>
-          <div class="fab-popup fab-templates-popup hidden">
-            <div class="fab-popup-header">
-              <h3>📋 Modèles de compte-rendu</h3>
-            </div>
-            <div class="fab-popup-content">
-              <div class="template-field-group">
-                <textarea placeholder="Hémodynamique" data-field="hemodynamique"></textarea>
-                <button class="copy-btn" data-field="hemodynamique">📋</button>
-              </div>
-              <div class="template-field-group">
-                <textarea placeholder="Respiratoire" data-field="respiratoire"></textarea>
-                <button class="copy-btn" data-field="respiratoire">📋</button>
-              </div>
-              <div class="template-field-group">
-                <textarea placeholder="Digestif" data-field="digestif"></textarea>
-                <button class="copy-btn" data-field="digestif">📋</button>
-              </div>
-              <div class="template-field-group">
-                <textarea placeholder="Neurologique" data-field="neurologique"></textarea>
-                <button class="copy-btn" data-field="neurologique">📋</button>
-              </div>
-              <div class="template-field-group">
-                <textarea placeholder="Ostéoarticulaire" data-field="osteoarticulaire"></textarea>
-                <button class="copy-btn" data-field="osteoarticulaire">📋</button>
-              </div>
-              <div class="template-field-group">
-                <textarea placeholder="Autre" data-field="autre"></textarea>
-                <button class="copy-btn" data-field="autre">📋</button>
-              </div>
-              <button class="save-templates-btn">💾 Sauvegarder</button>
-            </div>
-          </div>
-        </div>
+        <button id="phoneBookFab" class="fab fab-phone" data-tooltip="Numéros utiles">📞</button>
+        <button id="templatesFab" class="fab fab-templates" data-tooltip="Modèles">📋</button>
       </div>
     </main>
 
-    <!-- REBUILT STATISTICS TAB -->
+    <!-- STATISTICS TAB -->
     <main id="stats" class="tab-content hidden">
       <div class="stats-container">
         <div class="stats-header">
@@ -221,6 +173,59 @@
           <button id="acceptTransfer" class="btn-primary">✅ Accepter</button>
           <button id="declineTransfer" class="btn-secondary">❌ Refuser</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Phone Book Modal -->
+  <div id="phoneBookModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📞 Numéros utiles</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-content">
+        <button id="addPhoneBtn" class="btn-primary" style="margin-bottom: 1rem;">➕ Ajouter un numéro</button>
+        <div id="phoneBookList" class="phone-book-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Templates Modal -->
+  <div id="templatesModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📋 Modèles de compte-rendu</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="template-sections">
+          <div class="template-field-group">
+            <textarea id="templateHemo" placeholder="Hémodynamique" rows="3"></textarea>
+            <button class="copy-template-btn" data-field="templateHemo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateResp" placeholder="Respiratoire" rows="3"></textarea>
+            <button class="copy-template-btn" data-field="templateResp">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateDig" placeholder="Digestif" rows="3"></textarea>
+            <button class="copy-template-btn" data-field="templateDig">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateNeuro" placeholder="Neurologique" rows="3"></textarea>
+            <button class="copy-template-btn" data-field="templateNeuro">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateOsteo" placeholder="Ostéoarticulaire" rows="3"></textarea>
+            <button class="copy-template-btn" data-field="templateOsteo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateAutre" placeholder="Autre" rows="3"></textarea>
+            <button class="copy-template-btn" data-field="templateAutre">📋</button>
+          </div>
+        </div>
+        <button id="saveTemplatesBtn" class="btn-primary" style="margin-top: 1rem;">💾 Sauvegarder</button>
       </div>
     </div>
   </div>
