@@ -1,5 +1,5 @@
-// FastTrackers PWA - Complete with Bug Fixes
-console.log('FastTrackers loading with all bug fixes...');
+// FastTrackers PWA - Final Version with All Bug Fixes
+console.log('FastTrackers loading - final version with bug fixes...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -125,16 +125,14 @@ function setupAuthEventListeners() {
     }
   });
 
-  $('#pinInput').addEventListener('input', (e) => {
-    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-  });
-
-  $('#registerPin').addEventListener('input', (e) => {
-    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-  });
-
-  $('#confirmPin').addEventListener('input', (e) => {
-    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  // PIN input validation
+  ['#pinInput', '#registerPin', '#confirmPin'].forEach(id => {
+    const element = $(id);
+    if (element) {
+      element.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      });
+    }
   });
 
   $('#loginBtn').addEventListener('click', handleLogin);
@@ -201,7 +199,7 @@ async function handleRegister() {
     
     await setDoc(doc(db, 'users', userId), userData);
     
-    // Initialize user stats and collections
+    // Initialize user data
     await initializeUserData(userId);
     
     alert('Compte créé avec succès!');
@@ -301,7 +299,7 @@ async function handleLogin() {
   }
 }
 
-// Check for pending transfers - FIXED
+// Check for pending transfers
 async function checkForTransfers() {
   try {
     const { collection, getDocs, query, where } = window.firestoreFunctions;
@@ -322,7 +320,7 @@ async function checkForTransfers() {
   }
 }
 
-// Show transfer acceptance modal - FIXED
+// Show transfer acceptance modal
 function showTransferAcceptanceModal(transfer, transferId) {
   const modal = $('#transferAcceptModal');
   $('#transferCount').textContent = transfer.patientIds.length;
@@ -345,7 +343,7 @@ function showTransferAcceptanceModal(transfer, transferId) {
   declineBtn.onclick = () => declineTransfer(transferId, transfer);
 }
 
-// Accept transfer - FIXED
+// Accept transfer
 async function acceptTransfer(transferId, transfer) {
   try {
     const { doc, setDoc, updateDoc, writeBatch } = window.firestoreFunctions;
@@ -373,6 +371,7 @@ async function acceptTransfer(transferId, transfer) {
     
     await batch.commit();
     
+    // AUTO-CLOSE MODAL
     $('#transferAcceptModal').classList.add('hidden');
     alert(`${transfer.patients.length} patient(s) accepté(s) avec succès!`);
     
@@ -382,7 +381,7 @@ async function acceptTransfer(transferId, transfer) {
   }
 }
 
-// Decline transfer - FIXED
+// Decline transfer
 async function declineTransfer(transferId, transfer) {
   try {
     const { doc, updateDoc, writeBatch, setDoc } = window.firestoreFunctions;
@@ -409,6 +408,7 @@ async function declineTransfer(transferId, transfer) {
     
     await batch.commit();
     
+    // AUTO-CLOSE MODAL
     $('#transferAcceptModal').classList.add('hidden');
     alert('Transfert refusé - les patients sont retournés à l\'expéditeur');
     
@@ -459,7 +459,7 @@ async function startRealtimeListeners() {
   }
 }
 
-// Setup app event listeners - FIXED
+// Setup app event listeners
 function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
@@ -468,7 +468,7 @@ function setupAppEventListeners() {
     });
   });
   
-  // Username button for profile access - FIXED
+  // Username button for profile access
   $('#usernameBtn').addEventListener('click', () => {
     switchTab('profile');
   });
@@ -484,11 +484,11 @@ function setupAppEventListeners() {
   $('#changePinBtn').addEventListener('click', showChangePinModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
   
-  // FABs - FIXED
+  // FABs
   $('#phoneBookBtn').addEventListener('click', showPhoneBookModal);
   $('#templatesBtn').addEventListener('click', showTemplatesModal);
   
-  // Stats - FIXED carousel
+  // Stats carousel
   $('#resetStats').addEventListener('click', resetStats);
   $('#prevDay').addEventListener('click', () => navigateDays(-1));
   $('#nextDay').addEventListener('click', () => navigateDays(1));
@@ -496,13 +496,15 @@ function setupAppEventListeners() {
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
   
-  // Modal close handlers
+  // Modal handling - FIXED to prevent text selection issues
   document.addEventListener('click', (e) => {
+    // Only close modal if clicking directly on modal overlay (not on modal content)
+    if (e.target.classList.contains('modal-overlay') && !e.target.closest('.modal')) {
+      e.target.classList.add('hidden');
+    }
+    
     if (e.target.matches('.modal-close')) {
       e.target.closest('.modal-overlay').classList.add('hidden');
-    }
-    if (e.target.matches('.modal-overlay')) {
-      e.target.classList.add('hidden');
     }
   });
 }
@@ -579,7 +581,7 @@ function globalClickHandler(e) {
     return;
   }
 
-  // Template copy buttons - FIXED
+  // Template copy buttons
   if (e.target.matches('.copy-template-btn')) {
     e.preventDefault();
     copyTemplateText(e.target);
@@ -768,7 +770,7 @@ function selectTriageCircle(circle) {
   if (saveBtn) saveBtn.disabled = false;
 }
 
-// Save patient
+// Save patient - AUTO-CLOSE MODAL
 async function savePatient() {
   const name = $('#patientName').value.trim();
   const complaint = $('#patientComplaint').value.trim();
@@ -803,7 +805,8 @@ async function savePatient() {
     await updateStats('added', 1);
     await updateDailyStats(getTodayString(), 'added', 1);
     
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     console.log('Patient added:', name);
     
   } catch (error) {
@@ -850,7 +853,7 @@ async function editPatient(patientId) {
   }
 }
 
-// Update patient
+// Update patient - AUTO-CLOSE MODAL
 async function updatePatient(patientId) {
   const name = $('#editPatientName').value.trim();
   const complaint = $('#editPatientComplaint').value.trim();
@@ -875,7 +878,8 @@ async function updatePatient(patientId) {
       updatedAt: new Date().toISOString()
     });
     
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     
   } catch (error) {
     console.error('Error updating patient:', error);
@@ -911,14 +915,16 @@ async function loadTaskSuggestions() {
       const data = suggestionsSnap.data();
       const container = $('#suggestionChips');
       
-      // Sort by frequency
-      const suggestions = data.suggestions.sort((a, b) => b.frequency - a.frequency);
-      
-      container.innerHTML = suggestions.map(s => 
-        `<div class="suggestion-chip" data-description="${s.description}" data-timer="${s.timer}">
-          ${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}
-        </div>`
-      ).join('');
+      if (container) {
+        // Sort by frequency
+        const suggestions = data.suggestions.sort((a, b) => b.frequency - a.frequency);
+        
+        container.innerHTML = suggestions.map(s => 
+          `<div class="suggestion-chip" data-description="${s.description}" data-timer="${s.timer}">
+            ${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}
+          </div>`
+        ).join('');
+      }
     }
   } catch (error) {
     console.error('Error loading task suggestions:', error);
@@ -931,7 +937,7 @@ function applySuggestion(chip) {
   $('#taskMinutes').value = chip.dataset.timer || '';
 }
 
-// Save task
+// Save task - AUTO-CLOSE MODAL
 async function saveTask(patientId) {
   const description = $('#taskDescription').value.trim();
   const minutes = parseInt($('#taskMinutes').value) || 0;
@@ -963,7 +969,8 @@ async function saveTask(patientId) {
       await updateTaskSuggestions(description, minutes);
     }
     
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     
   } catch (error) {
     console.error('Error adding task:', error);
@@ -987,7 +994,7 @@ async function updateTaskSuggestions(description, timer) {
     const existingIndex = suggestions.findIndex(s => s.description === description);
     if (existingIndex >= 0) {
       suggestions[existingIndex].frequency++;
-      suggestions[existingIndex].timer = timer; // Update with latest timer
+      suggestions[existingIndex].timer = timer;
     } else {
       suggestions.push({ description, timer, frequency: 1 });
     }
@@ -1109,11 +1116,6 @@ async function handlePatientDecision(patientId, action) {
     if (action !== 'delete') {
       await updateStats('totalTime', timeSpent);
       await updateStats('totalPatients', 1);
-      
-      // Update triage-specific time stats
-      if (patientData) {
-        await updateTriageTimeStats(patientData.triage, timeSpent);
-      }
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
@@ -1149,6 +1151,7 @@ async function loadPatientNotes(patientId) {
   }
 }
 
+// Save patient notes - AUTO-CLOSE MODAL
 async function savePatientNotes(patientId) {
   const notes = $('#patientNotes').value.trim();
   
@@ -1159,7 +1162,8 @@ async function savePatientNotes(patientId) {
       notesUpdatedAt: new Date().toISOString()
     });
     
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     
   } catch (error) {
     console.error('Error saving patient notes:', error);
@@ -1198,15 +1202,17 @@ async function loadTransferUsers() {
     const usersSnapshot = await getDocs(collection(db, 'users'));
     const select = $('#transferUser');
     
-    usersSnapshot.forEach(doc => {
-      if (doc.id !== currentUserId) {
-        const user = doc.data();
-        const option = document.createElement('option');
-        option.value = doc.id;
-        option.textContent = user.name;
-        select.appendChild(option);
-      }
-    });
+    if (select) {
+      usersSnapshot.forEach(doc => {
+        if (doc.id !== currentUserId) {
+          const user = doc.data();
+          const option = document.createElement('option');
+          option.value = doc.id;
+          option.textContent = user.name;
+          select.appendChild(option);
+        }
+      });
+    }
     
   } catch (error) {
     console.error('Error loading transfer users:', error);
@@ -1219,24 +1225,27 @@ async function loadTransferPatients() {
     const patientsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'patients'));
     const container = $('#patientCheckboxes');
     
-    container.innerHTML = '';
-    
-    patientsSnapshot.forEach(doc => {
-      const patient = doc.data();
-      const item = document.createElement('div');
-      item.className = 'checkbox-item';
-      item.innerHTML = `
-        <input type="checkbox" id="patient_${doc.id}" value="${doc.id}">
-        <label for="patient_${doc.id}">${patient.name} - ${patient.complaint} (${getTriageDisplayName(patient.triage)})</label>
-      `;
-      container.appendChild(item);
-    });
+    if (container) {
+      container.innerHTML = '';
+      
+      patientsSnapshot.forEach(doc => {
+        const patient = doc.data();
+        const item = document.createElement('div');
+        item.className = 'checkbox-item';
+        item.innerHTML = `
+          <input type="checkbox" id="patient_${doc.id}" value="${doc.id}">
+          <label for="patient_${doc.id}">${patient.name} - ${patient.complaint} (${getTriageDisplayName(patient.triage)})</label>
+        `;
+        container.appendChild(item);
+      });
+    }
     
   } catch (error) {
     console.error('Error loading transfer patients:', error);
   }
 }
 
+// Execute transfer - AUTO-CLOSE MODAL
 async function executeTransfer() {
   const targetUserId = $('#transferUser').value;
   const selectedPatients = Array.from($$('#patientCheckboxes input:checked')).map(cb => cb.value);
@@ -1283,7 +1292,8 @@ async function executeTransfer() {
       await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
     }
     
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     alert(`${selectedPatients.length} patient(s) transféré(s) vers ${targetUserName}. En attente d'acceptation.`);
     
   } catch (error) {
@@ -1292,7 +1302,7 @@ async function executeTransfer() {
   }
 }
 
-// Phone book functionality - FIXED
+// Phone book functionality - FIXED with AUTO-CLOSE
 function showPhoneBookModal() {
   $('#phoneBookModal').classList.remove('hidden');
   loadPhoneBook();
@@ -1311,28 +1321,30 @@ async function loadPhoneBook() {
     const phoneSnapshot = await getDocs(phoneQuery);
     const container = $('#phoneBookList');
     
-    if (phoneSnapshot.empty) {
-      container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">Aucun numéro enregistré</p>';
-      return;
+    if (container) {
+      if (phoneSnapshot.empty) {
+        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">Aucun numéro enregistré</p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      phoneSnapshot.forEach(doc => {
+        const phone = doc.data();
+        const item = document.createElement('div');
+        item.className = 'phone-item';
+        item.innerHTML = `
+          <div class="phone-info">
+            <strong>${phone.name}</strong>
+            <span>${phone.number}</span>
+          </div>
+          <div class="phone-actions">
+            <button class="edit-phone" data-id="${doc.id}">✏️</button>
+            <button class="delete-phone" data-id="${doc.id}">🗑️</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
     }
-    
-    container.innerHTML = '';
-    phoneSnapshot.forEach(doc => {
-      const phone = doc.data();
-      const item = document.createElement('div');
-      item.className = 'phone-item';
-      item.innerHTML = `
-        <div class="phone-info">
-          <strong>${phone.name}</strong>
-          <span>${phone.number}</span>
-        </div>
-        <div class="phone-actions">
-          <button class="edit-phone" data-id="${doc.id}">✏️</button>
-          <button class="delete-phone" data-id="${doc.id}">🗑️</button>
-        </div>
-      `;
-      container.appendChild(item);
-    });
     
   } catch (error) {
     console.error('Error loading phone book:', error);
@@ -1349,6 +1361,7 @@ function showAddPhoneModal() {
   $('#savePhone').addEventListener('click', savePhone);
 }
 
+// Save phone - AUTO-CLOSE MODAL
 async function savePhone() {
   const name = $('#phoneName').value.trim();
   const number = $('#phoneNumber').value.trim();
@@ -1369,7 +1382,9 @@ async function savePhone() {
       createdAt: new Date().toISOString()
     });
 
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL AND REFRESH PHONE BOOK
+    closeAllModals();
+    $('#phoneBookModal').classList.remove('hidden');
     loadPhoneBook();
 
   } catch (error) {
@@ -1399,6 +1414,7 @@ async function editPhone(phoneId) {
   }
 }
 
+// Update phone - AUTO-CLOSE MODAL
 async function updatePhone(phoneId) {
   const name = $('#editPhoneName').value.trim();
   const number = $('#editPhoneNumber').value.trim();
@@ -1417,7 +1433,9 @@ async function updatePhone(phoneId) {
       updatedAt: new Date().toISOString()
     });
 
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL AND REFRESH PHONE BOOK
+    closeAllModals();
+    $('#phoneBookModal').classList.remove('hidden');
     loadPhoneBook();
 
   } catch (error) {
@@ -1435,7 +1453,7 @@ async function deletePhone(phoneId) {
   }
 }
 
-// Templates functionality - FIXED  
+// Templates functionality - FIXED with AUTO-CLOSE  
 function showTemplatesModal() {
   $('#templatesModal').classList.remove('hidden');
   loadTemplates();
@@ -1450,12 +1468,15 @@ async function loadTemplates() {
 
     if (templatesSnap.exists()) {
       const templates = templatesSnap.data();
-      $('#templateHemo').value = templates.templateHemo || '';
-      $('#templateResp').value = templates.templateResp || '';
-      $('#templateDig').value = templates.templateDig || '';
-      $('#templateNeuro').value = templates.templateNeuro || '';
-      $('#templateOsteo').value = templates.templateOsteo || '';
-      $('#templateAutre').value = templates.templateAutre || '';
+      
+      // Safely set values only if elements exist
+      const templateIds = ['templateHemo', 'templateResp', 'templateDig', 'templateNeuro', 'templateOsteo', 'templateAutre'];
+      templateIds.forEach(id => {
+        const element = $(`#${id}`);
+        if (element) {
+          element.value = templates[id] || '';
+        }
+      });
     }
 
   } catch (error) {
@@ -1463,20 +1484,25 @@ async function loadTemplates() {
   }
 }
 
+// Save templates - AUTO-CLOSE MODAL
 async function saveTemplates() {
   const templates = {
-    templateHemo: $('#templateHemo').value,
-    templateResp: $('#templateResp').value,
-    templateDig: $('#templateDig').value,
-    templateNeuro: $('#templateNeuro').value,
-    templateOsteo: $('#templateOsteo').value,
-    templateAutre: $('#templateAutre').value
+    templateHemo: $('#templateHemo').value || '',
+    templateResp: $('#templateResp').value || '',
+    templateDig: $('#templateDig').value || '',
+    templateNeuro: $('#templateNeuro').value || '',
+    templateOsteo: $('#templateOsteo').value || '',
+    templateAutre: $('#templateAutre').value || ''
   };
 
   try {
     const { doc, setDoc } = window.firestoreFunctions;
     await setDoc(doc(db, 'users', currentUserId, 'templates', 'main'), templates);
+    
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     alert('Modèles sauvegardés!');
+    
   } catch (error) {
     console.error('Error saving templates:', error);
   }
@@ -1610,15 +1636,23 @@ async function loadDailyStats() {
     
     currentDateIndex = 0;
     renderDailyChart();
+    updateCarouselButtons();
     
   } catch (error) {
     console.error('Error loading daily stats:', error);
+    // Show error state
+    const container = $('#dailyCharts');
+    if (container) {
+      container.innerHTML = '<div class="daily-chart-placeholder">Erreur de chargement des statistiques</div>';
+    }
   }
 }
 
 // Render daily chart - FIXED
 function renderDailyChart() {
   const container = $('#dailyCharts');
+  
+  if (!container) return;
   
   if (dailyStatsData.length === 0) {
     container.innerHTML = '<div class="daily-chart-placeholder">Aucune donnée disponible</div>';
@@ -1633,7 +1667,8 @@ function renderDailyChart() {
     transferred: 0
   };
   
-  const maxValue = Math.max(currentData.added, currentData.hospitalized, currentData.discharged, currentData.transferred, 1);
+  const values = [currentData.added, currentData.hospitalized, currentData.discharged, currentData.transferred];
+  const maxValue = Math.max(...values, 1);
   
   container.innerHTML = `
     <div class="daily-chart">
@@ -1641,51 +1676,57 @@ function renderDailyChart() {
       <div class="chart-bars">
         <div class="chart-bar">
           <div class="bar added" style="height: ${Math.max(10, (currentData.added / maxValue) * 100)}px"></div>
-          <label>Ajoutés: ${currentData.added}</label>
+          <label>Ajoutés<br>${currentData.added}</label>
         </div>
         <div class="chart-bar">
           <div class="bar hospitalized" style="height: ${Math.max(10, (currentData.hospitalized / maxValue) * 100)}px"></div>
-          <label>Hospitalisés: ${currentData.hospitalized}</label>
+          <label>Hospitalisés<br>${currentData.hospitalized}</label>
         </div>
         <div class="chart-bar">
           <div class="bar discharged" style="height: ${Math.max(10, (currentData.discharged / maxValue) * 100)}px"></div>
-          <label>Sortis: ${currentData.discharged}</label>
+          <label>Sortis<br>${currentData.discharged}</label>
         </div>
         <div class="chart-bar">
           <div class="bar transferred" style="height: ${Math.max(10, (currentData.transferred / maxValue) * 100)}px"></div>
-          <label>Transférés: ${currentData.transferred}</label>
+          <label>Transférés<br>${currentData.transferred}</label>
         </div>
       </div>
     </div>
   `;
-
-  // Update navigation buttons
-  $('#prevDay').disabled = currentDateIndex >= dailyStatsData.length - 1;
-  $('#nextDay').disabled = currentDateIndex <= 0;
 }
 
 // Navigate days - FIXED
 function navigateDays(direction) {
-  const newIndex = currentDateIndex - direction; // Reverse direction since data is desc ordered
-  
+  const newIndex = currentDateIndex + direction;
   if (newIndex >= 0 && newIndex < dailyStatsData.length) {
     currentDateIndex = newIndex;
     renderDailyChart();
+    updateCarouselButtons();
   }
+}
+
+// Update carousel buttons
+function updateCarouselButtons() {
+  const prevBtn = $('#prevDay');
+  const nextBtn = $('#nextDay');
+  
+  if (prevBtn) prevBtn.disabled = (currentDateIndex >= dailyStatsData.length - 1);
+  if (nextBtn) nextBtn.disabled = (currentDateIndex <= 0);
 }
 
 // Load triage matrix - FIXED with French labels
 async function loadTriageMatrix() {
   const container = $('#triageMatrix');
   
-  // French triage names
-  const triageNames = {
-    red: 'Rouge',
-    orange: 'Orange', 
-    yellow: 'Jaune',
-    green: 'Vert',
-    blue: 'Bleu',
-    purple: 'Violet'
+  if (!container) return;
+  
+  const triageLabels = {
+    red: 'Rouge - Critique',
+    orange: 'Orange - Très urgent', 
+    yellow: 'Jaune - Urgent',
+    green: 'Vert - Semi-urgent',
+    blue: 'Bleu - Moins urgent',
+    purple: 'Violet - Non urgent'
   };
   
   const triageColors = {
@@ -1701,7 +1742,7 @@ async function loadTriageMatrix() {
     <div class="triage-stat">
       <h4>
         <div class="triage-color-indicator" style="background: ${triageColors[triage]}"></div>
-        ${triageNames[triage]}
+        ${triageLabels[triage]}
       </h4>
       <div class="triage-breakdown">
         <div>Hospitalisés: <strong>0</strong></div>
@@ -1735,9 +1776,9 @@ async function resetStats() {
     const deletePromises = dailyStatsSnapshot.docs.map(doc => doc.ref.delete());
     await Promise.all(deletePromises);
     
+    // Reload daily stats
     dailyStatsData = [];
-    currentDateIndex = 0;
-    renderDailyChart();
+    await loadDailyStats();
     
   } catch (error) {
     console.error('Error resetting stats:', error);
@@ -1754,6 +1795,7 @@ function showEditNameModal() {
   $('#updateName').addEventListener('click', updateUserName);
 }
 
+// Update user name - AUTO-CLOSE MODAL
 async function updateUserName() {
   const newName = $('#newName').value.trim();
   
@@ -1773,7 +1815,8 @@ async function updateUserName() {
     $('#username').textContent = newName;
     $('#profileName').textContent = newName;
     
-    $('.modal-overlay').classList.add('hidden');
+    // AUTO-CLOSE MODAL
+    closeAllModals();
     alert('Nom mis à jour avec succès!');
     
   } catch (error) {
@@ -1790,15 +1833,19 @@ function showChangePinModal() {
   `);
   
   // PIN input validation
-  $$('#currentPin, #newPin, #confirmNewPin').forEach(input => {
-    input.addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, '');
-    });
+  ['#currentPin', '#newPin', '#confirmNewPin'].forEach(id => {
+    const element = $(id);
+    if (element) {
+      element.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      });
+    }
   });
   
   $('#updatePin').addEventListener('click', updateUserPin);
 }
 
+// Update user PIN - AUTO-CLOSE MODAL
 async function updateUserPin() {
   const currentPin = $('#currentPin').value;
   const newPin = $('#newPin').value;
@@ -1836,7 +1883,8 @@ async function updateUserPin() {
         updatedAt: new Date().toISOString()
       });
       
-      $('.modal-overlay').classList.add('hidden');
+      // AUTO-CLOSE MODAL
+      closeAllModals();
       alert('PIN mis à jour avec succès!');
     }
     
@@ -1894,27 +1942,27 @@ function getTodayString() {
 function formatDateFrench(dateString) {
   const date = new Date(dateString);
   return date.toLocaleDateString('fr-FR', {
-    weekday: 'short',
+    weekday: 'long',
     day: 'numeric',
-    month: 'short'
+    month: 'long'
   });
 }
 
 function getTriageDisplayName(triage) {
-  const names = {
-    red: 'ROUGE',
-    orange: 'ORANGE', 
-    yellow: 'JAUNE',
-    green: 'VERT',
-    blue: 'BLEU',
-    purple: 'VIOLET'
+  const triageNames = {
+    red: 'Rouge',
+    orange: 'Orange', 
+    yellow: 'Jaune',
+    green: 'Vert',
+    blue: 'Bleu',
+    purple: 'Violet'
   };
-  return names[triage] || triage.toUpperCase();
+  return triageNames[triage] || triage.toUpperCase();
 }
 
 function createModal(title, content) {
   // Remove existing modals
-  $$('.modal-overlay:not(#transferAcceptModal):not(#phoneBookModal):not(#templatesModal)').forEach(modal => modal.remove());
+  closeAllModals();
   
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -1934,9 +1982,17 @@ function createModal(title, content) {
   return modal;
 }
 
-async function updateTriageTimeStats(triage, timeSpent) {
-  // Implementation for triage-specific time tracking
-  // This would update a separate collection for detailed triage analytics
+// UTILITY - Close all modals
+function closeAllModals() {
+  $$('.modal-overlay').forEach(modal => {
+    modal.classList.add('hidden');
+    // Remove from DOM after animation
+    setTimeout(() => {
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
+    }, 300);
+  });
 }
 
 // Initialize app when DOM is ready
@@ -1946,4 +2002,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded with all bug fixes');
+console.log('FastTrackers script loaded - final version with all bug fixes');
