@@ -22,9 +22,10 @@
   <section id="auth" class="auth-screen">
     <div class="auth-card">
       <div class="auth-logo">
-        <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
+        <img src="my_icon.png" width="96" height="96" alt="Logo FastTrackers"/>
       </div>
-      <p>Gestion des patients aux urgences</p>
+      <h1>FastTrackers</h1>
+      <p>Gestion des patients d'urgence</p>
 
       <!-- LOGIN FORM -->
       <div id="loginForm" class="auth-form">
@@ -51,7 +52,7 @@
   <section id="app" class="app-container hidden">
     <header class="app-header">
       <div class="brand">
-        <img src="my_icon_192_F.png" width="42" height="42" style="vertical-align:middle;margin-right:4px;">
+        <img src="my_icon.png" width="32" height="32" style="vertical-align:middle;margin-right:8px;">
         FastTrackers
       </div>
       <div class="user-panel">
@@ -81,13 +82,12 @@
       <button id="templatesBtn" class="fab templates">📋</button>
     </main>
 
-    <!-- STATISTICS TAB (Simplified) -->
+    <!-- STATISTICS TAB -->
     <main id="stats" class="tab-content hidden">
       <div class="stats-header">
         <h2>📊 Statistiques</h2>
       </div>
-      
-      <!-- Global Stats Only -->
+
       <div class="stats-section">
         <h3>📈 Statistiques globales</h3>
         <div class="stats" id="globalStats">
@@ -146,7 +146,7 @@
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-content">
-        <button id="addPhoneNumber" class="btn-primary" style="margin-bottom: 1rem;">➕ Ajouter</button>
+        <button id="addPhoneNumber" class="btn-primary" style="margin-bottom:1rem;">➕ Ajouter</button>
         <div id="phoneBookList" class="phone-book-list"></div>
       </div>
     </div>
@@ -161,6 +161,7 @@
       </div>
       <div class="modal-content">
         <div class="templates-sections">
+          <!-- Six template areas -->
           <div class="template-section">
             <h4>Hémodynamique</h4>
             <div class="template-field">
@@ -214,8 +215,8 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then(registration => console.log('SW registered:', registration))
-          .catch(error => console.log('SW registration failed:', error));
+          .then(r => console.log('Service Worker enregistré :', r))
+          .catch(err => console.log('Échec SW :', err));
       });
     }
   </script>
