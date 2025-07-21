@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FastTrackers – Urgences</title>
+  <title>FastTrackers – Gestion des Urgences</title>
 
   <!-- PWA essentials -->
   <meta name="theme-color" content="#0a1628" />
@@ -87,7 +87,7 @@
         <h2>📊 Statistiques</h2>
       </div>
       
-      <!-- Global Stats -->
+      <!-- Global Stats Only -->
       <div class="stats-section">
         <h3>📈 Statistiques globales</h3>
         <div class="stats" id="globalStats">
@@ -99,22 +99,10 @@
         </div>
       </div>
 
-      <!-- Triage Stats -->
-      <div class="stats-section">
-        <h3>🎯 Statistiques par triage</h3>
-        <div id="triageStats" class="triage-stats-grid"></div>
-      </div>
-
-      <!-- Daily Stats -->
-      <div class="stats-section">
-        <h3>📅 Activité journalière</h3>
-        <div id="dailyStatsGrid" class="daily-stats-grid"></div>
-      </div>
-
-      <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
+      <button id="resetStats" class="reset-btn">🔄 Réinitialiser les statistiques</button>
     </main>
 
-    <!-- PROFILE TAB (hidden, accessed via username button) -->
+    <!-- PROFILE TAB -->
     <main id="profile" class="tab-content hidden">
       <div class="profile-card">
         <h2>👤 Profil utilisateur</h2>
