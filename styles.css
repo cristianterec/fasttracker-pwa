@@ -1,4 +1,4 @@
-/* FastTrackers PWA - Complete Styles with All Features */
+/* FastTrackers PWA - Complete Styles with Bug Fixes */
 
 :root {
   /* Core Colors */
@@ -210,7 +210,7 @@ body {
   flex-direction: column;
 }
 
-/* Header */
+/* Header - Fixed username button */
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -236,26 +236,40 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+/* Username button - clickable for profile */
+.username-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-#profileBtn, #logout {
+.username-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.profile-icon {
+  opacity: 0.7;
+}
+
+#logout {
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
-}
-
-#profileBtn:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--accent-blue);
 }
 
 #logout:hover {
@@ -693,7 +707,7 @@ body {
   font-weight: 500;
 }
 
-/* Daily Stats */
+/* Daily Stats - Fixed carousel */
 .daily-stats-section {
   margin-bottom: var(--space-8);
 }
@@ -708,6 +722,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  justify-content: center;
 }
 
 .carousel-btn {
@@ -720,10 +735,18 @@ body {
   cursor: pointer;
   font-size: var(--font-size-lg);
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .carousel-btn:hover {
   background: var(--accent-blue);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .charts-container {
@@ -733,9 +756,63 @@ body {
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   min-height: 200px;
+  max-width: 600px;
 }
 
-/* Triage Matrix */
+/* Daily chart with bars */
+.daily-chart {
+  text-align: center;
+}
+
+.daily-chart h4 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-around;
+  align-items: end;
+  height: 120px;
+  margin-bottom: var(--space-3);
+}
+
+.chart-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bar {
+  min-height: 10px;
+  width: 40px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar.added { background: var(--accent-blue); }
+.bar.hospitalized { background: var(--accent-red); }
+.bar.discharged { background: var(--accent-green); }
+.bar.transferred { background: var(--accent-orange); }
+
+.chart-bar label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 60px;
+}
+
+.daily-chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: var(--text-muted);
+}
+
+/* Triage Matrix - French labels */
 .triage-section h3 {
   font-size: var(--font-size-xl);
   margin-bottom: var(--space-4);
@@ -1028,6 +1105,124 @@ body {
   color: white;
 }
 
+/* Phone Book */
+.phone-book-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.phone-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.phone-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.phone-info strong {
+  color: var(--text-primary);
+}
+
+.phone-info span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.phone-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.edit-phone, .delete-phone {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.edit-phone:hover {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.delete-phone:hover {
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Templates - Fixed copy button positioning */
+.templates-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.template-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.template-section h4 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.template-field {
+  position: relative;
+}
+
+.template-field textarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-10) var(--space-3) var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Copy button - positioned inside textarea */
+.copy-template-btn {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  padding: 4px 6px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.copy-template-btn:hover {
+  opacity: 1;
+  background: var(--accent-blue);
+}
+
+.copy-template-btn.copied {
+  background: var(--accent-green);
+}
+
 /* Transfer Modal */
 .transfer-section {
   margin-bottom: var(--space-4);
@@ -1216,10 +1411,11 @@ body {
   
   .daily-stats-carousel {
     flex-direction: column;
+    gap: var(--space-2);
   }
   
-  .carousel-btn {
-    order: 1;
+  .charts-container {
+    max-width: 100%;
   }
 }
 
