@@ -55,8 +55,10 @@
         FastTrackers
       </div>
       <div class="user-panel">
-        <span id="username"></span>
-        <button id="profileBtn">👤</button>
+        <button id="usernameBtn" class="username-btn">
+          <span id="username"></span>
+          <span class="profile-icon">👤</span>
+        </button>
         <button id="logout">Déconnexion</button>
       </div>
     </header>
@@ -99,7 +101,9 @@
         <h3>📅 Statistiques journalières</h3>
         <div id="dailyStatsCarousel" class="daily-stats-carousel">
           <button id="prevDay" class="carousel-btn">‹</button>
-          <div id="dailyCharts" class="charts-container"></div>
+          <div id="dailyCharts" class="charts-container">
+            <div class="daily-chart-placeholder">Chargement...</div>
+          </div>
           <button id="nextDay" class="carousel-btn">›</button>
         </div>
       </div>
@@ -113,7 +117,7 @@
       <button id="resetStats" class="reset-btn">🔄 Réinitialiser</button>
     </main>
 
-    <!-- PROFILE TAB (hidden, accessed via button) -->
+    <!-- PROFILE TAB (hidden, accessed via username button) -->
     <main id="profile" class="tab-content hidden">
       <div class="profile-card">
         <h2>👤 Profil utilisateur</h2>
@@ -145,6 +149,77 @@
           <button id="acceptTransfer" class="btn-primary">✅ Accepter</button>
           <button id="declineTransfer" class="btn-secondary">❌ Refuser</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phone Book Modal -->
+  <div id="phoneBookModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📞 Numéros utiles</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-content">
+        <button id="addPhoneNumber" class="btn-primary" style="margin-bottom: 1rem;">➕ Ajouter</button>
+        <div id="phoneBookList" class="phone-book-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates Modal -->
+  <div id="templatesModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📋 Modèles de compte-rendu</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="templates-sections">
+          <div class="template-section">
+            <h4>Hémodynamique</h4>
+            <div class="template-field">
+              <textarea id="templateHemo" rows="3"></textarea>
+              <button class="copy-template-btn" data-field="templateHemo">📋</button>
+            </div>
+          </div>
+          <div class="template-section">
+            <h4>Respiratoire</h4>
+            <div class="template-field">
+              <textarea id="templateResp" rows="3"></textarea>
+              <button class="copy-template-btn" data-field="templateResp">📋</button>
+            </div>
+          </div>
+          <div class="template-section">
+            <h4>Digestif</h4>
+            <div class="template-field">
+              <textarea id="templateDig" rows="3"></textarea>
+              <button class="copy-template-btn" data-field="templateDig">📋</button>
+            </div>
+          </div>
+          <div class="template-section">
+            <h4>Neurologique</h4>
+            <div class="template-field">
+              <textarea id="templateNeuro" rows="3"></textarea>
+              <button class="copy-template-btn" data-field="templateNeuro">📋</button>
+            </div>
+          </div>
+          <div class="template-section">
+            <h4>Ostéoarticulaire</h4>
+            <div class="template-field">
+              <textarea id="templateOsteo" rows="3"></textarea>
+              <button class="copy-template-btn" data-field="templateOsteo">📋</button>
+            </div>
+          </div>
+          <div class="template-section">
+            <h4>Autre</h4>
+            <div class="template-field">
+              <textarea id="templateAutre" rows="3"></textarea>
+              <button class="copy-template-btn" data-field="templateAutre">📋</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn-primary" id="saveTemplates">💾 Sauvegarder</button>
       </div>
     </div>
   </div>
