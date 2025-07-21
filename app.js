@@ -1,5 +1,5 @@
-// FastTrackers PWA - Final Version with All Bug Fixes
-console.log('FastTrackers loading - final version with bug fixes...');
+// FastTrackers PWA - Final Version with Simplified Stats & Live Timers
+console.log('FastTrackers loading - final version with simplified stats...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -20,8 +20,9 @@ let unsubscribeStats = null;
 let unsubscribeTransfers = null;
 let app = null;
 let updateTimerHandle = null;
-let currentDateIndex = 0;
+let liveTimerHandle = null;
 let dailyStatsData = [];
+let triageStatsData = {};
 
 // DOM helpers
 const $ = (selector) => document.querySelector(selector);
@@ -226,7 +227,6 @@ async function initializeUserData(userId) {
     hospitalized: 0,
     discharged: 0,
     transferred: 0,
-    deleted: 0,
     totalTime: 0,
     totalPatients: 0
   });
@@ -335,7 +335,6 @@ function showTransferAcceptanceModal(transfer, transferId) {
   
   modal.classList.remove('hidden');
   
-  // Clear any existing event listeners to prevent duplicates
   const acceptBtn = $('#acceptTransfer');
   const declineBtn = $('#declineTransfer');
   
@@ -371,7 +370,6 @@ async function acceptTransfer(transferId, transfer) {
     
     await batch.commit();
     
-    // AUTO-CLOSE MODAL
     $('#transferAcceptModal').classList.add('hidden');
     alert(`${transfer.patients.length} patient(s) accepté(s) avec succès!`);
     
@@ -408,7 +406,6 @@ async function declineTransfer(transferId, transfer) {
     
     await batch.commit();
     
-    // AUTO-CLOSE MODAL
     $('#transferAcceptModal').classList.add('hidden');
     alert('Transfert refusé - les patients sont retournés à l\'expéditeur');
     
@@ -452,7 +449,7 @@ async function startRealtimeListeners() {
     
     // Load additional data
     await loadDailyStats();
-    await loadTriageMatrix();
+    await loadTriageStats();
     
   } catch (error) {
     console.error('Error setting up listeners:', error);
@@ -488,17 +485,14 @@ function setupAppEventListeners() {
   $('#phoneBookBtn').addEventListener('click', showPhoneBookModal);
   $('#templatesBtn').addEventListener('click', showTemplatesModal);
   
-  // Stats carousel
+  // Stats
   $('#resetStats').addEventListener('click', resetStats);
-  $('#prevDay').addEventListener('click', () => navigateDays(-1));
-  $('#nextDay').addEventListener('click', () => navigateDays(1));
   
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
   
-  // Modal handling - FIXED to prevent text selection issues
+  // Modal handling
   document.addEventListener('click', (e) => {
-    // Only close modal if clicking directly on modal overlay (not on modal content)
     if (e.target.classList.contains('modal-overlay') && !e.target.closest('.modal')) {
       e.target.classList.add('hidden');
     }
@@ -635,15 +629,23 @@ function switchTab(tabName) {
   $(`#${tabName}`).classList.remove('hidden');
 }
 
-// Live timers
+// Live timers - UPDATED for both task timers and patient elapsed time
 function startLiveTimers() {
-  if (updateTimerHandle) return;
+  if (updateTimerHandle) clearInterval(updateTimerHandle);
+  if (liveTimerHandle) clearInterval(liveTimerHandle);
+  
+  // Task countdown timers (existing)
   updateTimerHandle = setInterval(updateAllTimers, 1000);
+  
+  // Live elapsed time timers (NEW)
+  liveTimerHandle = setInterval(updateLiveTimers, 1000);
 }
 
 function stopLiveTimers() {
   clearInterval(updateTimerHandle);
+  clearInterval(liveTimerHandle);
   updateTimerHandle = null;
+  liveTimerHandle = null;
 }
 
 function updateAllTimers() {
@@ -661,11 +663,34 @@ function updateAllTimers() {
   });
 }
 
+// NEW: Update live elapsed time timers
+function updateLiveTimers() {
+  const now = Date.now();
+  $$('.live-timer').forEach(el => {
+    const createdAt = new Date(el.dataset.created).getTime();
+    const elapsed = now - createdAt;
+    el.textContent = formatElapsedTime(elapsed);
+  });
+}
+
 function formatTime(ms) {
   if (ms <= 0) return '00:00';
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// NEW: Format elapsed time for live timer
+function formatElapsedTime(ms) {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+  } else {
+    return `${minutes}m`;
+  }
 }
 
 // Patient management
@@ -691,12 +716,25 @@ function renderPatients(snapshot) {
 function createPatientCardHTML(patient) {
   const tasks = patient.tasks || [];
   
+  // NEW: Patient notes display
+  const notesDisplay = patient.notes && patient.notes.trim() ? 
+    `<div class="patient-notes">
+      <span class="objective-emoji">🎯</span>
+      <div class="notes-text">${patient.notes}</div>
+    </div>` : '';
+  
   return `
     <div class="card ${patient.triage}" data-patient-id="${patient.id}">
+      <!-- NEW: Live timer -->
+      <div class="live-timer" data-created="${patient.createdAt}">
+        ${formatElapsedTime(Date.now() - new Date(patient.createdAt).getTime())}
+      </div>
+      
       <div class="info-box">
         <div>📍 ${patient.location || '—'}</div>
         <div>📱 ${patient.nurse || '—'}</div>
       </div>
+      
       <div class="patient-main">
         <div class="patient-name">
           ${patient.name}
@@ -704,9 +742,13 @@ function createPatientCardHTML(patient) {
         </div>
         <div class="patient-complaint">${patient.complaint}</div>
       </div>
+      
+      ${notesDisplay}
+      
       <div class="tasks">
         ${tasks.map(task => createTaskHTML(patient.id, task)).join('')}
       </div>
+      
       <div class="actions">
         <button class="btn task" data-pid="${patient.id}">📋 Tâches</button>
         <button class="btn decision" data-pid="${patient.id}">⚖️ Décision</button>
@@ -770,7 +812,7 @@ function selectTriageCircle(circle) {
   if (saveBtn) saveBtn.disabled = false;
 }
 
-// Save patient - AUTO-CLOSE MODAL
+// Save patient
 async function savePatient() {
   const name = $('#patientName').value.trim();
   const complaint = $('#patientComplaint').value.trim();
@@ -804,8 +846,8 @@ async function savePatient() {
     await setDoc(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
     await updateStats('added', 1);
     await updateDailyStats(getTodayString(), 'added', 1);
+    await updateTriageStats(selectedTriage.dataset.triage, 'added', 1);
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     console.log('Patient added:', name);
     
@@ -853,7 +895,7 @@ async function editPatient(patientId) {
   }
 }
 
-// Update patient - AUTO-CLOSE MODAL
+// Update patient
 async function updatePatient(patientId) {
   const name = $('#editPatientName').value.trim();
   const complaint = $('#editPatientComplaint').value.trim();
@@ -878,7 +920,6 @@ async function updatePatient(patientId) {
       updatedAt: new Date().toISOString()
     });
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     
   } catch (error) {
@@ -916,7 +957,6 @@ async function loadTaskSuggestions() {
       const container = $('#suggestionChips');
       
       if (container) {
-        // Sort by frequency
         const suggestions = data.suggestions.sort((a, b) => b.frequency - a.frequency);
         
         container.innerHTML = suggestions.map(s => 
@@ -937,7 +977,7 @@ function applySuggestion(chip) {
   $('#taskMinutes').value = chip.dataset.timer || '';
 }
 
-// Save task - AUTO-CLOSE MODAL
+// Save task
 async function saveTask(patientId) {
   const description = $('#taskDescription').value.trim();
   const minutes = parseInt($('#taskMinutes').value) || 0;
@@ -965,11 +1005,9 @@ async function saveTask(patientId) {
       const updatedTasks = [...(patientData.tasks || []), task];
       await updateDoc(patientRef, { tasks: updatedTasks });
       
-      // Update task suggestions
       await updateTaskSuggestions(description, minutes);
     }
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     
   } catch (error) {
@@ -990,7 +1028,6 @@ async function updateTaskSuggestions(description, timer) {
       suggestions = suggestionsSnap.data().suggestions || [];
     }
     
-    // Find existing suggestion or create new one
     const existingIndex = suggestions.findIndex(s => s.description === description);
     if (existingIndex >= 0) {
       suggestions[existingIndex].frequency++;
@@ -999,7 +1036,6 @@ async function updateTaskSuggestions(description, timer) {
       suggestions.push({ description, timer, frequency: 1 });
     }
     
-    // Keep only top 10 suggestions
     suggestions.sort((a, b) => b.frequency - a.frequency);
     suggestions = suggestions.slice(0, 10);
     
@@ -1112,10 +1148,12 @@ async function handlePatientDecision(patientId, action) {
     await updateStats(statKey, 1);
     await updateDailyStats(getTodayString(), statKey, 1);
     
-    // Update time statistics (exclude deleted patients)
-    if (action !== 'delete') {
+    // Update time statistics and triage stats (exclude deleted patients)
+    if (action !== 'delete' && patientData) {
       await updateStats('totalTime', timeSpent);
       await updateStats('totalPatients', 1);
+      await updateTriageStats(patientData.triage, statKey, 1);
+      await updateTriageTimeStats(patientData.triage, timeSpent);
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
@@ -1151,7 +1189,7 @@ async function loadPatientNotes(patientId) {
   }
 }
 
-// Save patient notes - AUTO-CLOSE MODAL
+// Save patient notes
 async function savePatientNotes(patientId) {
   const notes = $('#patientNotes').value.trim();
   
@@ -1162,7 +1200,6 @@ async function savePatientNotes(patientId) {
       notesUpdatedAt: new Date().toISOString()
     });
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     
   } catch (error) {
@@ -1245,7 +1282,7 @@ async function loadTransferPatients() {
   }
 }
 
-// Execute transfer - AUTO-CLOSE MODAL
+// Execute transfer
 async function executeTransfer() {
   const targetUserId = $('#transferUser').value;
   const selectedPatients = Array.from($$('#patientCheckboxes input:checked')).map(cb => cb.value);
@@ -1292,7 +1329,6 @@ async function executeTransfer() {
       await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
     }
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     alert(`${selectedPatients.length} patient(s) transféré(s) vers ${targetUserName}. En attente d'acceptation.`);
     
@@ -1302,7 +1338,7 @@ async function executeTransfer() {
   }
 }
 
-// Phone book functionality - FIXED with AUTO-CLOSE
+// Phone book functionality
 function showPhoneBookModal() {
   $('#phoneBookModal').classList.remove('hidden');
   loadPhoneBook();
@@ -1361,7 +1397,6 @@ function showAddPhoneModal() {
   $('#savePhone').addEventListener('click', savePhone);
 }
 
-// Save phone - AUTO-CLOSE MODAL
 async function savePhone() {
   const name = $('#phoneName').value.trim();
   const number = $('#phoneNumber').value.trim();
@@ -1382,7 +1417,6 @@ async function savePhone() {
       createdAt: new Date().toISOString()
     });
 
-    // AUTO-CLOSE MODAL AND REFRESH PHONE BOOK
     closeAllModals();
     $('#phoneBookModal').classList.remove('hidden');
     loadPhoneBook();
@@ -1414,7 +1448,6 @@ async function editPhone(phoneId) {
   }
 }
 
-// Update phone - AUTO-CLOSE MODAL
 async function updatePhone(phoneId) {
   const name = $('#editPhoneName').value.trim();
   const number = $('#editPhoneNumber').value.trim();
@@ -1433,7 +1466,6 @@ async function updatePhone(phoneId) {
       updatedAt: new Date().toISOString()
     });
 
-    // AUTO-CLOSE MODAL AND REFRESH PHONE BOOK
     closeAllModals();
     $('#phoneBookModal').classList.remove('hidden');
     loadPhoneBook();
@@ -1453,7 +1485,7 @@ async function deletePhone(phoneId) {
   }
 }
 
-// Templates functionality - FIXED with AUTO-CLOSE  
+// Templates functionality
 function showTemplatesModal() {
   $('#templatesModal').classList.remove('hidden');
   loadTemplates();
@@ -1469,7 +1501,6 @@ async function loadTemplates() {
     if (templatesSnap.exists()) {
       const templates = templatesSnap.data();
       
-      // Safely set values only if elements exist
       const templateIds = ['templateHemo', 'templateResp', 'templateDig', 'templateNeuro', 'templateOsteo', 'templateAutre'];
       templateIds.forEach(id => {
         const element = $(`#${id}`);
@@ -1484,7 +1515,6 @@ async function loadTemplates() {
   }
 }
 
-// Save templates - AUTO-CLOSE MODAL
 async function saveTemplates() {
   const templates = {
     templateHemo: $('#templateHemo').value || '',
@@ -1499,7 +1529,6 @@ async function saveTemplates() {
     const { doc, setDoc } = window.firestoreFunctions;
     await setDoc(doc(db, 'users', currentUserId, 'templates', 'main'), templates);
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     alert('Modèles sauvegardés!');
     
@@ -1508,7 +1537,7 @@ async function saveTemplates() {
   }
 }
 
-// Copy template text - FIXED
+// Copy template text
 async function copyTemplateText(button) {
   const fieldId = button.dataset.field;
   const textarea = $(`#${fieldId}`);
@@ -1517,7 +1546,6 @@ async function copyTemplateText(button) {
     try {
       await navigator.clipboard.writeText(textarea.value);
       
-      // Visual feedback
       button.classList.add('copied');
       button.textContent = '✅';
       
@@ -1528,21 +1556,20 @@ async function copyTemplateText(button) {
       
     } catch (error) {
       console.error('Error copying to clipboard:', error);
-      // Fallback selection method
       textarea.select();
       document.execCommand('copy');
     }
   }
 }
 
-// Statistics functions
+// Statistics functions - SIMPLIFIED
 function updateStatsDisplay(stats) {
   $('#sAdded').textContent = stats.added || 0;
   $('#sHosp').textContent = stats.hospitalized || 0;
   $('#sHome').textContent = stats.discharged || 0;
   $('#sTransfer').textContent = stats.transferred || 0;
   
-  // Calculate average time
+  // Calculate average time per patient
   const totalPatients = stats.totalPatients || 0;
   const totalTime = stats.totalTime || 0;
   const avgTimeMinutes = totalPatients > 0 ? Math.round(totalTime / totalPatients) : 0;
@@ -1566,7 +1593,6 @@ async function updateStats(field, value) {
         hospitalized: 0,
         discharged: 0,
         transferred: 0,
-        deleted: 0,
         totalTime: 0,
         totalPatients: 0
       };
@@ -1594,8 +1620,7 @@ async function updateDailyStats(date, field, value) {
         added: 0,
         hospitalized: 0,
         discharged: 0,
-        transferred: 0,
-        deleted: 0
+        transferred: 0
       };
       initialStats[field] = value;
       await setDoc(dailyStatsRef, initialStats);
@@ -1605,14 +1630,57 @@ async function updateDailyStats(date, field, value) {
   }
 }
 
-// Daily stats - FIXED carousel and charts
+// NEW: Triage-specific statistics
+async function updateTriageStats(triage, field, value) {
+  try {
+    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
+    const triageStatsRef = doc(db, 'users', currentUserId, 'triageStats', triage);
+    
+    try {
+      await updateDoc(triageStatsRef, {
+        [field]: increment(value),
+        triage: triage
+      });
+    } catch (error) {
+      const initialStats = {
+        triage: triage,
+        added: 0,
+        hospitalized: 0,
+        discharged: 0,
+        transferred: 0,
+        totalTime: 0,
+        totalPatients: 0
+      };
+      initialStats[field] = value;
+      await setDoc(triageStatsRef, initialStats);
+    }
+  } catch (error) {
+    console.error('Error updating triage stats:', error);
+  }
+}
+
+async function updateTriageTimeStats(triage, timeSpent) {
+  try {
+    const { doc, updateDoc, increment } = window.firestoreFunctions;
+    const triageStatsRef = doc(db, 'users', currentUserId, 'triageStats', triage);
+    
+    await updateDoc(triageStatsRef, {
+      totalTime: increment(timeSpent),
+      totalPatients: increment(1)
+    });
+  } catch (error) {
+    console.error('Error updating triage time stats:', error);
+  }
+}
+
+// Load daily stats - SIMPLIFIED
 async function loadDailyStats() {
   try {
     const { collection, getDocs, orderBy, query, limit } = window.firestoreFunctions;
     const dailyStatsQuery = query(
       collection(db, 'users', currentUserId, 'dailyStats'),
       orderBy('date', 'desc'),
-      limit(30) // Last 30 days
+      limit(30)
     );
     
     const snapshot = await getDocs(dailyStatsQuery);
@@ -1622,101 +1690,76 @@ async function loadDailyStats() {
       dailyStatsData.push(doc.data());
     });
 
-    // Add today if not exists
-    const today = getTodayString();
-    if (!dailyStatsData.find(d => d.date === today)) {
-      dailyStatsData.unshift({
-        date: today,
-        added: 0,
-        hospitalized: 0,
-        discharged: 0,
-        transferred: 0
-      });
-    }
-    
-    currentDateIndex = 0;
-    renderDailyChart();
-    updateCarouselButtons();
+    renderDailyStats();
     
   } catch (error) {
     console.error('Error loading daily stats:', error);
-    // Show error state
-    const container = $('#dailyCharts');
-    if (container) {
-      container.innerHTML = '<div class="daily-chart-placeholder">Erreur de chargement des statistiques</div>';
-    }
   }
 }
 
-// Render daily chart - FIXED
-function renderDailyChart() {
-  const container = $('#dailyCharts');
+function renderDailyStats() {
+  const container = $('#dailyStatsGrid');
   
   if (!container) return;
   
   if (dailyStatsData.length === 0) {
-    container.innerHTML = '<div class="daily-chart-placeholder">Aucune donnée disponible</div>';
+    container.innerHTML = '<p style="text-align:center;color:var(--text-muted);">Aucune activité enregistrée</p>';
     return;
   }
-
-  const currentData = dailyStatsData[currentDateIndex] || {
-    date: getTodayString(),
-    added: 0,
-    hospitalized: 0,
-    discharged: 0,
-    transferred: 0
-  };
   
-  const values = [currentData.added, currentData.hospitalized, currentData.discharged, currentData.transferred];
-  const maxValue = Math.max(...values, 1);
-  
-  container.innerHTML = `
-    <div class="daily-chart">
-      <h4>${formatDateFrench(currentData.date)}</h4>
-      <div class="chart-bars">
-        <div class="chart-bar">
-          <div class="bar added" style="height: ${Math.max(10, (currentData.added / maxValue) * 100)}px"></div>
-          <label>Ajoutés<br>${currentData.added}</label>
-        </div>
-        <div class="chart-bar">
-          <div class="bar hospitalized" style="height: ${Math.max(10, (currentData.hospitalized / maxValue) * 100)}px"></div>
-          <label>Hospitalisés<br>${currentData.hospitalized}</label>
-        </div>
-        <div class="chart-bar">
-          <div class="bar discharged" style="height: ${Math.max(10, (currentData.discharged / maxValue) * 100)}px"></div>
-          <label>Sortis<br>${currentData.discharged}</label>
-        </div>
-        <div class="chart-bar">
-          <div class="bar transferred" style="height: ${Math.max(10, (currentData.transferred / maxValue) * 100)}px"></div>
-          <label>Transférés<br>${currentData.transferred}</label>
+  container.innerHTML = dailyStatsData.map(data => {
+    const total = data.added + data.hospitalized + data.discharged + data.transferred;
+    
+    return `
+      <div class="daily-stat-card">
+        <div class="daily-stat-header">${formatDateFrench(data.date)}</div>
+        <div class="daily-stat-values">
+          <div class="daily-stat-item">
+            <span>Ajoutés:</span>
+            <span class="value">${data.added || 0}</span>
+          </div>
+          <div class="daily-stat-item">
+            <span>Hospitalisés:</span>
+            <span class="value">${data.hospitalized || 0}</span>
+          </div>
+          <div class="daily-stat-item">
+            <span>Sortis:</span>
+            <span class="value">${data.discharged || 0}</span>
+          </div>
+          <div class="daily-stat-item">
+            <span>Transférés:</span>
+            <span class="value">${data.transferred || 0}</span>
+          </div>
+          <div class="daily-stat-item">
+            <span><strong>Total activité:</strong></span>
+            <span class="value"><strong>${total}</strong></span>
+          </div>
         </div>
       </div>
-    </div>
-  `;
+    `;
+  }).join('');
 }
 
-// Navigate days - FIXED
-function navigateDays(direction) {
-  const newIndex = currentDateIndex + direction;
-  if (newIndex >= 0 && newIndex < dailyStatsData.length) {
-    currentDateIndex = newIndex;
-    renderDailyChart();
-    updateCarouselButtons();
+// Load triage stats - NEW
+async function loadTriageStats() {
+  try {
+    const { collection, getDocs } = window.firestoreFunctions;
+    const triageStatsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'triageStats'));
+    
+    triageStatsData = {};
+    triageStatsSnapshot.forEach(doc => {
+      triageStatsData[doc.id] = doc.data();
+    });
+    
+    renderTriageStats();
+    
+  } catch (error) {
+    console.error('Error loading triage stats:', error);
   }
 }
 
-// Update carousel buttons
-function updateCarouselButtons() {
-  const prevBtn = $('#prevDay');
-  const nextBtn = $('#nextDay');
-  
-  if (prevBtn) prevBtn.disabled = (currentDateIndex >= dailyStatsData.length - 1);
-  if (nextBtn) nextBtn.disabled = (currentDateIndex <= 0);
-}
-
-// Load triage matrix - FIXED with French labels
-async function loadTriageMatrix() {
-  const container = $('#triageMatrix');
+function renderTriageStats() {
+  const container = $('#triageStats');
   
   if (!container) return;
   
@@ -1738,20 +1781,53 @@ async function loadTriageMatrix() {
     purple: '#7c3aed'
   };
   
-  container.innerHTML = Object.keys(triageColors).map(triage => `
-    <div class="triage-stat">
-      <h4>
-        <div class="triage-color-indicator" style="background: ${triageColors[triage]}"></div>
-        ${triageLabels[triage]}
-      </h4>
-      <div class="triage-breakdown">
-        <div>Hospitalisés: <strong>0</strong></div>
-        <div>Sortis: <strong>0</strong></div>
-        <div>Transférés: <strong>0</strong></div>
-        <div>Temps moyen: <strong>0h 0m</strong></div>
+  const triageOrder = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+  
+  container.innerHTML = triageOrder.map(triage => {
+    const data = triageStatsData[triage] || {
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      transferred: 0,
+      totalTime: 0,
+      totalPatients: 0
+    };
+    
+    const avgTimeMinutes = data.totalPatients > 0 ? Math.round(data.totalTime / data.totalPatients) : 0;
+    const avgHours = Math.floor(avgTimeMinutes / 60);
+    const avgMins = avgTimeMinutes % 60;
+    
+    return `
+      <div class="triage-stat-card">
+        <div class="triage-stat-header">
+          <div class="triage-color-dot" style="background: ${triageColors[triage]}"></div>
+          <h4>${triageLabels[triage]}</h4>
+        </div>
+        <div class="triage-breakdown">
+          <div class="breakdown-item">
+            <span>Ajoutés:</span>
+            <span><strong>${data.added || 0}</strong></span>
+          </div>
+          <div class="breakdown-item">
+            <span>Hospitalisés:</span>
+            <span><strong>${data.hospitalized || 0}</strong></span>
+          </div>
+          <div class="breakdown-item">
+            <span>Sortis:</span>
+            <span><strong>${data.discharged || 0}</strong></span>
+          </div>
+          <div class="breakdown-item">
+            <span>Transférés:</span>
+            <span><strong>${data.transferred || 0}</strong></span>
+          </div>
+          <div class="breakdown-item">
+            <span>Temps moyen:</span>
+            <span><strong>${avgHours}h ${avgMins}m</strong></span>
+          </div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 async function resetStats() {
@@ -1766,7 +1842,6 @@ async function resetStats() {
       hospitalized: 0,
       discharged: 0,
       transferred: 0,
-      deleted: 0,
       totalTime: 0,
       totalPatients: 0
     });
@@ -1776,9 +1851,16 @@ async function resetStats() {
     const deletePromises = dailyStatsSnapshot.docs.map(doc => doc.ref.delete());
     await Promise.all(deletePromises);
     
-    // Reload daily stats
+    // Reset triage stats
+    const triageStatsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'triageStats'));
+    const triageDeletePromises = triageStatsSnapshot.docs.map(doc => doc.ref.delete());
+    await Promise.all(triageDeletePromises);
+    
+    // Reload stats
     dailyStatsData = [];
-    await loadDailyStats();
+    triageStatsData = {};
+    renderDailyStats();
+    renderTriageStats();
     
   } catch (error) {
     console.error('Error resetting stats:', error);
@@ -1795,7 +1877,6 @@ function showEditNameModal() {
   $('#updateName').addEventListener('click', updateUserName);
 }
 
-// Update user name - AUTO-CLOSE MODAL
 async function updateUserName() {
   const newName = $('#newName').value.trim();
   
@@ -1815,7 +1896,6 @@ async function updateUserName() {
     $('#username').textContent = newName;
     $('#profileName').textContent = newName;
     
-    // AUTO-CLOSE MODAL
     closeAllModals();
     alert('Nom mis à jour avec succès!');
     
@@ -1832,7 +1912,6 @@ function showChangePinModal() {
     <button class="btn-primary" id="updatePin">Mettre à jour</button>
   `);
   
-  // PIN input validation
   ['#currentPin', '#newPin', '#confirmNewPin'].forEach(id => {
     const element = $(id);
     if (element) {
@@ -1845,7 +1924,6 @@ function showChangePinModal() {
   $('#updatePin').addEventListener('click', updateUserPin);
 }
 
-// Update user PIN - AUTO-CLOSE MODAL
 async function updateUserPin() {
   const currentPin = $('#currentPin').value;
   const newPin = $('#newPin').value;
@@ -1883,7 +1961,6 @@ async function updateUserPin() {
         updatedAt: new Date().toISOString()
       });
       
-      // AUTO-CLOSE MODAL
       closeAllModals();
       alert('PIN mis à jour avec succès!');
     }
@@ -1910,7 +1987,7 @@ async function handleDeleteAccount() {
     }
     
     // Delete all user data
-    const collections = ['patients', 'stats', 'dailyStats', 'taskSuggestions', 'phoneBook', 'templates'];
+    const collections = ['patients', 'stats', 'dailyStats', 'triageStats', 'taskSuggestions', 'phoneBook', 'templates'];
     
     for (const collectionName of collections) {
       const snapshot = await getDocs(collection(db, 'users', currentUserId, collectionName));
@@ -1944,7 +2021,8 @@ function formatDateFrench(dateString) {
   return date.toLocaleDateString('fr-FR', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long'
+    month: 'long',
+    year: 'numeric'
   });
 }
 
@@ -1961,7 +2039,6 @@ function getTriageDisplayName(triage) {
 }
 
 function createModal(title, content) {
-  // Remove existing modals
   closeAllModals();
   
   const modal = document.createElement('div');
@@ -1982,11 +2059,9 @@ function createModal(title, content) {
   return modal;
 }
 
-// UTILITY - Close all modals
 function closeAllModals() {
   $$('.modal-overlay').forEach(modal => {
     modal.classList.add('hidden');
-    // Remove from DOM after animation
     setTimeout(() => {
       if (modal.parentNode) {
         modal.parentNode.removeChild(modal);
@@ -2002,4 +2077,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded - final version with all bug fixes');
+console.log('FastTrackers script loaded - final version with simplified stats and live timers');
