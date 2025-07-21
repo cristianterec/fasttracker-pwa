@@ -1,4 +1,4 @@
-/* FastTrackers PWA - Complete Styles with Rebuilt Features */
+/* FastTrackers PWA - Complete Styles with Modal Popups */
 
 :root {
   /* Core Colors */
@@ -678,7 +678,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* REBUILT: Floating Action Buttons with Hover Popups */
+/* Floating Action Buttons */
 .fab-container {
   position: fixed;
   bottom: 30px;
@@ -687,13 +687,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.fab-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 }
 
 .fab {
@@ -744,199 +737,7 @@ body {
   opacity: 1;
 }
 
-/* REBUILT: FAB Popups */
-.fab-popup {
-  position: absolute;
-  right: 70px;
-  top: 0;
-  width: 350px;
-  background: var(--bg-surface);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-2xl);
-  backdrop-filter: var(--glass-backdrop);
-  z-index: 1002;
-  transform: translateX(20px);
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.3s ease;
-}
-
-.fab-popup:not(.hidden) {
-  transform: translateX(0);
-  opacity: 1;
-  pointer-events: all;
-}
-
-.fab-popup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.fab-popup-header h3 {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.add-phone-btn {
-  background: var(--accent-green);
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  color: white;
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  transition: all 0.3s ease;
-}
-
-.add-phone-btn:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-md);
-}
-
-.fab-popup-content {
-  padding: var(--space-4);
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-/* Phone Book Styles */
-.phone-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  margin-bottom: var(--space-2);
-  transition: all 0.3s ease;
-}
-
-.phone-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.phone-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.phone-info strong {
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-}
-
-.phone-info span {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-.phone-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.edit-phone-btn, .delete-phone-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-  font-size: var(--font-size-base);
-}
-
-.edit-phone-btn:hover {
-  color: var(--accent-blue);
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.delete-phone-btn:hover {
-  color: var(--accent-red);
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.no-phones {
-  text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-  padding: var(--space-6);
-}
-
-/* Template Styles */
-.template-field-group {
-  position: relative;
-  margin-bottom: var(--space-4);
-}
-
-.template-field-group textarea {
-  width: 100%;
-  padding: var(--space-3) var(--space-10) var(--space-3) var(--space-3);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-  resize: vertical;
-  min-height: 80px;
-  line-height: 1.5;
-  transition: all 0.3s ease;
-}
-
-.template-field-group textarea:focus {
-  outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.copy-btn {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  background: rgba(0, 0, 0, 0.5);
-  border: none;
-  border-radius: var(--radius-sm);
-  color: white;
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  padding: 6px 8px;
-  opacity: 0.7;
-  transition: all 0.2s ease;
-  z-index: 10;
-}
-
-.copy-btn:hover {
-  opacity: 1;
-  background: var(--accent-blue);
-}
-
-.save-templates-btn {
-  width: 100%;
-  background: linear-gradient(135deg, var(--accent-blue), #2563eb);
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: var(--space-4);
-}
-
-.save-templates-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-/* REBUILT: Statistics Tab Styles */
+/* Statistics Tab */
 .stats-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -1251,6 +1052,129 @@ body {
   margin-bottom: var(--space-2);
 }
 
+/* Phone Book Modal Styles */
+.phone-book-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.phone-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  transition: all 0.3s ease;
+}
+
+.phone-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.phone-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.phone-info strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.phone-info span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.phone-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.edit-phone-btn, .delete-phone-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  font-size: var(--font-size-base);
+}
+
+.edit-phone-btn:hover {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.delete-phone-btn:hover {
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.no-phones {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--space-6);
+}
+
+/* Templates Modal Styles */
+.template-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.template-field-group {
+  position: relative;
+}
+
+.template-field-group textarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-10) var(--space-3) var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+  transition: all 0.3s ease;
+}
+
+.template-field-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.copy-template-btn {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: 6px 8px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.copy-template-btn:hover {
+  opacity: 1;
+  background: var(--accent-blue);
+}
+
 /* Triage Circles */
 .triage-circles {
   display: flex;
@@ -1517,11 +1441,6 @@ body {
     right: 20px;
   }
   
-  .fab-popup {
-    width: 280px;
-    right: 60px;
-  }
-  
   .modal {
     min-width: 320px;
     margin: var(--space-4);
@@ -1568,8 +1487,15 @@ body {
     grid-template-columns: 1fr;
   }
   
-  .fab-popup {
-    width: 260px;
-    right: 50px;
+  .fab {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+  
+  .fab::before {
+    right: 55px;
+    font-size: var(--font-size-xs);
+    padding: 6px 10px;
   }
 }
