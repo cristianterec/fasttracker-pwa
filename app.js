@@ -1,5 +1,5 @@
-// FastTrackers PWA - Final Version with Simplified Stats & Live Timers
-console.log('FastTrackers loading - final version with simplified stats...');
+// FastTrackers PWA - Final Version with French Interface
+console.log('FastTrackers loading - version française avec tous les correctifs...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,8 +21,6 @@ let unsubscribeTransfers = null;
 let app = null;
 let updateTimerHandle = null;
 let liveTimerHandle = null;
-let dailyStatsData = [];
-let triageStatsData = {};
 
 // DOM helpers
 const $ = (selector) => document.querySelector(selector);
@@ -447,16 +445,12 @@ async function startRealtimeListeners() {
       }
     });
     
-    // Load additional data
-    await loadDailyStats();
-    await loadTriageStats();
-    
   } catch (error) {
     console.error('Error setting up listeners:', error);
   }
 }
 
-// Setup app event listeners
+// Setup app event listeners - FIXED FAB BUTTONS
 function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
@@ -481,9 +475,15 @@ function setupAppEventListeners() {
   $('#changePinBtn').addEventListener('click', showChangePinModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
   
-  // FABs
-  $('#phoneBookBtn').addEventListener('click', showPhoneBookModal);
-  $('#templatesBtn').addEventListener('click', showTemplatesModal);
+  // FAB BUTTONS - FIXED with delegated event listeners
+  document.body.addEventListener('click', (e) => {
+    if (e.target.id === 'phoneBookBtn') {
+      showPhoneBookModal();
+    }
+    if (e.target.id === 'templatesBtn') {
+      showTemplatesModal();
+    }
+  });
   
   // Stats
   $('#resetStats').addEventListener('click', resetStats);
@@ -629,7 +629,7 @@ function switchTab(tabName) {
   $(`#${tabName}`).classList.remove('hidden');
 }
 
-// Live timers - UPDATED for both task timers and patient elapsed time
+// Live timers - UPDATED with improved formatting
 function startLiveTimers() {
   if (updateTimerHandle) clearInterval(updateTimerHandle);
   if (liveTimerHandle) clearInterval(liveTimerHandle);
@@ -637,7 +637,7 @@ function startLiveTimers() {
   // Task countdown timers (existing)
   updateTimerHandle = setInterval(updateAllTimers, 1000);
   
-  // Live elapsed time timers (NEW)
+  // Live elapsed time timers (IMPROVED)
   liveTimerHandle = setInterval(updateLiveTimers, 1000);
 }
 
@@ -663,7 +663,7 @@ function updateAllTimers() {
   });
 }
 
-// NEW: Update live elapsed time timers
+// IMPROVED: Update live elapsed time timers
 function updateLiveTimers() {
   const now = Date.now();
   $$('.live-timer').forEach(el => {
@@ -680,17 +680,25 @@ function formatTime(ms) {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// NEW: Format elapsed time for live timer
+// IMPROVED: Format elapsed time - seconds → minutes:seconds → hours:minutes
 function formatElapsedTime(ms) {
-  const totalMinutes = Math.floor(ms / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const totalSeconds = Math.floor(ms / 1000);
   
-  if (hours > 0) {
-    return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
-  } else {
-    return `${minutes}m`;
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
   }
+  
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+  }
+  
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  
+  return `${hours}h ${remainingMinutes.toString().padStart(2, '0')}m`;
 }
 
 // Patient management
@@ -716,7 +724,7 @@ function renderPatients(snapshot) {
 function createPatientCardHTML(patient) {
   const tasks = patient.tasks || [];
   
-  // NEW: Patient notes display
+  // Patient notes display
   const notesDisplay = patient.notes && patient.notes.trim() ? 
     `<div class="patient-notes">
       <span class="objective-emoji">🎯</span>
@@ -725,7 +733,7 @@ function createPatientCardHTML(patient) {
   
   return `
     <div class="card ${patient.triage}" data-patient-id="${patient.id}">
-      <!-- NEW: Live timer -->
+      <!-- Live timer -->
       <div class="live-timer" data-created="${patient.createdAt}">
         ${formatElapsedTime(Date.now() - new Date(patient.createdAt).getTime())}
       </div>
@@ -845,11 +853,9 @@ async function savePatient() {
     
     await setDoc(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
     await updateStats('added', 1);
-    await updateDailyStats(getTodayString(), 'added', 1);
-    await updateTriageStats(selectedTriage.dataset.triage, 'added', 1);
     
     closeAllModals();
-    console.log('Patient added:', name);
+    console.log('Patient ajouté:', name);
     
   } catch (error) {
     console.error('Error adding patient:', error);
@@ -1146,14 +1152,11 @@ async function handlePatientDecision(patientId, action) {
     
     const statKey = statMap[action];
     await updateStats(statKey, 1);
-    await updateDailyStats(getTodayString(), statKey, 1);
     
-    // Update time statistics and triage stats (exclude deleted patients)
+    // Update time statistics (exclude deleted patients)
     if (action !== 'delete' && patientData) {
       await updateStats('totalTime', timeSpent);
       await updateStats('totalPatients', 1);
-      await updateTriageStats(patientData.triage, statKey, 1);
-      await updateTriageTimeStats(patientData.triage, timeSpent);
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
@@ -1604,237 +1607,11 @@ async function updateStats(field, value) {
   }
 }
 
-async function updateDailyStats(date, field, value) {
-  try {
-    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
-    const dailyStatsRef = doc(db, 'users', currentUserId, 'dailyStats', date);
-    
-    try {
-      await updateDoc(dailyStatsRef, {
-        [field]: increment(value),
-        date: date
-      });
-    } catch (error) {
-      const initialStats = {
-        date: date,
-        added: 0,
-        hospitalized: 0,
-        discharged: 0,
-        transferred: 0
-      };
-      initialStats[field] = value;
-      await setDoc(dailyStatsRef, initialStats);
-    }
-  } catch (error) {
-    console.error('Error updating daily stats:', error);
-  }
-}
-
-// NEW: Triage-specific statistics
-async function updateTriageStats(triage, field, value) {
-  try {
-    const { doc, updateDoc, increment, setDoc } = window.firestoreFunctions;
-    const triageStatsRef = doc(db, 'users', currentUserId, 'triageStats', triage);
-    
-    try {
-      await updateDoc(triageStatsRef, {
-        [field]: increment(value),
-        triage: triage
-      });
-    } catch (error) {
-      const initialStats = {
-        triage: triage,
-        added: 0,
-        hospitalized: 0,
-        discharged: 0,
-        transferred: 0,
-        totalTime: 0,
-        totalPatients: 0
-      };
-      initialStats[field] = value;
-      await setDoc(triageStatsRef, initialStats);
-    }
-  } catch (error) {
-    console.error('Error updating triage stats:', error);
-  }
-}
-
-async function updateTriageTimeStats(triage, timeSpent) {
-  try {
-    const { doc, updateDoc, increment } = window.firestoreFunctions;
-    const triageStatsRef = doc(db, 'users', currentUserId, 'triageStats', triage);
-    
-    await updateDoc(triageStatsRef, {
-      totalTime: increment(timeSpent),
-      totalPatients: increment(1)
-    });
-  } catch (error) {
-    console.error('Error updating triage time stats:', error);
-  }
-}
-
-// Load daily stats - SIMPLIFIED
-async function loadDailyStats() {
-  try {
-    const { collection, getDocs, orderBy, query, limit } = window.firestoreFunctions;
-    const dailyStatsQuery = query(
-      collection(db, 'users', currentUserId, 'dailyStats'),
-      orderBy('date', 'desc'),
-      limit(30)
-    );
-    
-    const snapshot = await getDocs(dailyStatsQuery);
-    dailyStatsData = [];
-    
-    snapshot.forEach(doc => {
-      dailyStatsData.push(doc.data());
-    });
-
-    renderDailyStats();
-    
-  } catch (error) {
-    console.error('Error loading daily stats:', error);
-  }
-}
-
-function renderDailyStats() {
-  const container = $('#dailyStatsGrid');
-  
-  if (!container) return;
-  
-  if (dailyStatsData.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:var(--text-muted);">Aucune activité enregistrée</p>';
-    return;
-  }
-  
-  container.innerHTML = dailyStatsData.map(data => {
-    const total = data.added + data.hospitalized + data.discharged + data.transferred;
-    
-    return `
-      <div class="daily-stat-card">
-        <div class="daily-stat-header">${formatDateFrench(data.date)}</div>
-        <div class="daily-stat-values">
-          <div class="daily-stat-item">
-            <span>Ajoutés:</span>
-            <span class="value">${data.added || 0}</span>
-          </div>
-          <div class="daily-stat-item">
-            <span>Hospitalisés:</span>
-            <span class="value">${data.hospitalized || 0}</span>
-          </div>
-          <div class="daily-stat-item">
-            <span>Sortis:</span>
-            <span class="value">${data.discharged || 0}</span>
-          </div>
-          <div class="daily-stat-item">
-            <span>Transférés:</span>
-            <span class="value">${data.transferred || 0}</span>
-          </div>
-          <div class="daily-stat-item">
-            <span><strong>Total activité:</strong></span>
-            <span class="value"><strong>${total}</strong></span>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// Load triage stats - NEW
-async function loadTriageStats() {
-  try {
-    const { collection, getDocs } = window.firestoreFunctions;
-    const triageStatsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'triageStats'));
-    
-    triageStatsData = {};
-    triageStatsSnapshot.forEach(doc => {
-      triageStatsData[doc.id] = doc.data();
-    });
-    
-    renderTriageStats();
-    
-  } catch (error) {
-    console.error('Error loading triage stats:', error);
-  }
-}
-
-function renderTriageStats() {
-  const container = $('#triageStats');
-  
-  if (!container) return;
-  
-  const triageLabels = {
-    red: 'Rouge - Critique',
-    orange: 'Orange - Très urgent', 
-    yellow: 'Jaune - Urgent',
-    green: 'Vert - Semi-urgent',
-    blue: 'Bleu - Moins urgent',
-    purple: 'Violet - Non urgent'
-  };
-  
-  const triageColors = {
-    red: '#dc2626',
-    orange: '#ea580c',
-    yellow: '#eab308',
-    green: '#16a34a',
-    blue: '#2563eb',
-    purple: '#7c3aed'
-  };
-  
-  const triageOrder = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
-  
-  container.innerHTML = triageOrder.map(triage => {
-    const data = triageStatsData[triage] || {
-      added: 0,
-      hospitalized: 0,
-      discharged: 0,
-      transferred: 0,
-      totalTime: 0,
-      totalPatients: 0
-    };
-    
-    const avgTimeMinutes = data.totalPatients > 0 ? Math.round(data.totalTime / data.totalPatients) : 0;
-    const avgHours = Math.floor(avgTimeMinutes / 60);
-    const avgMins = avgTimeMinutes % 60;
-    
-    return `
-      <div class="triage-stat-card">
-        <div class="triage-stat-header">
-          <div class="triage-color-dot" style="background: ${triageColors[triage]}"></div>
-          <h4>${triageLabels[triage]}</h4>
-        </div>
-        <div class="triage-breakdown">
-          <div class="breakdown-item">
-            <span>Ajoutés:</span>
-            <span><strong>${data.added || 0}</strong></span>
-          </div>
-          <div class="breakdown-item">
-            <span>Hospitalisés:</span>
-            <span><strong>${data.hospitalized || 0}</strong></span>
-          </div>
-          <div class="breakdown-item">
-            <span>Sortis:</span>
-            <span><strong>${data.discharged || 0}</strong></span>
-          </div>
-          <div class="breakdown-item">
-            <span>Transférés:</span>
-            <span><strong>${data.transferred || 0}</strong></span>
-          </div>
-          <div class="breakdown-item">
-            <span>Temps moyen:</span>
-            <span><strong>${avgHours}h ${avgMins}m</strong></span>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
 async function resetStats() {
   if (!confirm('Êtes-vous sûr de vouloir réinitialiser toutes les statistiques ?')) return;
   
   try {
-    const { doc, setDoc, collection, getDocs } = window.firestoreFunctions;
+    const { doc, setDoc } = window.firestoreFunctions;
     
     // Reset main stats
     await setDoc(doc(db, 'users', currentUserId, 'stats', 'main'), {
@@ -1846,21 +1623,7 @@ async function resetStats() {
       totalPatients: 0
     });
     
-    // Reset daily stats
-    const dailyStatsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'dailyStats'));
-    const deletePromises = dailyStatsSnapshot.docs.map(doc => doc.ref.delete());
-    await Promise.all(deletePromises);
-    
-    // Reset triage stats
-    const triageStatsSnapshot = await getDocs(collection(db, 'users', currentUserId, 'triageStats'));
-    const triageDeletePromises = triageStatsSnapshot.docs.map(doc => doc.ref.delete());
-    await Promise.all(triageDeletePromises);
-    
-    // Reload stats
-    dailyStatsData = [];
-    triageStatsData = {};
-    renderDailyStats();
-    renderTriageStats();
+    alert('Statistiques réinitialisées!');
     
   } catch (error) {
     console.error('Error resetting stats:', error);
@@ -1987,7 +1750,7 @@ async function handleDeleteAccount() {
     }
     
     // Delete all user data
-    const collections = ['patients', 'stats', 'dailyStats', 'triageStats', 'taskSuggestions', 'phoneBook', 'templates'];
+    const collections = ['patients', 'stats', 'taskSuggestions', 'phoneBook', 'templates'];
     
     for (const collectionName of collections) {
       const snapshot = await getDocs(collection(db, 'users', currentUserId, collectionName));
@@ -2010,20 +1773,6 @@ async function handleDeleteAccount() {
 // Utility functions
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-function getTodayString() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function formatDateFrench(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
 }
 
 function getTriageDisplayName(triage) {
@@ -2077,4 +1826,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded - final version with simplified stats and live timers');
+console.log('FastTrackers script loaded - version française finale');
