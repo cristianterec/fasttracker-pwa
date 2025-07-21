@@ -76,30 +76,117 @@
       <div id="grid" class="grid"></div>
       <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
 
-      <!-- Floating Action Buttons -->
-      <button id="phoneBookBtn" class="fab phone">📞</button>
-      <button id="templatesBtn" class="fab templates">📋</button>
-    </main>
+      <!-- NEW: Floating Action Buttons with Hover Functionality -->
+      <div class="fab-container">
+        <!-- Phone Book FAB -->
+        <div class="fab-group">
+          <button class="fab fab-phone" data-tooltip="Numéros utiles">📞</button>
+          <div class="fab-popup fab-phone-popup hidden">
+            <div class="fab-popup-header">
+              <h3>📞 Numéros utiles</h3>
+              <button class="add-phone-btn">➕</button>
+            </div>
+            <div class="fab-popup-content" id="phoneList">
+              <!-- Phone numbers will be loaded here -->
+            </div>
+          </div>
+        </div>
 
-    <!-- STATISTICS TAB -->
-    <main id="stats" class="tab-content hidden">
-      <div class="stats-header">
-        <h2>📊 Statistiques</h2>
-      </div>
-      
-      <!-- Global Stats Only -->
-      <div class="stats-section">
-        <h3>📈 Statistiques globales</h3>
-        <div class="stats" id="globalStats">
-          <div class="stat"><span id="sAdded">0</span><label>Patients ajoutés</label></div>
-          <div class="stat"><span id="sHosp">0</span><label>Hospitalisés</label></div>
-          <div class="stat"><span id="sHome">0</span><label>Sortis à domicile</label></div>
-          <div class="stat"><span id="sTransfer">0</span><label>Transférés</label></div>
-          <div class="stat"><span id="sAvgTime">0h 0m</span><label>Temps moyen par patient</label></div>
+        <!-- Templates FAB -->
+        <div class="fab-group">
+          <button class="fab fab-templates" data-tooltip="Modèles">📋</button>
+          <div class="fab-popup fab-templates-popup hidden">
+            <div class="fab-popup-header">
+              <h3>📋 Modèles de compte-rendu</h3>
+            </div>
+            <div class="fab-popup-content">
+              <div class="template-field-group">
+                <textarea placeholder="Hémodynamique" data-field="hemodynamique"></textarea>
+                <button class="copy-btn" data-field="hemodynamique">📋</button>
+              </div>
+              <div class="template-field-group">
+                <textarea placeholder="Respiratoire" data-field="respiratoire"></textarea>
+                <button class="copy-btn" data-field="respiratoire">📋</button>
+              </div>
+              <div class="template-field-group">
+                <textarea placeholder="Digestif" data-field="digestif"></textarea>
+                <button class="copy-btn" data-field="digestif">📋</button>
+              </div>
+              <div class="template-field-group">
+                <textarea placeholder="Neurologique" data-field="neurologique"></textarea>
+                <button class="copy-btn" data-field="neurologique">📋</button>
+              </div>
+              <div class="template-field-group">
+                <textarea placeholder="Ostéoarticulaire" data-field="osteoarticulaire"></textarea>
+                <button class="copy-btn" data-field="osteoarticulaire">📋</button>
+              </div>
+              <div class="template-field-group">
+                <textarea placeholder="Autre" data-field="autre"></textarea>
+                <button class="copy-btn" data-field="autre">📋</button>
+              </div>
+              <button class="save-templates-btn">💾 Sauvegarder</button>
+            </div>
+          </div>
         </div>
       </div>
+    </main>
 
-      <button id="resetStats" class="reset-btn">🔄 Réinitialiser les statistiques</button>
+    <!-- REBUILT STATISTICS TAB -->
+    <main id="stats" class="tab-content hidden">
+      <div class="stats-container">
+        <div class="stats-header">
+          <h2>📊 Statistiques personnelles</h2>
+          <p>Données en temps réel pour <strong id="statsUsername"></strong></p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card stat-added">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statAdded">0</div>
+              <div class="stat-label">Patients ajoutés</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-hospitalized">
+            <div class="stat-icon">🏥</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statHospitalized">0</div>
+              <div class="stat-label">Hospitalisés</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-discharged">
+            <div class="stat-icon">🏠</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statDischarged">0</div>
+              <div class="stat-label">Retours à domicile</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-transferred">
+            <div class="stat-icon">🚑</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statTransferred">0</div>
+              <div class="stat-label">Transférés</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-avgtime">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statAvgTime">0h 0m</div>
+              <div class="stat-label">Temps moyen par patient</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stats-actions">
+          <button id="resetStatsBtn" class="reset-stats-btn">
+            🔄 Réinitialiser les statistiques
+          </button>
+        </div>
+      </div>
     </main>
 
     <!-- PROFILE TAB -->
@@ -134,77 +221,6 @@
           <button id="acceptTransfer" class="btn-primary">✅ Accepter</button>
           <button id="declineTransfer" class="btn-secondary">❌ Refuser</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Phone Book Modal -->
-  <div id="phoneBookModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>📞 Numéros utiles</h2>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-content">
-        <button id="addPhoneNumber" class="btn-primary" style="margin-bottom: 1rem;">➕ Ajouter</button>
-        <div id="phoneBookList" class="phone-book-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Templates Modal -->
-  <div id="templatesModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>📋 Modèles de compte-rendu</h2>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-content">
-        <div class="templates-sections">
-          <div class="template-section">
-            <h4>Hémodynamique</h4>
-            <div class="template-field">
-              <textarea id="templateHemo" rows="3"></textarea>
-              <button class="copy-template-btn" data-field="templateHemo">📋</button>
-            </div>
-          </div>
-          <div class="template-section">
-            <h4>Respiratoire</h4>
-            <div class="template-field">
-              <textarea id="templateResp" rows="3"></textarea>
-              <button class="copy-template-btn" data-field="templateResp">📋</button>
-            </div>
-          </div>
-          <div class="template-section">
-            <h4>Digestif</h4>
-            <div class="template-field">
-              <textarea id="templateDig" rows="3"></textarea>
-              <button class="copy-template-btn" data-field="templateDig">📋</button>
-            </div>
-          </div>
-          <div class="template-section">
-            <h4>Neurologique</h4>
-            <div class="template-field">
-              <textarea id="templateNeuro" rows="3"></textarea>
-              <button class="copy-template-btn" data-field="templateNeuro">📋</button>
-            </div>
-          </div>
-          <div class="template-section">
-            <h4>Ostéoarticulaire</h4>
-            <div class="template-field">
-              <textarea id="templateOsteo" rows="3"></textarea>
-              <button class="copy-template-btn" data-field="templateOsteo">📋</button>
-            </div>
-          </div>
-          <div class="template-section">
-            <h4>Autre</h4>
-            <div class="template-field">
-              <textarea id="templateAutre" rows="3"></textarea>
-              <button class="copy-template-btn" data-field="templateAutre">📋</button>
-            </div>
-          </div>
-        </div>
-        <button class="btn-primary" id="saveTemplates">💾 Sauvegarder</button>
       </div>
     </div>
   </div>
