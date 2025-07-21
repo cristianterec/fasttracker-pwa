@@ -1,4 +1,4 @@
-/* FastTrackers PWA - Complete Styles with Modal Popups */
+/* FastTrackers PWA - Complete Styles */
 
 :root {
   /* Core Colors */
@@ -430,7 +430,7 @@ body {
   border-color: var(--triage-purple);
 }
 
-/* Info Box - Repositioned */
+/* Info Box */
 .info-box {
   position: absolute;
   top: var(--space-4);
@@ -443,11 +443,11 @@ body {
   z-index: 10;
 }
 
-/* Live Timer - FIXED POSITIONING */
+/* Live Timer */
 .live-timer {
   position: absolute;
   top: var(--space-4);
-  right: 7rem; /* Positioned closer to info box */
+  right: 7rem;
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
   border-radius: var(--radius-md);
