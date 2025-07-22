@@ -461,8 +461,8 @@ body {
 /* Live Timer - Fixed positioning to prevent overlap */
 .live-timer {
   position: absolute;
-  top: calc(var(--space-5) + 5rem); /* Increased from 4rem to 5rem for proper spacing */
-  right: var(--space-5);
+  top: calc(var(--space-4.5) + 4.5rem); /* Increased from 4rem to 4.5rem for proper spacing */
+  right: var(--space-4.5);
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
   border-radius: var(--radius-md);
