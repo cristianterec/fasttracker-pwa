@@ -513,7 +513,6 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-3);
   margin-bottom: var(--space-4);
-  margin-right: 140px; /* Add right margin to clear timer area */
   font-size: var(--font-size-base);
   line-height: 1.4;
   display: flex;
