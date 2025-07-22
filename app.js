@@ -1,5 +1,5 @@
-// FastTrackers PWA - Complete Version with Persistent Modals
-console.log('FastTrackers loading - version française avec modales persistantes...');
+// FastTrackers PWA - Sliding Panel Version
+console.log('FastTrackers loading - version avec panneaux coulissants...');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -297,13 +297,365 @@ async function handleLogin() {
     await startRealtimeListeners();
     await checkForTransfers();
     startLiveTimers();
-    initializeFABs();
+    initializePanels();
     
     console.log('Login successful for:', currentUser);
     
   } catch (error) {
     console.error('Login error:', error);
     alert('Erreur de connexion');
+  }
+}
+
+// Initialize sliding panels
+function initializePanels() {
+  console.log('Initializing sliding panels...');
+  
+  // Left panel (phone numbers) button
+  $('#leftEdgeBtn').addEventListener('click', () => {
+    openLeftPanel();
+  });
+  
+  // Right panel (templates) button
+  $('#rightEdgeBtn').addEventListener('click', () => {
+    openRightPanel();
+  });
+  
+  // Panel close buttons
+  $('#leftPanelClose').addEventListener('click', closeLeftPanel);
+  $('#rightPanelClose').addEventListener('click', closeRightPanel);
+  
+  // Panel overlay
+  $('#panelOverlay').addEventListener('click', closePanels);
+  
+  // Panel content buttons
+  $('#addPhoneBtn').addEventListener('click', showAddPhoneForm);
+  $('#saveTemplatesBtn').addEventListener('click', saveTemplates);
+  
+  // Copy buttons for templates
+  $$('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      copyTemplateToClipboard(btn.dataset.field);
+    });
+  });
+  
+  // Load initial data
+  loadTemplatesData();
+  loadPhonesData();
+}
+
+// Panel management functions
+function openLeftPanel() {
+  const panel = $('#leftPanel');
+  const overlay = $('#panelOverlay');
+  
+  panel.classList.add('active');
+  overlay.classList.remove('hidden');
+  loadPhonesData(); // Refresh data when opening
+}
+
+function openRightPanel() {
+  const panel = $('#rightPanel');
+  const overlay = $('#panelOverlay');
+  
+  panel.classList.add('active');
+  overlay.classList.remove('hidden');
+  loadTemplatesData(); // Refresh data when opening
+}
+
+function closeLeftPanel() {
+  $('#leftPanel').classList.remove('active');
+  $('#panelOverlay').classList.add('hidden');
+}
+
+function closeRightPanel() {
+  $('#rightPanel').classList.remove('active');
+  $('#panelOverlay').classList.add('hidden');
+}
+
+function closePanels() {
+  $$('.sliding-panel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+  $('#panelOverlay').classList.add('hidden');
+}
+
+// Load templates data
+async function loadTemplatesData() {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const templatesDoc = await getDoc(doc(db, 'userTemplates', currentUserId));
+    
+    if (templatesDoc.exists()) {
+      const templates = templatesDoc.data();
+      
+      $('#templateHemo').value = templates.hemodynamique || '';
+      $('#templateResp').value = templates.respiratoire || '';
+      $('#templateDig').value = templates.digestif || '';
+      $('#templateNeuro').value = templates.neurologique || '';
+      $('#templateOsteo').value = templates.osteoarticulaire || '';
+      $('#templateAutre').value = templates.autre || '';
+    }
+  } catch (error) {
+    console.error('Error loading templates:', error);
+  }
+}
+
+// Save templates
+async function saveTemplates() {
+  try {
+    const { doc, setDoc } = window.firestoreFunctions;
+    
+    const templates = {
+      hemodynamique: $('#templateHemo').value.trim(),
+      respiratoire: $('#templateResp').value.trim(),
+      digestif: $('#templateDig').value.trim(),
+      neurologique: $('#templateNeuro').value.trim(),
+      osteoarticulaire: $('#templateOsteo').value.trim(),
+      autre: $('#templateAutre').value.trim(),
+      lastUpdated: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'userTemplates', currentUserId), templates);
+    
+    // Visual feedback
+    const saveBtn = $('#saveTemplatesBtn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = '✅ Sauvegardé!';
+    saveBtn.classList.add('success');
+    
+    setTimeout(() => {
+      saveBtn.textContent = originalText;
+      saveBtn.classList.remove('success');
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Error saving templates:', error);
+    alert('Erreur lors de la sauvegarde');
+  }
+}
+
+// Copy template to clipboard
+async function copyTemplateToClipboard(field) {
+  const textarea = $('#' + field);
+  const copyBtn = $(`.copy-btn[data-field="${field}"]`);
+  
+  if (textarea && textarea.value.trim()) {
+    try {
+      await navigator.clipboard.writeText(textarea.value);
+      
+      // Visual feedback
+      copyBtn.textContent = '✅';
+      copyBtn.classList.add('copied');
+      
+      setTimeout(() => {
+        copyBtn.textContent = '📋';
+        copyBtn.classList.remove('copied');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      textarea.select();
+      document.execCommand('copy');
+    }
+  }
+}
+
+// Load phone numbers data
+async function loadPhonesData() {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const phoneDoc = await getDoc(doc(db, 'userPhoneBook', currentUserId));
+    
+    const phonesList = $('#phonesList');
+    if (!phonesList) return;
+    
+    if (phoneDoc.exists()) {
+      const data = phoneDoc.data();
+      const phones = data.phones || [];
+      
+      if (phones.length === 0) {
+        phonesList.innerHTML = '<div class="no-phones">Aucun numéro enregistré</div>';
+        return;
+      }
+      
+      phonesList.innerHTML = phones.map((phone, index) => `
+        <div class="phone-item" data-index="${index}">
+          <div class="phone-info">
+            <strong>${phone.name}</strong>
+            <span>${phone.number}</span>
+          </div>
+          <div class="phone-actions">
+            <button class="edit-phone-btn" data-index="${index}">✏️</button>
+            <button class="delete-phone-btn" data-index="${index}">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+      
+      // Add event listeners
+      $$('.edit-phone-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          editPhone(parseInt(btn.dataset.index));
+        });
+      });
+      
+      $$('.delete-phone-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deletePhone(parseInt(btn.dataset.index));
+        });
+      });
+      
+    } else {
+      phonesList.innerHTML = '<div class="no-phones">Aucun numéro enregistré</div>';
+    }
+  } catch (error) {
+    console.error('Error loading phones:', error);
+  }
+}
+
+// Show add phone form
+function showAddPhoneForm() {
+  const modal = createModal('➕ Ajouter un numéro', `
+    <input id="phoneName" placeholder="Nom (ex: Cardiologue)" required>
+    <input id="phoneNumber" placeholder="Numéro DECT" required>
+    <button class="btn-primary" id="savePhoneBtn">Ajouter</button>
+  `);
+  
+  $('#savePhoneBtn').addEventListener('click', saveNewPhone);
+}
+
+// Save new phone number
+async function saveNewPhone() {
+  const name = $('#phoneName').value.trim();
+  const number = $('#phoneNumber').value.trim();
+  
+  if (!name || !number) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
+    const phoneDoc = await getDoc(phoneDocRef);
+    
+    let phones = [];
+    if (phoneDoc.exists()) {
+      phones = phoneDoc.data().phones || [];
+    }
+    
+    phones.push({
+      id: generateId('phone'),
+      name,
+      number,
+      createdAt: new Date().toISOString()
+    });
+    
+    await setDoc(phoneDocRef, {
+      phones,
+      lastUpdated: new Date().toISOString()
+    });
+    
+    closeAllModals();
+    loadPhonesData(); // Refresh the list
+    alert('Numéro ajouté avec succès!');
+    
+  } catch (error) {
+    console.error('Error saving phone:', error);
+    alert('Erreur lors de la sauvegarde');
+  }
+}
+
+// Edit phone number
+async function editPhone(index) {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const phoneDoc = await getDoc(doc(db, 'userPhoneBook', currentUserId));
+    
+    if (phoneDoc.exists()) {
+      const phones = phoneDoc.data().phones || [];
+      const phone = phones[index];
+      
+      const modal = createModal('✏️ Modifier le numéro', `
+        <input id="editPhoneName" placeholder="Nom" value="${phone.name}">
+        <input id="editPhoneNumber" placeholder="Numéro" value="${phone.number}">
+        <button class="btn-primary" id="updatePhoneBtn">Mettre à jour</button>
+      `);
+      
+      $('#updatePhoneBtn').addEventListener('click', () => updatePhone(index));
+    }
+  } catch (error) {
+    console.error('Error loading phone for edit:', error);
+  }
+}
+
+// Update phone number
+async function updatePhone(index) {
+  const name = $('#editPhoneName').value.trim();
+  const number = $('#editPhoneNumber').value.trim();
+  
+  if (!name || !number) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
+    const phoneDoc = await getDoc(phoneDocRef);
+    
+    if (phoneDoc.exists()) {
+      const phones = phoneDoc.data().phones || [];
+      phones[index] = {
+        ...phones[index],
+        name,
+        number,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await setDoc(phoneDocRef, {
+        phones,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      closeAllModals();
+      loadPhonesData(); // Refresh the list
+      alert('Numéro modifié avec succès!');
+    }
+  } catch (error) {
+    console.error('Error updating phone:', error);
+    alert('Erreur lors de la mise à jour');
+  }
+}
+
+// Delete phone number
+async function deletePhone(index) {
+  if (!confirm('Supprimer ce numéro ?')) return;
+  
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
+    const phoneDoc = await getDoc(phoneDocRef);
+    
+    if (phoneDoc.exists()) {
+      const phones = phoneDoc.data().phones || [];
+      const deletedPhone = phones[index];
+      phones.splice(index, 1);
+      
+      await setDoc(phoneDocRef, {
+        phones,
+        lastUpdated: new Date().toISOString()
+      });
+      
+      loadPhonesData(); // Refresh the list
+      alert(`${deletedPhone.name} supprimé avec succès!`);
+    }
+  } catch (error) {
+    console.error('Error deleting phone:', error);
+    alert('Erreur lors de la suppression');
   }
 }
 
@@ -462,31 +814,7 @@ async function startRealtimeListeners() {
   }
 }
 
-// Simplified FAB initialization
-function initializeFABs() {
-  console.log('Initializing FABs with simple event handling...');
-  
-  const phoneBookFab = $('#phoneBookFab');
-  const templatesFab = $('#templatesFab');
-  
-  if (phoneBookFab) {
-    phoneBookFab.addEventListener('click', showPhoneBookModal);
-  }
-  
-  if (templatesFab) {
-    templatesFab.addEventListener('click', showTemplatesModal);
-  }
-}
-// Global delegated click for FABs (safety net)
-document.addEventListener('click', (ev) => {
-  const phoneBtn = ev.target.closest('#phoneBookFab');
-  if (phoneBtn) { ev.preventDefault(); showPhoneBookModal(); return; }
-  const tmplBtn = ev.target.closest('#templatesFab');
-  if (tmplBtn) { ev.preventDefault(); showTemplatesModal(); return; }
-});
-
-
-// Simplified modal event handling setup
+// App event listeners
 function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
@@ -517,390 +845,25 @@ function setupAppEventListeners() {
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
   
-  // Simplified modal handling
+  // Modal handling
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay') && !e.target.closest('.modal')) {
       e.target.classList.add('hidden');
-      // (removed) keep modal in DOM
+      if (e.target.parentNode) {
+        e.target.parentNode.removeChild(e.target);
+      }
     }
     
     if (e.target.matches('.modal-close')) {
       const modal = e.target.closest('.modal-overlay');
       if (modal) {
         modal.classList.add('hidden');
-        // (removed) keep modal in DOM
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
       }
     }
   });
-}
-
-// Show Phone Book Modal
-function showPhoneBookModal() {
-  try {
-    closeAllModals();
-    
-    const phoneModal = $('#phoneBookModal');
-    if (phoneModal) {
-      phoneModal.classList.remove('hidden');
-      loadPhoneBookData();
-      
-      const addPhoneBtn = $('#addPhoneBtn');
-      if (addPhoneBtn) {
-        addPhoneBtn.onclick = null;
-        addPhoneBtn.addEventListener('click', showAddPhoneForm);
-      }
-    }
-  } catch (error) {
-    console.error('Error showing phone book modal:', error);
-    alert('Erreur lors de l\'ouverture du carnet de numéros');
-  }
-}
-
-// Show Templates Modal
-function showTemplatesModal() {
-  try {
-    closeAllModals();
-    
-    const templatesModal = $('#templatesModal');
-    if (templatesModal) {
-      templatesModal.classList.remove('hidden');
-      loadTemplatesData();
-      
-      const saveTemplatesBtn = $('#saveTemplatesBtn');
-      if (saveTemplatesBtn) {
-        saveTemplatesBtn.onclick = null;
-        saveTemplatesBtn.addEventListener('click', saveTemplates);
-      }
-      
-      $$('.copy-template-btn').forEach(btn => {
-        btn.onclick = null;
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          copyTemplateToClipboard(btn.dataset.field);
-        });
-      });
-    }
-  } catch (error) {
-    console.error('Error showing templates modal:', error);
-    alert('Erreur lors de l\'ouverture des modèles');
-  }
-}
-
-// Load phone book data for modal
-async function loadPhoneBookData() {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const phoneDoc = await getDoc(doc(db, 'userPhoneBook', currentUserId));
-    
-    const phoneList = $('#phoneBookList');
-    if (!phoneList) return;
-    
-    if (phoneDoc.exists()) {
-      const data = phoneDoc.data();
-      const phones = data.phones || [];
-      
-      if (phones.length === 0) {
-        phoneList.innerHTML = '<div class="no-phones">Aucun numéro enregistré</div>';
-        return;
-      }
-      
-      phoneList.innerHTML = phones.map((phone, index) => `
-        <div class="phone-item" data-index="${index}">
-          <div class="phone-info">
-            <strong>${phone.name}</strong>
-            <span>${phone.number}</span>
-          </div>
-          <div class="phone-actions">
-            <button class="edit-phone-btn" data-index="${index}">✏️</button>
-            <button class="delete-phone-btn" data-index="${index}">🗑️</button>
-          </div>
-        </div>
-      `).join('');
-      
-      // Add event listeners for phone actions
-      $$('.edit-phone-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          editPhone(parseInt(btn.dataset.index));
-        });
-      });
-      
-      $$('.delete-phone-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deletePhone(parseInt(btn.dataset.index));
-        });
-      });
-      
-    } else {
-      phoneList.innerHTML = '<div class="no-phones">Aucun numéro enregistré</div>';
-    }
-  } catch (error) {
-    console.error('Error loading phone book data:', error);
-  }
-}
-
-// Load templates data for modal
-async function loadTemplatesData() {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const templatesDoc = await getDoc(doc(db, 'userTemplates', currentUserId));
-    
-    if (templatesDoc.exists()) {
-      const templates = templatesDoc.data();
-      
-      // Load template values
-      const templateHemo = $('#templateHemo');
-      const templateResp = $('#templateResp');
-      const templateDig = $('#templateDig');
-      const templateNeuro = $('#templateNeuro');
-      const templateOsteo = $('#templateOsteo');
-      const templateAutre = $('#templateAutre');
-      
-      if (templateHemo) templateHemo.value = templates.hemodynamique || '';
-      if (templateResp) templateResp.value = templates.respiratoire || '';
-      if (templateDig) templateDig.value = templates.digestif || '';
-      if (templateNeuro) templateNeuro.value = templates.neurologique || '';
-      if (templateOsteo) templateOsteo.value = templates.osteoarticulaire || '';
-      if (templateAutre) templateAutre.value = templates.autre || '';
-    }
-  } catch (error) {
-    console.error('Error loading templates data:', error);
-  }
-}
-
-// UPDATED: Save templates - Modal stays open
-async function saveTemplates() {
-  try {
-    const { doc, setDoc } = window.firestoreFunctions;
-    
-    const templates = {
-      hemodynamique: $('#templateHemo').value.trim(),
-      respiratoire: $('#templateResp').value.trim(), 
-      digestif: $('#templateDig').value.trim(),
-      neurologique: $('#templateNeuro').value.trim(),
-      osteoarticulaire: $('#templateOsteo').value.trim(),
-      autre: $('#templateAutre').value.trim(),
-      lastUpdated: new Date().toISOString()
-    };
-    
-    await setDoc(doc(db, 'userTemplates', currentUserId), templates);
-    
-    // Show success feedback - modal stays open
-    const saveBtn = $('#saveTemplatesBtn');
-    if (saveBtn) {
-      const originalText = saveBtn.textContent;
-      saveBtn.textContent = '✅ Sauvegardé!';
-      saveBtn.style.backgroundColor = '#10b981';
-      
-      setTimeout(() => {
-        saveBtn.textContent = originalText;
-        saveBtn.style.backgroundColor = '';
-      }, 2000);
-    }
-    
-    // Success alert - modal remains open
-    alert('Modèles sauvegardés avec succès!');
-    
-  } catch (error) {
-    console.error('Error saving templates:', error);
-    alert('Erreur lors de la sauvegarde');
-  }
-}
-
-// Copy template to clipboard from modal
-async function copyTemplateToClipboard(field) {
-  const textarea = $('#' + field);
-  const copyBtn = $(`.copy-template-btn[data-field="${field}"]`);
-  
-  if (textarea && textarea.value.trim()) {
-    try {
-      await navigator.clipboard.writeText(textarea.value);
-      
-      // Visual feedback
-      if (copyBtn) {
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✅';
-        copyBtn.style.backgroundColor = '#10b981';
-        
-        setTimeout(() => {
-          copyBtn.textContent = originalText;
-          copyBtn.style.backgroundColor = '';
-        }, 2000);
-      }
-      
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      
-      // Fallback for older browsers
-      textarea.select();
-      document.execCommand('copy');
-    }
-  }
-}
-
-// Show add phone form
-function showAddPhoneForm() {
-  const modal = createModal('➕ Ajouter un numéro', `
-    <input id="phoneName" placeholder="Nom (ex: Cardiologue)" required>
-    <input id="phoneNumber" placeholder="Numéro DECT" required>
-    <button class="btn-primary" id="savePhoneBtn">Ajouter</button>
-  `);
-  
-  $('#savePhoneBtn').addEventListener('click', saveNewPhone);
-}
-
-// UPDATED: Save new phone - Modal stays open, refreshes list
-async function saveNewPhone() {
-  const name = $('#phoneName').value.trim();
-  const number = $('#phoneNumber').value.trim();
-  
-  if (!name || !number) {
-    alert('Veuillez remplir tous les champs');
-    return;
-  }
-  
-  try {
-    const { doc, getDoc, setDoc } = window.firestoreFunctions;
-    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
-    const phoneDoc = await getDoc(phoneDocRef);
-    
-    let phones = [];
-    if (phoneDoc.exists()) {
-      phones = phoneDoc.data().phones || [];
-    }
-    
-    phones.push({
-      id: generateId('phone'),
-      name,
-      number,
-      createdAt: new Date().toISOString()
-    });
-    
-    await setDoc(phoneDocRef, {
-      phones,
-      lastUpdated: new Date().toISOString()
-    });
-    
-    // UPDATED: Close the add phone modal but keep phone book modal open
-    const addPhoneModal = $('.modal-overlay:not(#phoneBookModal)');
-    if (addPhoneModal && addPhoneModal.parentNode) {
-      addPhoneModal.parentNode.removeChild(addPhoneModal);
-    }
-    
-    // Clear form and refresh the phone list
-    $('#phoneName').value = '';
-    $('#phoneNumber').value = '';
-    
-    // Refresh the phone book list
-    loadPhoneBookData();
-    
-    // Success notification - modal stays open
-    alert('Numéro ajouté avec succès!');
-    
-  } catch (error) {
-    console.error('Error saving phone:', error);
-    alert('Erreur lors de la sauvegarde');
-  }
-}
-
-// Edit phone number
-async function editPhone(index) {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const phoneDoc = await getDoc(doc(db, 'userPhoneBook', currentUserId));
-    
-    if (phoneDoc.exists()) {
-      const phones = phoneDoc.data().phones || [];
-      const phone = phones[index];
-      
-      const modal = createModal('✏️ Modifier le numéro', `
-        <input id="editPhoneName" placeholder="Nom" value="${phone.name}">
-        <input id="editPhoneNumber" placeholder="Numéro" value="${phone.number}">
-        <button class="btn-primary" id="updatePhoneBtn">Mettre à jour</button>
-      `);
-      
-      $('#updatePhoneBtn').addEventListener('click', () => updatePhone(index));
-    }
-  } catch (error) {
-    console.error('Error loading phone for edit:', error);
-  }
-}
-
-// UPDATED: Update phone - Modal stays open, refreshes list
-async function updatePhone(index) {
-  const name = $('#editPhoneName').value.trim();
-  const number = $('#editPhoneNumber').value.trim();
-  
-  if (!name || !number) {
-    alert('Veuillez remplir tous les champs');
-    return;
-  }
-  
-  try {
-    const { doc, getDoc, setDoc } = window.firestoreFunctions;
-    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
-    const phoneDoc = await getDoc(phoneDocRef);
-    
-    if (phoneDoc.exists()) {
-      const phones = phoneDoc.data().phones || [];
-      phones[index] = {
-        ...phones[index],
-        name,
-        number,
-        updatedAt: new Date().toISOString()
-      };
-      
-      await setDoc(phoneDocRef, {
-        phones,
-        lastUpdated: new Date().toISOString()
-      });
-      
-      // UPDATED: Close the edit phone modal but keep phone book modal open
-      const editPhoneModal = $('.modal-overlay:not(#phoneBookModal)');
-      if (editPhoneModal && editPhoneModal.parentNode) {
-        editPhoneModal.parentNode.removeChild(editPhoneModal);
-      }
-      
-      // Refresh the phone book list
-      loadPhoneBookData();
-      
-      // Success notification - modal stays open
-      alert('Numéro modifié avec succès!');
-    }
-  } catch (error) {
-    console.error('Error updating phone:', error);
-    alert('Erreur lors de la mise à jour');
-  }
-}
-
-// Delete phone number - Modal stays open, refreshes list
-async function deletePhone(index) {
-  if (!confirm('Supprimer ce numéro ?')) return;
-  
-  try {
-    const { doc, getDoc, setDoc } = window.firestoreFunctions;
-    const phoneDocRef = doc(db, 'userPhoneBook', currentUserId);
-    const phoneDoc = await getDoc(phoneDocRef);
-    
-    if (phoneDoc.exists()) {
-      const phones = phoneDoc.data().phones || [];
-      const deletedPhone = phones[index];
-      phones.splice(index, 1);
-      
-      await setDoc(phoneDocRef, {
-        phones,
-        lastUpdated: new Date().toISOString()
-      });
-      
-      // Refresh the current modal view - modal stays open
-      loadPhoneBookData();
-      alert(`${deletedPhone.name} supprimé avec succès!`);
-    }
-  } catch (error) {
-    console.error('Error deleting phone:', error);
-    alert('Erreur lors de la suppression');
-  }
 }
 
 // Statistics Functions
@@ -2003,12 +1966,12 @@ function createModal(title, content) {
   return modal;
 }
 
-// Simplified closeAllModals
 function closeAllModals() {
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
+  $$('.modal-overlay').forEach(modal => {
     modal.classList.add('hidden');
-  });
-}
+    if (modal.parentNode) {
+      modal.parentNode.removeChild(modal);
+    }
   });
 }
 
@@ -2019,4 +1982,4 @@ if (document.readyState === 'loading') {
   initializeApp();
 }
 
-console.log('FastTrackers script loaded - version française COMPLÈTE avec modales persistantes');
+console.log('FastTrackers script loaded - version avec panneaux coulissants COMPLÈTE');
