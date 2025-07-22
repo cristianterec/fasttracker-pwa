@@ -458,10 +458,10 @@ body {
   z-index: 10;
 }
 
-/* Live Timer - Fixed positioning to prevent overlap */
+/* Live Timer - With pseudo-element spacing after */
 .live-timer {
   position: absolute;
-  top: calc(var(--space-4) + 4.5rem); /* Increased from 4rem to 4.5rem for proper spacing */
+  top: calc(var(--space-4) + 4rem);
   right: var(--space-4);
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
@@ -471,9 +471,10 @@ body {
   color: var(--accent-blue);
   font-weight: 600;
   z-index: 15;
-  min-width: 60px; /* Ensure minimum width */
+  min-width: 60px;
   text-align: center;
 }
+
 /* Create invisible space after timer */
 .live-timer::after {
   content: '';
