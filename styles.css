@@ -466,7 +466,8 @@ body {
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
   border-radius: var(--radius-md);
-  padding: 0.25rem 0.5rem 1rem 0.5rem; /* Added 1rem bottom padding */
+  padding: 0.25rem 0.5rem; 
+  gap: 1rem; /* space after timer block */
   font-size: var(--font-size-sm);
   color: var(--accent-blue);
   font-weight: 600;
