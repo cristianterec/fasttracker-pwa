@@ -25,7 +25,7 @@
         <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
       </div>
       <h1>FastTrackers</h1>
-      <p>Gestion des patients aux urgences</p>
+      <p>Gestion des patients d'urgence</p>
 
       <!-- LOGIN FORM -->
       <div id="loginForm" class="auth-form">
@@ -76,12 +76,6 @@
       </div>
       <div id="grid" class="grid"></div>
       <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
-
-      <!-- FAB Buttons -->
-      <div class="fab-container">
-        <button id="phoneBookFab" class="fab fab-phone" data-tooltip="Numéros utiles">📞</button>
-        <button id="templatesFab" class="fab fab-templates" data-tooltip="Modèles">📋</button>
-      </div>
     </main>
 
     <!-- STATISTICS TAB -->
@@ -159,6 +153,66 @@
         </div>
       </div>
     </main>
+
+    <!-- EDGE BUTTONS -->
+    <button id="leftEdgeBtn" class="edge-button left-edge" title="Numéros utiles">
+      📞
+    </button>
+    <button id="rightEdgeBtn" class="edge-button right-edge" title="Modèles">
+      📋
+    </button>
+
+    <!-- LEFT SLIDING PANEL - PHONE NUMBERS -->
+    <div id="leftPanel" class="sliding-panel left-panel">
+      <div class="panel-header">
+        <h3>📞 Numéros utiles</h3>
+        <button class="panel-close" id="leftPanelClose">&times;</button>
+      </div>
+      <div class="panel-content">
+        <button id="addPhoneBtn" class="panel-btn primary">➕ Ajouter un numéro</button>
+        <div id="phonesList" class="phones-list"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT SLIDING PANEL - TEMPLATES -->
+    <div id="rightPanel" class="sliding-panel right-panel">
+      <div class="panel-header">
+        <h3>📋 Modèles de compte-rendu</h3>
+        <button class="panel-close" id="rightPanelClose">&times;</button>
+      </div>
+      <div class="panel-content">
+        <div class="template-fields">
+          <div class="template-field-group">
+            <textarea id="templateHemo" placeholder="Hémodynamique" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateHemo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateResp" placeholder="Respiratoire" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateResp">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateDig" placeholder="Digestif" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateDig">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateNeuro" placeholder="Neurologique" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateNeuro">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateOsteo" placeholder="Ostéoarticulaire" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateOsteo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateAutre" placeholder="Autre" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateAutre">📋</button>
+          </div>
+        </div>
+        <button id="saveTemplatesBtn" class="panel-btn primary">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <!-- PANEL OVERLAY -->
+    <div id="panelOverlay" class="panel-overlay hidden"></div>
   </section>
 
   <!-- Transfer Acceptance Modal -->
@@ -178,59 +232,6 @@
     </div>
   </div>
 
-  <!-- Phone Book Modal -->
-  <div id="phoneBookModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>📞 Numéros utiles</h2>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-content">
-        <button id="addPhoneBtn" class="btn-primary" style="margin-bottom: 1rem;">➕ Ajouter un numéro</button>
-        <div id="phoneBookList" class="phone-book-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Templates Modal -->
-  <div id="templatesModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>📋 Modèles de compte-rendu</h2>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-content">
-        <div class="template-sections">
-          <div class="template-field-group">
-            <textarea id="templateHemo" placeholder="Hémodynamique" rows="3"></textarea>
-            <button class="copy-template-btn" data-field="templateHemo">📋</button>
-          </div>
-          <div class="template-field-group">
-            <textarea id="templateResp" placeholder="Respiratoire" rows="3"></textarea>
-            <button class="copy-template-btn" data-field="templateResp">📋</button>
-          </div>
-          <div class="template-field-group">
-            <textarea id="templateDig" placeholder="Digestif" rows="3"></textarea>
-            <button class="copy-template-btn" data-field="templateDig">📋</button>
-          </div>
-          <div class="template-field-group">
-            <textarea id="templateNeuro" placeholder="Neurologique" rows="3"></textarea>
-            <button class="copy-template-btn" data-field="templateNeuro">📋</button>
-          </div>
-          <div class="template-field-group">
-            <textarea id="templateOsteo" placeholder="Ostéoarticulaire" rows="3"></textarea>
-            <button class="copy-template-btn" data-field="templateOsteo">📋</button>
-          </div>
-          <div class="template-field-group">
-            <textarea id="templateAutre" placeholder="Autre" rows="3"></textarea>
-            <button class="copy-template-btn" data-field="templateAutre">📋</button>
-          </div>
-        </div>
-        <button id="saveTemplatesBtn" class="btn-primary" style="margin-top: 1rem;">💾 Sauvegarder</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
@@ -242,6 +243,6 @@
     }
   </script>
 
-  <script defer src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
