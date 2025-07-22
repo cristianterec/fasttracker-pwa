@@ -468,7 +468,7 @@ body {
 /* ------------------------------------------------------------------ */
 .live-timer{
   position:absolute;
-  top:calc(var(--space-4) + 4rem);   /* stays just under info-box 👆 */
+  top:calc(var(--space-4) + 5rem);   /* stays just under info-box 👆 */
   right:var(--space-4);
   background:rgba(0,0,0,.85);
   border:2px solid var(--accent-blue);
