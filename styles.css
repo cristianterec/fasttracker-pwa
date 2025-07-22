@@ -458,11 +458,11 @@ body {
   z-index: 10;
 }
 
-/* Live Timer - Positioned under info box */
+/* Live Timer - Alternative positioning with better spacing */
 .live-timer {
   position: absolute;
-  top: calc(var(--space-4) + 3rem); /* Position below info-box */
-  right: var(--space-4); /* Align with right edge of info-box */
+  top: calc(var(--space-4) + var(--space-8) + var(--space-4)); /* Space + info-box-height + gap */
+  right: var(--space-4);
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
   border-radius: var(--radius-md);
@@ -471,6 +471,8 @@ body {
   color: var(--accent-blue);
   font-weight: 600;
   z-index: 15;
+  min-width: 60px;
+  text-align: center;
 }
 
 /* Patient Main - Adjusted for repositioned timer */
@@ -1595,14 +1597,9 @@ body {
     height: 36px;
   }
   
-  @media (max-width: 768px) {
-  /* Adjust patient card layout for mobile */
-  .patient-main {
-    margin-right: 10px;
-  }
-  
+ @media (max-width: 768px) {
   .live-timer {
-    top: calc(var(--space-2) + 2.5rem); /* Adjust for mobile */
+    top: calc(var(--space-2) + 3.5rem); /* Adjusted for mobile */
     right: var(--space-2);
     font-size: var(--font-size-xs);
     padding: var(--space-1) var(--space-2);
@@ -1611,7 +1608,11 @@ body {
   .info-box {
     position: relative;
     margin-top: var(--space-2);
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-8); /* Added bottom margin for timer space */
+  }
+  
+  .patient-main {
+    margin-right: 10px;
   }
 }
 
