@@ -477,6 +477,14 @@ function initializeFABs() {
     templatesFab.addEventListener('click', showTemplatesModal);
   }
 }
+// Global delegated click for FABs (safety net)
+document.addEventListener('click', (ev) => {
+  const phoneBtn = ev.target.closest('#phoneBookFab');
+  if (phoneBtn) { ev.preventDefault(); showPhoneBookModal(); return; }
+  const tmplBtn = ev.target.closest('#templatesFab');
+  if (tmplBtn) { ev.preventDefault(); showTemplatesModal(); return; }
+});
+
 
 // Simplified modal event handling setup
 function setupAppEventListeners() {
@@ -513,18 +521,14 @@ function setupAppEventListeners() {
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay') && !e.target.closest('.modal')) {
       e.target.classList.add('hidden');
-      if (e.target.parentNode) {
-        e.target.parentNode.removeChild(e.target);
-      }
+      // (removed) keep modal in DOM
     }
     
     if (e.target.matches('.modal-close')) {
       const modal = e.target.closest('.modal-overlay');
       if (modal) {
         modal.classList.add('hidden');
-        if (modal.parentNode) {
-          modal.parentNode.removeChild(modal);
-        }
+        // (removed) keep modal in DOM
       }
     }
   });
@@ -2001,12 +2005,10 @@ function createModal(title, content) {
 
 // Simplified closeAllModals
 function closeAllModals() {
-  $$('.modal-overlay').forEach(modal => {
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
     modal.classList.add('hidden');
-    // Immediate removal
-    if (modal.parentNode) {
-      modal.parentNode.removeChild(modal);
-    }
+  });
+}
   });
 }
 
