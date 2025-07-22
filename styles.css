@@ -458,11 +458,11 @@ body {
   z-index: 10;
 }
 
-/* Live Timer */
+/* Live Timer - Positioned under info box */
 .live-timer {
   position: absolute;
-  top: var(--space-4);
-  right: 7rem;
+  top: calc(var(--space-4) + 3rem); /* Position below info-box */
+  right: var(--space-4); /* Align with right edge of info-box */
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
   border-radius: var(--radius-md);
@@ -473,9 +473,9 @@ body {
   z-index: 15;
 }
 
-/* Patient Main */
+/* Patient Main - Adjusted for repositioned timer */
 .patient-main {
-  margin-right: 140px;
+  margin-right: 120px; /* Reduced from 140px to accommodate repositioned timer */
   margin-bottom: var(--space-4);
 }
 
@@ -1595,13 +1595,15 @@ body {
     height: 36px;
   }
   
+  @media (max-width: 768px) {
   /* Adjust patient card layout for mobile */
   .patient-main {
     margin-right: 10px;
   }
   
   .live-timer {
-    right: 10px;
+    top: calc(var(--space-2) + 2.5rem); /* Adjust for mobile */
+    right: var(--space-2);
     font-size: var(--font-size-xs);
     padding: var(--space-1) var(--space-2);
   }
