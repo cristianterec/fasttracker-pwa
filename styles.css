@@ -458,10 +458,10 @@ body {
   z-index: 10;
 }
 
-/* Live Timer - Alternative positioning with better spacing */
+/* Live Timer - Fixed positioning to prevent overlap */
 .live-timer {
   position: absolute;
-  top: calc(var(--space-4) + var(--space-8) + var(--space-4)); /* Space + info-box-height + gap */
+  top: calc(var(--space-4) + 4rem); /* Increased from 3rem to 4rem for proper spacing */
   right: var(--space-4);
   background: rgba(0, 0, 0, 0.85);
   border: 2px solid var(--accent-blue);
@@ -471,7 +471,7 @@ body {
   color: var(--accent-blue);
   font-weight: 600;
   z-index: 15;
-  min-width: 60px;
+  min-width: 60px; /* Ensure minimum width */
   text-align: center;
 }
 
