@@ -69,6 +69,11 @@
   /* Panel */
   --panel-width: 350px;
   --panel-width-mobile: 280px;
+  
+  /* Edge Button Spacing */
+  --edge-button-width: 50px;
+  --edge-button-width-mobile: 40px;
+  --edge-button-width-small: 35px;
 }
 
 /* Base Reset */
@@ -230,6 +235,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  margin-left: var(--edge-button-width);
+  margin-right: var(--edge-button-width);
 }
 
 .brand {
@@ -292,6 +299,8 @@ body {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--glass-border);
   padding: 0 var(--space-6);
+  margin-left: var(--edge-button-width);
+  margin-right: var(--edge-button-width);
 }
 
 .tab {
@@ -341,6 +350,9 @@ body {
   margin: 0 auto;
   width: 100%;
   animation: fadeIn 0.4s ease-out;
+  /* Add margins to prevent overlap with edge buttons */
+  margin-left: calc(var(--edge-button-width) + var(--space-4));
+  margin-right: calc(var(--edge-button-width) + var(--space-4));
 }
 
 /* Patients Header */
@@ -688,7 +700,7 @@ body {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  width: 50px;
+  width: var(--edge-button-width);
   height: 80px;
   border: none;
   color: white;
@@ -1532,6 +1544,10 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  :root {
+    --edge-button-width: var(--edge-button-width-mobile);
+  }
+  
   .grid {
     grid-template-columns: 1fr;
   }
@@ -1545,9 +1561,24 @@ body {
   }
   
   .edge-button {
-    width: 40px;
+    width: var(--edge-button-width-mobile);
     height: 70px;
     font-size: 1.2rem;
+  }
+  
+  .app-header {
+    margin-left: var(--edge-button-width-mobile);
+    margin-right: var(--edge-button-width-mobile);
+  }
+  
+  .tabs {
+    margin-left: var(--edge-button-width-mobile);
+    margin-right: var(--edge-button-width-mobile);
+  }
+  
+  .tab-content {
+    margin-left: calc(var(--edge-button-width-mobile) + var(--space-2));
+    margin-right: calc(var(--edge-button-width-mobile) + var(--space-2));
   }
   
   .modal {
@@ -1583,8 +1614,14 @@ body {
 }
 
 @media (max-width: 480px) {
+  :root {
+    --edge-button-width: var(--edge-button-width-small);
+  }
+  
   .tabs {
     padding: 0 var(--space-2);
+    margin-left: var(--edge-button-width-small);
+    margin-right: var(--edge-button-width-small);
   }
   
   .tab {
@@ -1601,8 +1638,18 @@ body {
   }
   
   .edge-button {
-    width: 35px;
+    width: var(--edge-button-width-small);
     height: 60px;
     font-size: 1rem;
+  }
+  
+  .app-header {
+    margin-left: var(--edge-button-width-small);
+    margin-right: var(--edge-button-width-small);
+  }
+  
+  .tab-content {
+    margin-left: calc(var(--edge-button-width-small) + var(--space-1));
+    margin-right: calc(var(--edge-button-width-small) + var(--space-1));
   }
 }
