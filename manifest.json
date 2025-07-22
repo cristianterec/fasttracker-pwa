@@ -1,24 +1,54 @@
 {
   "name": "FastTrackers - Gestion des Urgences",
   "short_name": "FastTrackers",
-  "description": "Application de gestion des patients d'urgence",
+  "description": "Application de gestion des patients d'urgence avec panneaux coulissants",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a1628",
   "theme_color": "#0a1628",
   "orientation": "portrait-primary",
+  "categories": ["medical", "healthcare", "productivity"],
+  "lang": "fr",
   "icons": [
     {
       "src": "my_icon_192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "my_icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["medical", "productivity"],
-  "lang": "fr"
+  "shortcuts": [
+    {
+      "name": "Ajouter patient",
+      "short_name": "Nouveau",
+      "description": "Ajouter un nouveau patient",
+      "url": "/?action=add-patient",
+      "icons": [
+        {
+          "src": "my_icon_192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Numéros utiles",
+      "short_name": "Téléphones",
+      "description": "Ouvrir le carnet de numéros",
+      "url": "/?action=phones",
+      "icons": [
+        {
+          "src": "my_icon_192.png", 
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }
