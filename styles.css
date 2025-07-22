@@ -445,45 +445,44 @@ body {
   border-color: var(--triage-purple);
 }
 
-/* Info Box */
-.info-box {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-sm);
-  color: white;
-  z-index: 10;
+/* ------------------------------------------------------------------ */
+/* 1. INFO SQUARE — add extra margin below it                         */
+/* ------------------------------------------------------------------ */
+.info-box{
+  position:absolute;
+  top:var(--space-4);
+  right:var(--space-4);
+  background:rgba(0,0,0,.7);
+  border-radius:var(--radius-md);
+  padding:var(--space-2) var(--space-3);
+  font-size:var(--font-size-sm);
+  color:white;
+  z-index:10;
+
+  /* NEW ↓  creates gap BEFORE the timer */
+  margin-bottom:var(--space-3);   /* 0.75 rem */
 }
 
-/* Live Timer - With pseudo-element spacing after */
-.live-timer {
-  position: absolute;
-  top: calc(var(--space-4) + 4rem);
-  right: var(--space-4);
-  background: rgba(0, 0, 0, 0.85);
-  border: 2px solid var(--accent-blue);
-  border-radius: var(--radius-md);
-  padding: 0.25rem 0.5rem;
-  font-size: var(--font-size-sm);
-  color: var(--accent-blue);
-  font-weight: 600;
-  z-index: 15;
-  min-width: 60px;
-  text-align: center;
-}
+/* ------------------------------------------------------------------ */
+/* 2. LIVE TIMER — add gap below timer box                            */
+/* ------------------------------------------------------------------ */
+.live-timer{
+  position:absolute;
+  top:calc(var(--space-4) + 4rem);   /* stays just under info-box 👆 */
+  right:var(--space-4);
+  background:rgba(0,0,0,.85);
+  border:2px solid var(--accent-blue);
+  border-radius:var(--radius-md);
+  padding:.25rem .5rem;
+  font-size:var(--font-size-sm);
+  color:var(--accent-blue);
+  font-weight:600;
+  z-index:15;
+  min-width:60px;
+  text-align:center;
 
-/* Create invisible space after timer */
-.live-timer::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  height: var(--space-6); /* 1.5rem of space after timer */
-  pointer-events: none;
+  /* NEW ↓  space BEFORE patient-notes */
+  margin-bottom:var(--space-4);   /* 1 rem */
 }
 
 /* Patient Main - Adjusted for repositioned timer */
@@ -517,27 +516,21 @@ body {
   margin-bottom: var(--space-3);
 }
 
-/* Patient Notes Display - Fixed spacing for timer */
-.patient-notes {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  margin-bottom: var(--space-4);
-  font-size: var(--font-size-base);
-  line-height: 1.4;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-}
-
-.patient-notes .objective-emoji {
-  font-size: var(--font-size-lg);
-  flex-shrink: 0;
-}
-
-.patient-notes .notes-text {
-  flex: 1;
+/* ------------------------------------------------------------------ */
+/* 3. PATIENT NOTES — ensure it respects the new gaps                 */
+/* ------------------------------------------------------------------ */
+.patient-notes{
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:var(--radius-md);
+  padding:var(--space-3);
+  margin-top:var(--space-6);      /* NEW ↑  gap after timer (1.5 rem) */
+  margin-bottom:var(--space-4);   /* existing bottom gap */
+  font-size:var(--font-size-base);
+  line-height:1.4;
+  display:flex;
+  align-items:flex-start;
+  gap:var(--space-2);
 }
 
 /* Tasks */
