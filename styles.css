@@ -1,4 +1,4 @@
-/* FastTrackers PWA - Complete Styles */
+/* FastTrackers PWA - Sliding Panel Version */
 
 :root {
   /* Core Colors */
@@ -65,6 +65,10 @@
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
+  
+  /* Panel */
+  --panel-width: 350px;
+  --panel-width-mobile: 280px;
 }
 
 /* Base Reset */
@@ -211,6 +215,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 /* Header */
@@ -678,63 +683,285 @@ body {
   transform: translateY(-2px);
 }
 
-/* Floating Action Buttons */
-.fab-container {
+/* Edge Buttons */
+.edge-button {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.fab {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 80px;
   border: none;
   color: white;
   font-size: 1.5rem;
   cursor: pointer;
   box-shadow: var(--shadow-lg);
   transition: all 0.3s ease;
-  position: relative;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.fab-phone {
+.edge-button.left-edge {
+  left: 0;
   background: linear-gradient(135deg, var(--accent-green), #059669);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
-.fab-templates {
+.edge-button.right-edge {
+  right: 0;
   background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 
-.fab:hover {
-  transform: scale(1.1);
+.edge-button:hover {
+  transform: translateY(-50%) scale(1.05);
   box-shadow: var(--shadow-xl);
 }
 
-.fab::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  right: 70px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
+/* Panel Overlay */
+.panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  z-index: 1500;
   transition: all 0.3s ease;
-  z-index: 1001;
 }
 
-.fab:hover::before {
+/* Sliding Panels */
+.sliding-panel {
+  position: fixed;
+  top: 0;
+  height: 100vh;
+  width: var(--panel-width);
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-2xl);
+  z-index: 1600;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.sliding-panel.left-panel {
+  left: 0;
+  border-right: 1px solid var(--glass-border);
+}
+
+.sliding-panel.right-panel {
+  right: 0;
+  transform: translateX(100%);
+  border-left: 1px solid var(--glass-border);
+}
+
+.sliding-panel.active {
+  transform: translateX(0);
+}
+
+/* Panel Header */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+}
+
+.panel-header h3 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.panel-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--font-size-2xl);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.panel-close:hover {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+}
+
+/* Panel Content */
+.panel-content {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Panel Buttons */
+.panel-btn {
+  width: 100%;
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: var(--font-size-base);
+}
+
+.panel-btn.primary {
+  background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.panel-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.panel-btn.success {
+  background: linear-gradient(135deg, var(--accent-green), #059669);
+  color: white;
+}
+
+/* Template Fields */
+.template-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.template-field-group {
+  position: relative;
+}
+
+.template-field-group textarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-10) var(--space-3) var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+  transition: all 0.3s ease;
+}
+
+.template-field-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.copy-btn {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: 6px 8px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.copy-btn:hover {
   opacity: 1;
+  background: var(--accent-blue);
+}
+
+.copy-btn.copied {
+  background: var(--accent-green);
+  opacity: 1;
+}
+
+/* Phone Numbers List */
+.phones-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.phone-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  transition: all 0.3s ease;
+}
+
+.phone-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.phone-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.phone-info strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.phone-info span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.phone-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.edit-phone-btn, .delete-phone-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  font-size: var(--font-size-base);
+}
+
+.edit-phone-btn:hover {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.delete-phone-btn:hover {
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.no-phones {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--space-8);
 }
 
 /* Statistics Tab */
@@ -1052,129 +1279,6 @@ body {
   margin-bottom: var(--space-2);
 }
 
-/* Phone Book Modal Styles */
-.phone-book-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.phone-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  margin-bottom: var(--space-2);
-  transition: all 0.3s ease;
-}
-
-.phone-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.phone-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.phone-info strong {
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-}
-
-.phone-info span {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-.phone-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.edit-phone-btn, .delete-phone-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-  font-size: var(--font-size-base);
-}
-
-.edit-phone-btn:hover {
-  color: var(--accent-blue);
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.delete-phone-btn:hover {
-  color: var(--accent-red);
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.no-phones {
-  text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-  padding: var(--space-6);
-}
-
-/* Templates Modal Styles */
-.template-sections {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.template-field-group {
-  position: relative;
-}
-
-.template-field-group textarea {
-  width: 100%;
-  padding: var(--space-3) var(--space-10) var(--space-3) var(--space-3);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-  resize: vertical;
-  min-height: 80px;
-  line-height: 1.5;
-  transition: all 0.3s ease;
-}
-
-.template-field-group textarea:focus {
-  outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.copy-template-btn {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  background: rgba(0, 0, 0, 0.5);
-  border: none;
-  border-radius: var(--radius-sm);
-  color: white;
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  padding: 6px 8px;
-  opacity: 0.7;
-  transition: all 0.2s ease;
-  z-index: 10;
-}
-
-.copy-template-btn:hover {
-  opacity: 1;
-  background: var(--accent-blue);
-}
-
 /* Triage Circles */
 .triage-circles {
   display: flex;
@@ -1436,9 +1540,14 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .fab-container {
-    bottom: 20px;
-    right: 20px;
+  .sliding-panel {
+    width: var(--panel-width-mobile);
+  }
+  
+  .edge-button {
+    width: 40px;
+    height: 70px;
+    font-size: 1.2rem;
   }
   
   .modal {
@@ -1487,15 +1596,13 @@ body {
     grid-template-columns: 1fr;
   }
   
-  .fab {
-    width: 48px;
-    height: 48px;
-    font-size: 1.2rem;
+  .sliding-panel {
+    width: 100vw;
   }
   
-  .fab::before {
-    right: 55px;
-    font-size: var(--font-size-xs);
-    padding: 6px 10px;
+  .edge-button {
+    width: 35px;
+    height: 60px;
+    font-size: 1rem;
   }
 }
