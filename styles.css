@@ -347,8 +347,8 @@ body {
 .tab-content#patients,
 .tab-content#stats,
 .tab-content#profile {
-  padding-left: calc(var(--space-6) + 2.5rem);
-  padding-right: calc(var(--space-6) + 2.5rem);
+  padding-left: calc(var(--space-6) + 1.5rem);
+  padding-right: calc(var(--space-6) + 1.5rem);
 }
 
 /* Patients Header */
