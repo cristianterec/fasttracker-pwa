@@ -467,7 +467,7 @@ body {
   border: 2px solid var(--accent-blue);
   border-radius: var(--radius-md);
   padding: 0.25rem 0.5rem; 
-  gap: 1rem; /* space after timer block */
+  margin-bottom: 1rem; /* Margin under timer */
   font-size: var(--font-size-sm);
   color: var(--accent-blue);
   font-weight: 600;
