@@ -243,7 +243,6 @@ async function initializeUserData(userId) {
     });
 }
 
-// Handle user login
 
 
 // Initialize sliding panels
@@ -598,22 +597,37 @@ function switchTab(tabName) {
 function logout() {
     currentUser = null;
     currentUserId = null;
-
+    
     // Clear auth inputs
-    const fields = ['#loginUsername','#loginPin','#registerUsername','#registerPin','#confirmPin'];
-    fields.forEach(id => { const el = document.querySelector(id); if (el) el.value=''; });
-
-    // stop listeners
-    if (unsubscribePatients)  unsubscribePatients();
-    if (unsubscribeStats)     unsubscribeStats();
+    $('#loginUsername').value = '';
+    $('#loginPin').value = '';
+    $('#registerUsername').value = '';
+    $('#registerDisplayName').value = '';
+    $('#registerPin').value = '';
+    $('#confirmPin').value = '';
+    
+    // Hide PIN input and login button
+    $('#loginPin').classList.add('hidden');
+    $('#loginBtn').classList.add('hidden');
+    
+    // Stop listeners
+    if (unsubscribePatients) unsubscribePatients();
+    if (unsubscribeStats) unsubscribeStats();
     if (unsubscribeTransfers) unsubscribeTransfers();
-
-    // show auth screen again
-    document.getElementById('app').classList.add('hidden');
-    document.getElementById('auth').classList.remove('hidden');
-    showLoginForm();
+    
+    // Clear timers
+    if (updateTimerHandle) clearInterval(updateTimerHandle);
+    if (liveTimerHandle) clearInterval(liveTimerHandle);
+    
+    // Show auth screen
+    $('#app').classList.add('hidden');
+    $('#auth').classList.remove('hidden');
+    
+    // Focus on username input
+    setTimeout(() => {
+        $('#loginUsername').focus();
+    }, 100);
 }
-
 
 // Start realtime listeners
 async function startRealtimeListeners() {
