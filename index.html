@@ -18,34 +18,45 @@
 </head>
 
 <body>
-    <!-- AUTH SCREEN -->
-    <section id="auth" class="auth-screen">
-        <div class="auth-card">
-            <div class="auth-logo">
-                <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
-            </div>
-            <h1>FastTrackers</h1>
-            <p>Gestion des patients aux urgences</p>
+<!-- AUTH SCREEN -->
+<section id="auth" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
+    </div>
+    <h1>FastTrackers</h1>
+    <p>Gestion des patients d'urgence</p>
 
-            <!-- LOGIN FORM -->
-            <div id="loginForm" class="auth-form">
-                <input type="text" id="loginUsername" placeholder="Nom d'utilisateur" maxlength="20" class="auth-input">
-                <input type="password" id="pinInput" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input hidden">
-                <button id="loginBtn" class="auth-btn primary hidden">Se connecter</button>
-                <button id="showRegisterBtn" class="auth-btn secondary">Nouvel utilisateur</button>
-            </div>
+    <!-- LOGIN FORM  (username + PIN) -->
+    <div id="loginForm" class="auth-form">
+      <input id="loginUsername" class="auth-input"
+             placeholder="Nom d’utilisateur" autocomplete="username">
+      <input id="loginPin" type="password" maxlength="4"
+             class="auth-input" placeholder="PIN (4 chiffres)"
+             autocomplete="current-password">
+      <button id="loginBtn" class="auth-btn primary">Se connecter</button>
+      <button id="showRegisterBtn" class="auth-btn secondary">
+        Nouvel utilisateur
+      </button>
+    </div>
 
-            <!-- REGISTER FORM -->
-            <div id="registerForm" class="auth-form hidden">
-                <input id="registerUsername" placeholder="Nom d'utilisateur" maxlength="20" class="auth-input">
-                <input id="registerDisplayName" placeholder="Nom d'affichage" maxlength="30" class="auth-input">
-                <input id="registerPin" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input">
-                <input id="confirmPin" placeholder="Confirmer le PIN" maxlength="4" class="auth-input">
-                <button id="registerBtn" class="auth-btn primary">S'inscrire</button>
-                <button id="showLoginBtn" class="auth-btn secondary">Retour à la connexion</button>
-            </div>
-        </div>
-    </section>
+    <!-- REGISTER FORM -->
+    <div id="registerForm" class="auth-form hidden">
+      <input id="registerUsername" class="auth-input"
+             placeholder="Choisir un nom d’utilisateur" autocomplete="username">
+      <input id="registerPin" type="password" maxlength="4"
+             class="auth-input" placeholder="Choisir un PIN (4 chiffres)"
+             autocomplete="new-password">
+      <input id="confirmPin" type="password" maxlength="4"
+             class="auth-input" placeholder="Confirmer le PIN"
+             autocomplete="new-password">
+      <button id="registerBtn" class="auth-btn primary">S'inscrire</button>
+      <button id="showLoginBtn" class="auth-btn secondary">
+        Retour à la connexion
+      </button>
+    </div>
+  </div>
+</section>
 
     <!-- APP SHELL -->
     <section id="app" class="app-container hidden">
