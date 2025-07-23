@@ -79,141 +79,126 @@ async function initializeApp() {
     console.log('FastTrackers initialized successfully');
 }
 
-// Authentication event listeners
+/* ----------  OLD global DOM helpers remain ---------- */
+const $ = sel => document.querySelector(sel);
+
+/* ---------- 1. AUTH FORM EVENTS --------------------- */
 function setupAuthEventListeners() {
-    // Username input validation (alphanumeric + underscore only)
-    ['#loginUsername', '#registerUsername'].forEach(id => {
-        const element = $(id);
-        if (element) {
-            element.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
-            });
-        }
-    });
+  // numeric-only for PIN fields
+  ['#loginPin', '#registerPin', '#confirmPin'].forEach(id => {
+    $(id).addEventListener('input', e =>
+      e.target.value = e.target.value.replace(/[^0-9]/g,'')
+    );
+  });
 
-    // PIN input validation (numbers only)
-    ['#pinInput', '#registerPin', '#confirmPin'].forEach(id => {
-        const element = $(id);
-        if (element) {
-            element.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-            });
-        }
-    });
+  $('#loginBtn')      .addEventListener('click', handleLogin);
+  $('#registerBtn')   .addEventListener('click', handleRegister);
+  $('#showRegisterBtn').addEventListener('click', showRegisterForm);
+  $('#showLoginBtn')   .addEventListener('click', showLoginForm);
 
-    // Show/hide PIN input based on username
-    $('#loginUsername').addEventListener('input', (e) => {
-        const username = e.target.value.trim();
-        const pinInput = $('#pinInput');
-        const loginBtn = $('#loginBtn');
-        
-        if (username.length >= 3) {
-            pinInput.classList.remove('hidden');
-            loginBtn.classList.remove('hidden');
-        } else {
-            pinInput.classList.add('hidden');
-            loginBtn.classList.add('hidden');
-            pinInput.value = '';
-        }
+  // Enter key shortcuts
+  ['#loginUsername','#loginPin'].forEach(id=>{
+    $(id).addEventListener('keypress',e=>{
+      if(e.key==='Enter') handleLogin();
     });
-
-    $('#loginBtn').addEventListener('click', handleLogin);
-    $('#showRegisterBtn').addEventListener('click', showRegisterForm);
-    $('#showLoginBtn').addEventListener('click', showLoginForm);
-    $('#registerBtn').addEventListener('click', handleRegister);
-
-    // Enter key support
-    $('#pinInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleLogin();
-    });
-    
-    $('#loginUsername').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const pinInput = $('#pinInput');
-            if (!pinInput.classList.contains('hidden')) {
-                pinInput.focus();
-            }
-        }
-    });
+  });
 }
 
-// Show/hide auth forms
-function showRegisterForm() {
-    $('#loginForm').classList.add('hidden');
-    $('#registerForm').classList.remove('hidden');
-    $('#registerUsername').focus();
+/* ---------- 2.  LOGIN  ------------------------------ */
+async function handleLogin() {
+  const username = $('#loginUsername').value.trim();
+  const pin      = $('#loginPin').value.trim();
+
+  if(!username || !pin){
+    alert('Entrez nom d’utilisateur et PIN');
+    return;
+  }
+
+  try{
+    const { collection, query, where, getDocs } = window.firestoreFunctions;
+    const q = query(collection(db,'users'), where('name','==',username));
+    const snap = await getDocs(q);
+
+    if (snap.empty){
+      alert('Utilisateur introuvable');
+      return;
+    }
+    const docData = snap.docs[0].data();
+    if (docData.pin !== pin){
+      alert('PIN incorrect');
+      return;
+    }
+
+    // success : save user id / name
+    currentUserId = snap.docs[0].id;
+    currentUser   = docData.name;
+    afterSuccessfulAuth();
+  }
+  catch(err){ console.error(err); alert('Erreur de connexion'); }
 }
 
-function showLoginForm() {
-    $('#registerForm').classList.add('hidden');
-    $('#loginForm').classList.remove('hidden');
-    $('#loginUsername').focus();
+/* ---------- 3.  REGISTER  --------------------------- */
+async function handleRegister(){
+  const username  = $('#registerUsername').value.trim();
+  const pin1      = $('#registerPin').value.trim();
+  const pin2      = $('#confirmPin').value.trim();
+
+  if(!username || !pin1 || !pin2){
+    alert('Tous les champs sont requis'); return;
+  }
+  if(pin1.length!==4){ alert('PIN = 4 chiffres'); return;}
+  if(pin1!==pin2){ alert('Les PIN ne correspondent pas'); return;}
+
+  try{
+    const { collection, query, where, getDocs, doc, setDoc } = window.firestoreFunctions;
+
+    // ensure uniqueness
+    const exists = await getDocs(query(collection(db,'users'),
+                                       where('name','==',username)));
+    if(!exists.empty){
+      alert('Nom d’utilisateur déjà pris'); return;
+    }
+
+    const userId = 'user_' + Date.now() + '_' +
+                   Math.random().toString(36).slice(2,9);
+
+    await setDoc(doc(db,'users',userId),{
+      id:userId, name:username, pin:pin1,
+      createdAt: new Date().toISOString()
+    });
+
+    await initializeUserData(userId);
+    alert('Compte créé ! Connectez-vous.');
+    showLoginForm();
+    $('#loginUsername').value = username;
+    $('#loginPin').focus();
+  }
+  catch(err){ console.error(err); alert('Erreur d’inscription'); }
 }
 
-// Handle user registration
-async function handleRegister() {
-    const username = $('#registerUsername').value.trim();
-    const displayName = $('#registerDisplayName').value.trim();
-    const pin = $('#registerPin').value.trim();
-    const confirmPin = $('#confirmPin').value.trim();
+/* ---------- 4.  AFTER LOGIN HELPERS ----------------- */
+function afterSuccessfulAuth(){
+  $('#username').textContent = currentUser;
+  $('#profileName').textContent = currentUser;
+  $('#statsUsername').textContent = currentUser;
 
-    if (!username || !displayName || !pin || !confirmPin) {
-        alert('Veuillez remplir tous les champs');
-        return;
-    }
+  $('#auth').classList.add('hidden');
+  $('#app').classList.remove('hidden');
 
-    if (username.length < 3) {
-        alert('Le nom d\'utilisateur doit contenir au moins 3 caractères');
-        return;
-    }
+  startRealtimeListeners()
+    .then(checkForTransfers)
+    .then(startLiveTimers)
+    .then(initializePanels);
 
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-        alert('Le PIN doit contenir exactement 4 chiffres');
-        return;
-    }
-
-    if (pin !== confirmPin) {
-        alert('Les codes PIN ne correspondent pas');
-        return;
-    }
-
-    try {
-        const { collection, doc, setDoc, getDocs, query, where } = window.firestoreFunctions;
-        
-        // Check if username already exists
-        const existingUsers = await getDocs(query(collection(db, 'users'), where('username', '==', username)));
-        if (!existingUsers.empty) {
-            alert('Ce nom d\'utilisateur est déjà pris');
-            return;
-        }
-
-        // Create new user
-        const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        const userData = {
-            id: userId,
-            username: username,
-            displayName: displayName,
-            pin: pin, // In production, this should be hashed
-            createdAt: new Date().toISOString()
-        };
-
-        await setDoc(doc(db, 'users', userId), userData);
-
-        // Initialize user data
-        await initializeUserData(userId);
-
-        alert('Compte créé avec succès!');
-        showLoginForm();
-        
-        // Pre-fill the username in login form
-        $('#loginUsername').value = username;
-        $('#loginUsername').dispatchEvent(new Event('input'));
-        
-    } catch (error) {
-        console.error('Error registering user:', error);
-        alert('Erreur lors de la création du compte');
-    }
+  console.log('Logged in as',currentUser);
 }
+
+/* ---------- 5.  REMOVE OLD  DROPDOWN  --------------- */
+/* Delete code that loaded users into #userSelect and
+   all listeners/DOM for that <select>.  All functions
+   interacting with #userSelect (loadUsers, etc.) can
+   be safely removed.                                    */
+
 
 // Initialize user data
 async function initializeUserData(userId) {
