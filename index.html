@@ -5,15 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FastTrackers – Gestion des Urgences</title>
 
+  <!-- PWA essentials -->
   <meta name="theme-color" content="#0a1628" />
   <link rel="manifest" href="manifest.json" />
 
+  <!-- Homescreen icons -->
   <link rel="apple-touch-icon" sizes="512x512" href="my_icon.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="my_icon_192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="my_icon.png" />
 
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <!-- AUTH SCREEN -->
   <section id="auth" class="auth-screen">
@@ -22,21 +25,23 @@
         <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
       </div>
       <h1>FastTrackers</h1>
-      <p>Gestion des patients d'urgence</p>
+      <p>Gestion des patients aux urgences</p>
 
-      <!-- LOGIN FORM (username + PIN) -->
+      <!-- LOGIN FORM -->
       <div id="loginForm" class="auth-form">
-        <input id="loginUsername" class="auth-input" placeholder="Nom d’utilisateur" autocomplete="username" />
-        <input id="loginPin" type="password" maxlength="4" class="auth-input" placeholder="PIN (4 chiffres)" autocomplete="current-password" />
-        <button id="loginBtn" class="auth-btn primary">Se connecter</button>
+        <select id="userSelect" class="auth-select">
+          <option value="">Sélectionner un utilisateur</option>
+        </select>
+        <input type="password" id="pinInput" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input hidden">
+        <button id="loginBtn" class="auth-btn primary hidden">Se connecter</button>
         <button id="showRegisterBtn" class="auth-btn secondary">Nouvel utilisateur</button>
       </div>
 
       <!-- REGISTER FORM -->
       <div id="registerForm" class="auth-form hidden">
-        <input id="registerUsername" class="auth-input" placeholder="Choisir un nom d’utilisateur" autocomplete="username" />
-        <input id="registerPin" type="password" maxlength="4" class="auth-input" placeholder="Choisir un PIN (4 chiffres)" autocomplete="new-password" />
-        <input id="confirmPin" type="password" maxlength="4" class="auth-input" placeholder="Confirmer le PIN" autocomplete="new-password" />
+        <input id="registerName" placeholder="Nom d'utilisateur" class="auth-input">
+        <input id="registerPin" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input">
+        <input id="confirmPin" placeholder="Confirmer le PIN" maxlength="4" class="auth-input">
         <button id="registerBtn" class="auth-btn primary">S'inscrire</button>
         <button id="showLoginBtn" class="auth-btn secondary">Retour à la connexion</button>
       </div>
@@ -62,7 +67,6 @@
     <nav class="tabs">
       <button class="tab active" data-tab="patients">👥 Patients</button>
       <button class="tab" data-tab="stats">📊 Statistiques</button>
-      <button class="tab" data-tab="profile">👤 Profil</button>
     </nav>
 
     <!-- PATIENTS TAB -->
@@ -74,13 +78,14 @@
       <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
     </main>
 
-    <!-- STATS TAB -->
+    <!-- STATISTICS TAB -->
     <main id="stats" class="tab-content hidden">
       <div class="stats-container">
         <div class="stats-header">
           <h2>Statistiques personnelles</h2>
           <p>Données en temps réel pour <strong id="statsUsername"></strong></p>
         </div>
+        
         <div class="stats-grid">
           <div class="stat-card stat-added">
             <div class="stat-icon">👥</div>
@@ -89,6 +94,7 @@
               <div class="stat-label">Patients ajoutés</div>
             </div>
           </div>
+          
           <div class="stat-card stat-hospitalized">
             <div class="stat-icon">🏥</div>
             <div class="stat-content">
@@ -96,29 +102,37 @@
               <div class="stat-label">Hospitalisés</div>
             </div>
           </div>
+          
           <div class="stat-card stat-discharged">
             <div class="stat-icon">🏠</div>
             <div class="stat-content">
               <div class="stat-number" id="statDischarged">0</div>
-              <div class="stat-label">Sortis</div>
+              <div class="stat-label">Retours à domicile</div>
             </div>
           </div>
+          
           <div class="stat-card stat-transferred">
-            <div class="stat-icon">🔄</div>
+            <div class="stat-icon">🚑</div>
             <div class="stat-content">
               <div class="stat-number" id="statTransferred">0</div>
               <div class="stat-label">Transférés</div>
             </div>
           </div>
-          <div class="stat-card stat-avg">
+          
+          <div class="stat-card stat-avgtime">
             <div class="stat-icon">⏱️</div>
             <div class="stat-content">
               <div class="stat-number" id="statAvgTime">0h 0m</div>
-              <div class="stat-label">Temps moyen</div>
+              <div class="stat-label">Temps moyen par patient</div>
             </div>
           </div>
         </div>
-        <button id="resetStatsBtn" class="btn-danger">Réinitialiser les stats</button>
+        
+        <div class="stats-actions">
+          <button id="resetStatsBtn" class="reset-stats-btn">
+            🔄 Réinitialiser les statistiques
+          </button>
+        </div>
       </div>
     </main>
 
@@ -141,10 +155,14 @@
     </main>
 
     <!-- EDGE BUTTONS -->
-    <button id="leftEdgeBtn" class="edge-button left-edge" title="Numéros utiles">📞</button>
-    <button id="rightEdgeBtn" class="edge-button right-edge" title="Modèles">📋</button>
+    <button id="leftEdgeBtn" class="edge-button left-edge" title="Numéros utiles">
+      📞
+    </button>
+    <button id="rightEdgeBtn" class="edge-button right-edge" title="Modèles">
+      📋
+    </button>
 
-    <!-- LEFT SLIDING PANEL -->
+    <!-- LEFT SLIDING PANEL - PHONE NUMBERS -->
     <div id="leftPanel" class="sliding-panel left-panel">
       <div class="panel-header">
         <h3>📞 Numéros utiles</h3>
@@ -156,7 +174,7 @@
       </div>
     </div>
 
-    <!-- RIGHT SLIDING PANEL -->
+    <!-- RIGHT SLIDING PANEL - TEMPLATES -->
     <div id="rightPanel" class="sliding-panel right-panel">
       <div class="panel-header">
         <h3>📋 Modèles observation clinique</h3>
@@ -164,30 +182,66 @@
       </div>
       <div class="panel-content">
         <div class="template-fields">
-          <textarea id="templateHemo" placeholder="Hémodynamique"></textarea>
-          <button class="copy-btn" data-field="templateHemo">📋</button>
-
-          <textarea id="templateResp" placeholder="Respiratoire"></textarea>
-          <button class="copy-btn" data-field="templateResp">📋</button>
-
-          <textarea id="templateDig" placeholder="Digestif"></textarea>
-          <button class="copy-btn" data-field="templateDig">📋</button>
-
-          <textarea id="templateNeuro" placeholder="Neurologique"></textarea>
-          <button class="copy-btn" data-field="templateNeuro">📋</button>
-
-          <textarea id="templateOsteo" placeholder="Ostéoarticulaire"></textarea>
-          <button class="copy-btn" data-field="templateOsteo">📋</button>
-
-          <textarea id="templateAutre" placeholder="Autre"></textarea>
-          <button class="copy-btn" data-field="templateAutre">📋</button>
+          <div class="template-field-group">
+            <textarea id="templateHemo" placeholder="Hémodynamique" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateHemo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateResp" placeholder="Respiratoire" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateResp">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateDig" placeholder="Digestif" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateDig">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateNeuro" placeholder="Neurologique" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateNeuro">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateOsteo" placeholder="Ostéoarticulaire" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateOsteo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateAutre" placeholder="Autre" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateAutre">📋</button>
+          </div>
         </div>
+        <button id="saveTemplatesBtn" class="panel-btn primary">💾 Sauvegarder</button>
       </div>
-      <button id="saveTemplatesBtn" class="panel-btn primary">💾 Sauvegarder</button>
     </div>
 
+    <!-- PANEL OVERLAY -->
     <div id="panelOverlay" class="panel-overlay hidden"></div>
   </section>
+
+  <!-- Transfer Acceptance Modal -->
+  <div id="transferAcceptModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📥 Patients reçus</h2>
+      </div>
+      <div class="modal-content">
+        <p>Vous avez reçu <span id="transferCount">0</span> patient(s) de <span id="transferFrom"></span>.</p>
+        <div id="transferPatientsList" class="transfer-patients-list"></div>
+        <div class="transfer-actions">
+          <button id="acceptTransfer" class="btn-primary">✅ Accepter</button>
+          <button id="declineTransfer" class="btn-secondary">❌ Refuser</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => console.log('SW registered:', registration))
+          .catch(error => console.log('SW registration failed:', error));
+      });
+    }
+  </script>
 
   <script src="app.js"></script>
 </body>
