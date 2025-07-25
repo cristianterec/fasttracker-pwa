@@ -1,178 +1,311 @@
-/* FastTrackers PWA – username + PIN authentication */
+// FastTrackers PWA - Sliding Panel Version
+console.log('FastTrackers loading - version avec panneaux coulissants...');
 
-console.log('FastTrackers starting (username/PIN auth)…');
-
-/* ───────────────── Firebase config ───────────────── */
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: 'AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU',
-  authDomain: 'fasttrackers-sync.firebaseapp.com',
-  projectId: 'fasttrackers-sync',
-  storageBucket: 'fasttrackers-sync.appspot.com',
-  messagingSenderId: '987908003870',
-  appId: '1:987908003870:web:0e9c19e942df988c5ab60f'
+  apiKey: "AIzaSyB8PDbtjAqmEw8-jTuiHGgx2W1a9O1gRQU",
+  authDomain: "fasttrackers-sync.firebaseapp.com",
+  projectId: "fasttrackers-sync",
+  storageBucket: "fasttrackers-sync.firebasestorage.app",
+  messagingSenderId: "987908003870",
+  appId: "1:987908003870:web:0e9c19e942df988c5ab60f"
 };
 
-/* ───────────────── Global state ───────────────── */
-let db = null;
+// Global state
+let currentUser = null;
 let currentUserId = null;
-let currentUser   = null;
-
-/* listeners / timers from rest of app remain unchanged */
+let db = null;
 let unsubscribePatients = null;
-let unsubscribeStats    = null;
-let unsubscribeTransfers= null;
-let updateTimerHandle   = null;
-let liveTimerHandle     = null;
+let unsubscribeStats = null;
+let unsubscribeTransfers = null;
+let app = null;
+let updateTimerHandle = null;
+let liveTimerHandle = null;
 
-/* DOM helpers */
-const $  = sel => document.querySelector(sel);
-const $$ = sel => document.querySelectorAll(sel);
+// DOM helpers
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => document.querySelectorAll(selector);
 
-/* ───────────────── Firebase init ───────────────── */
-async function initFirebase () {
-  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
-  const {
-    getFirestore, collection, doc, setDoc, getDoc, getDocs,
-    updateDoc, deleteDoc, onSnapshot, query, where, orderBy,
-    enableIndexedDbPersistence, writeBatch, increment, limit,
-    serverTimestamp
-  } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-
-  initializeApp(firebaseConfig);
-  db = getFirestore();
-
-  try { await enableIndexedDbPersistence(db); }
-  catch (e){ console.warn('IndexedDB persistence disabled:', e.code); }
-
-  window.firestoreFunctions = {
-    collection, doc, setDoc, getDoc, getDocs,
-    updateDoc, deleteDoc, onSnapshot, query, where,
-    orderBy, writeBatch, increment, limit, serverTimestamp
-  };
-}
-
-/* ───────────────── Auth UI ───────────────── */
-function setupAuthUI () {
-  /* digits-only for every PIN input */
-  ['#loginPin', '#registerPin', '#confirmPin'].forEach(id =>
-    $(id).addEventListener('input', e =>
-      e.target.value = e.target.value.replace(/[^0-9]/g,'')
-    )
-  );
-
-  $('#loginBtn')       .addEventListener('click', handleLogin);
-  $('#registerBtn')    .addEventListener('click', handleRegister);
-  $('#showRegisterBtn').addEventListener('click', () => toggleForms(true));
-  $('#showLoginBtn')   .addEventListener('click', () => toggleForms(false));
-
-  /* Enter key triggers login */
-  ['#loginUsername','#loginPin'].forEach(id =>
-    $(id).addEventListener('keypress', e => {
-      if (e.key === 'Enter') handleLogin();
-    })
-  );
-}
-function toggleForms (showRegister) {
-  $('#loginForm')   .classList.toggle('hidden', showRegister);
-  $('#registerForm').classList.toggle('hidden', !showRegister);
-}
-
-/* ───────────────── Registration ───────────────── */
-async function handleRegister () {
-  const username = $('#registerUsername').value.trim().toLowerCase();
-  const pin1     = $('#registerPin' ).value.trim();
-  const pin2     = $('#confirmPin' ).value.trim();
-
-  if (!username || !pin1 || !pin2)
-    return alert('Tous les champs sont requis');
-  if (pin1.length !== 4)
-    return alert('Le PIN doit contenir 4 chiffres');
-  if (pin1 !== pin2)
-    return alert('Les PIN ne correspondent pas');
-
+// Initialize Firebase
+async function initializeFirebase() {
   try {
-    const { collection, query, where, getDocs, doc, setDoc } =
-          window.firestoreFunctions;
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
+    const { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      updateDoc, 
+      deleteDoc, 
+      onSnapshot, 
+      increment,
+      getDoc,
+      getDocs,
+      query,
+      where,
+      orderBy,
+      limit,
+      enableIndexedDbPersistence,
+      writeBatch,
+      serverTimestamp
+    } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+    
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    
+    try {
+      await enableIndexedDbPersistence(db);
+      console.log('Firebase offline persistence enabled');
+    } catch (error) {
+      console.warn('Offline persistence failed:', error);
+    }
+    
+    window.firestoreFunctions = {
+      collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, 
+      getDoc, getDocs, query, where, orderBy, limit, writeBatch, serverTimestamp
+    };
+    
+    console.log('Firebase initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    return false;
+  }
+}
 
-    const snap = await getDocs(
-      query(collection(db,'users'), where('name','==',username))
-    );
-    if (!snap.empty) return alert('Nom d’utilisateur déjà pris');
+// Initialize app
+async function initializeApp() {
+  console.log('Initializing FastTrackers...');
+  
+  await initializeFirebase();
+  await loadUsers();
+  setupAuthEventListeners();
+  setupAppEventListeners();
+  
+  console.log('FastTrackers initialized successfully');
+}
 
-    const uid = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-    await setDoc(doc(db,'users',uid), {
-      id: uid, name: username, pin: pin1, createdAt: new Date().toISOString()
+// Load users for login dropdown
+async function loadUsers() {
+  try {
+    const { collection, getDocs } = window.firestoreFunctions;
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    const userSelect = $('#userSelect');
+    
+    userSelect.innerHTML = '<option value="">Sélectionner un utilisateur</option>';
+    
+    usersSnapshot.forEach(doc => {
+      const user = doc.data();
+      const option = document.createElement('option');
+      option.value = doc.id;
+      option.textContent = user.name;
+      userSelect.appendChild(option);
     });
-    await initializeUserData(uid);   // same helper you already have
+  } catch (error) {
+    console.error('Error loading users:', error);
+  }
+}
 
-    /* Auto-login */
-    currentUserId = uid;
-    currentUser   = username;
-    await afterLogin();
-  } catch (err) {
-    console.error(err);
+// Authentication event listeners
+function setupAuthEventListeners() {
+  $('#userSelect').addEventListener('change', (e) => {
+    const userId = e.target.value;
+    const pinInput = $('#pinInput');
+    const loginBtn = $('#loginBtn');
+    
+    if (userId) {
+      pinInput.classList.remove('hidden');
+      loginBtn.classList.remove('hidden');
+      pinInput.focus();
+    } else {
+      pinInput.classList.add('hidden');
+      loginBtn.classList.add('hidden');
+      pinInput.value = '';
+    }
+  });
+
+  // PIN input validation
+  ['#pinInput', '#registerPin', '#confirmPin'].forEach(id => {
+    const element = $(id);
+    if (element) {
+      element.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      });
+    }
+  });
+
+  $('#loginBtn').addEventListener('click', handleLogin);
+  $('#showRegisterBtn').addEventListener('click', showRegisterForm);
+  $('#showLoginBtn').addEventListener('click', showLoginForm);
+  $('#registerBtn').addEventListener('click', handleRegister);
+  
+  // Enter key support
+  $('#pinInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+}
+
+// Show/hide auth forms
+function showRegisterForm() {
+  $('#loginForm').classList.add('hidden');
+  $('#registerForm').classList.remove('hidden');
+}
+
+function showLoginForm() {
+  $('#registerForm').classList.add('hidden');
+  $('#loginForm').classList.remove('hidden');
+}
+
+// Handle user registration
+async function handleRegister() {
+  const name = $('#registerName').value.trim();
+  const pin = $('#registerPin').value.trim();
+  const confirmPin = $('#confirmPin').value.trim();
+  
+  if (!name || !pin || !confirmPin) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+  
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    alert('Le PIN doit contenir exactement 4 chiffres');
+    return;
+  }
+  
+  if (pin !== confirmPin) {
+    alert('Les codes PIN ne correspondent pas');
+    return;
+  }
+  
+  try {
+    const { collection, doc, setDoc, getDocs, query, where } = window.firestoreFunctions;
+    
+    // Check if user already exists
+    const existingUsers = await getDocs(query(collection(db, 'users'), where('name', '==', name)));
+    if (!existingUsers.empty) {
+      alert('Un utilisateur avec ce nom existe déjà');
+      return;
+    }
+    
+    // Create new user
+    const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const userData = {
+      id: userId,
+      name: name,
+      pin: pin,
+      createdAt: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'users', userId), userData);
+    
+    // Initialize user data
+    await initializeUserData(userId);
+    
+    alert('Compte créé avec succès!');
+    await loadUsers();
+    showLoginForm();
+    
+    // Auto-select the new user
+    $('#userSelect').value = userId;
+    $('#userSelect').dispatchEvent(new Event('change'));
+    
+  } catch (error) {
+    console.error('Error registering user:', error);
     alert('Erreur lors de la création du compte');
   }
 }
 
-/* ───────────────── Login ───────────────── */
-async function handleLogin () {
-  const username = $('#loginUsername').value.trim().toLowerCase();
-  const pin      = $('#loginPin').value.trim();
+// Initialize user data
+async function initializeUserData(userId) {
+  const { doc, setDoc } = window.firestoreFunctions;
+  
+  // Initialize stats with proper structure
+  await setDoc(doc(db, 'userStats', userId), {
+    added: 0,
+    hospitalized: 0,
+    discharged: 0,
+    transferred: 0,
+    totalTimeMinutes: 0,
+    totalPatients: 0,
+    lastUpdated: new Date().toISOString()
+  });
+  
+  // Initialize templates
+  await setDoc(doc(db, 'userTemplates', userId), {
+    hemodynamique: '',
+    respiratoire: '',
+    digestif: '',
+    neurologique: '',
+    osteoarticulaire: '',
+    autre: '',
+    lastUpdated: new Date().toISOString()
+  });
+  
+  // Initialize phone book
+  await setDoc(doc(db, 'userPhoneBook', userId), {
+    phones: [],
+    lastUpdated: new Date().toISOString()
+  });
+  
+  // Initialize task suggestions
+  await setDoc(doc(db, 'users', userId, 'taskSuggestions', 'main'), {
+    suggestions: [
+      { description: "Senior", timer: 0, frequency: 1 },
+      { description: "Bilan bio", timer: 70, frequency: 1 },
+      { description: "ECG", timer: 0, frequency: 1 },
+      { description: "BU", timer: 0, frequency: 1 }
+    ]
+  });
+}
 
-  if (!username || !pin) return alert('Entrez nom et PIN');
-
+// Handle user login
+async function handleLogin() {
+  const userId = $('#userSelect').value;
+  const pin = $('#pinInput').value;
+  
+  if (!userId || !pin) {
+    alert('Veuillez sélectionner un utilisateur et saisir le PIN');
+    return;
+  }
+  
   try {
-    const { collection, query, where, getDocs } = window.firestoreFunctions;
-    const snap = await getDocs(
-      query(collection(db,'users'), where('name','==',username))
-    );
-    if (snap.empty) return alert('Utilisateur introuvable');
-
-    const user = snap.docs[0];
-    if (user.data().pin !== pin) return alert('PIN incorrect');
-
-    currentUserId = user.id;
-    currentUser   = user.data().name;
-    await afterLogin();
-  } catch (err) {
-    console.error(err);
+    const { doc, getDoc } = window.firestoreFunctions;
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    
+    if (!userDoc.exists()) {
+      alert('Utilisateur non trouvé');
+      return;
+    }
+    
+    const userData = userDoc.data();
+    if (userData.pin !== pin) {
+      alert('PIN incorrect');
+      return;
+    }
+    
+    // Login successful
+    currentUser = userData.name;
+    currentUserId = userId;
+    
+    $('#username').textContent = currentUser;
+    $('#profileName').textContent = currentUser;
+    $('#statsUsername').textContent = currentUser;
+    
+    $('#auth').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+    
+    await startRealtimeListeners();
+    await checkForTransfers();
+    startLiveTimers();
+    initializePanels();
+    
+    console.log('Login successful for:', currentUser);
+    
+  } catch (error) {
+    console.error('Login error:', error);
     alert('Erreur de connexion');
   }
 }
-
-/* ───────────────── After login ───────────────── */
-async function afterLogin () {
-  /* fill UI */
-  $('#username')     .textContent = currentUser;
-  $('#profileName')  .textContent = currentUser;
-  $('#statsUsername').textContent = currentUser;
-
-  $('#auth').classList.add('hidden');
-  $('#app' ).classList.remove('hidden');
-
-  /* start realtime stuff (code unchanged) */
-  await startRealtimeListeners();
-  await checkForTransfers();
-  startLiveTimers();
-  initializePanels();
-  console.log('Connecté en tant que', currentUser);
-}
-
-/* ───────────────── Main init ───────────────── */
-document.addEventListener('DOMContentLoaded', async () => {
-  await initFirebase();
-  setupAuthUI();           // new auth UI
-  setupAppEventListeners(); // all your existing app listeners
-});
-
-/* ================================ */
-/*  Everything below (patients,     */
-/*  templates, stats, panels, etc.) */
-/*  remains exactly as in your repo */
-/* ================================ */
-
-
 
 // Initialize sliding panels
 function initializePanels() {
