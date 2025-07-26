@@ -1175,6 +1175,9 @@ function renderPatients(snapshot) {
 
 function createPatientCardHTML(patient) {
   const tasks = patient.tasks || [];
+  const hasNotes = !!(patient.notes && patient.notes.trim());
+  const hasTasks = tasks.length > 0;
+  const cardClasses = `${patient.triage} ${hasNotes ? '' : 'no-notes'} ${hasTasks ? 'has-tasks' : 'no-tasks'}`.trim();
   
   // Patient notes display
   const notesDisplay = patient.notes && patient.notes.trim() ? 
@@ -1184,7 +1187,7 @@ function createPatientCardHTML(patient) {
     </div>` : '';
   
   return `
-    <div class="card ${patient.triage}" data-patient-id="${patient.id}">
+    <div class="card ${cardClasses}" data-patient-id="${patient.id}">
       <!-- Live timer -->
       <div class="live-timer" data-created="${patient.createdAt}">
         ${formatElapsedTime(Date.now() - new Date(patient.createdAt).getTime())}
