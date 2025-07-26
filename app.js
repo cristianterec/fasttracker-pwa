@@ -1599,7 +1599,15 @@ async function handlePatientDecision(patientId, action) {
     
     // Update stats based on action (exclude delete)
     if (action !== 'delete' && patientData) {
-      await updateUserStats(action === 'discharge' ? 'discharged' : action, timeSpentMinutes);
+      let statsAction = action;
+      if (action === 'discharge') {
+        statsAction = 'discharged';
+      } else if (action === 'hospitalize') {
+        statsAction = 'hospitalized';
+      } else if (action === 'transfer') {
+        statsAction = 'transferred';
+      }
+      await updateUserStats(statsAction, timeSpentMinutes);
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
@@ -1745,12 +1753,18 @@ async function executeTransfer() {
     const targetUserSnap = await getDoc(doc(db, 'users', targetUserId));
     const targetUserName = targetUserSnap.exists() ? targetUserSnap.data().name : 'Utilisateur inconnu';
     
-    // Collect patient data
+    // Collect patient data and track stats
     const patientsData = [];
     for (const patientId of selectedPatients) {
       const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
       if (patientSnap.exists()) {
-        patientsData.push(patientSnap.data());
+        const patient = patientSnap.data();
+        patientsData.push(patient);
+
+        const createdAt = new Date(patient.createdAt);
+        const now = new Date();
+        const timeSpentMinutes = Math.floor((now - createdAt) / 60000);
+        await updateUserStats('transferred', timeSpentMinutes);
       }
     }
     
