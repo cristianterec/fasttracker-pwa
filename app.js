@@ -78,51 +78,14 @@ async function initializeApp() {
   console.log('Initializing FastTrackers...');
   
   await initializeFirebase();
-  await loadUsers();
   setupAuthEventListeners();
   setupAppEventListeners();
   
   console.log('FastTrackers initialized successfully');
 }
 
-// Load users for login dropdown
-async function loadUsers() {
-  try {
-    const { collection, getDocs } = window.firestoreFunctions;
-    const usersSnapshot = await getDocs(collection(db, 'users'));
-    const userSelect = $('#userSelect');
-    
-    userSelect.innerHTML = '<option value="">Sélectionner un utilisateur</option>';
-    
-    usersSnapshot.forEach(doc => {
-      const user = doc.data();
-      const option = document.createElement('option');
-      option.value = doc.id;
-      option.textContent = user.name;
-      userSelect.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Error loading users:', error);
-  }
-}
-
 // Authentication event listeners
 function setupAuthEventListeners() {
-  $('#userSelect').addEventListener('change', (e) => {
-    const userId = e.target.value;
-    const pinInput = $('#pinInput');
-    const loginBtn = $('#loginBtn');
-    
-    if (userId) {
-      pinInput.classList.remove('hidden');
-      loginBtn.classList.remove('hidden');
-      pinInput.focus();
-    } else {
-      pinInput.classList.add('hidden');
-      loginBtn.classList.add('hidden');
-      pinInput.value = '';
-    }
-  });
 
   // PIN input validation
   ['#pinInput', '#registerPin', '#confirmPin'].forEach(id => {
@@ -138,10 +101,14 @@ function setupAuthEventListeners() {
   $('#showRegisterBtn').addEventListener('click', showRegisterForm);
   $('#showLoginBtn').addEventListener('click', showLoginForm);
   $('#registerBtn').addEventListener('click', handleRegister);
-  
-  // Enter key support
-  $('#pinInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLogin();
+
+  ['#loginName', '#pinInput'].forEach(id => {
+    const el = $(id);
+    if (el) {
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+      });
+    }
   });
 }
 
@@ -202,12 +169,11 @@ async function handleRegister() {
     await initializeUserData(userId);
     
     alert('Compte créé avec succès!');
-    await loadUsers();
     showLoginForm();
-    
-    // Auto-select the new user
-    $('#userSelect').value = userId;
-    $('#userSelect').dispatchEvent(new Event('change'));
+
+    // Pre-fill login name
+    $('#loginName').value = name;
+    $('#pinInput').focus();
     
   } catch (error) {
     console.error('Error registering user:', error);
@@ -265,32 +231,33 @@ async function initializeUserData(userId) {
 
 // Handle user login
 async function handleLogin() {
-  const userId = $('#userSelect').value;
-  const pin = $('#pinInput').value;
-  
-  if (!userId || !pin) {
-    alert('Veuillez sélectionner un utilisateur et saisir le PIN');
+  const name = $('#loginName').value.trim();
+  const pin = $('#pinInput').value.trim();
+
+  if (!name || !pin) {
+    alert('Veuillez saisir le nom d\'utilisateur et le PIN');
     return;
   }
-  
+
   try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    
-    if (!userDoc.exists()) {
+    const { collection, query, where, getDocs } = window.firestoreFunctions;
+    const snap = await getDocs(query(collection(db, 'users'), where('name', '==', name)));
+
+    if (snap.empty) {
       alert('Utilisateur non trouvé');
       return;
     }
-    
+
+    const userDoc = snap.docs[0];
     const userData = userDoc.data();
     if (userData.pin !== pin) {
       alert('PIN incorrect');
       return;
     }
-    
+
     // Login successful
     currentUser = userData.name;
-    currentUserId = userId;
+    currentUserId = userDoc.id;
     
     $('#username').textContent = currentUser;
     $('#profileName').textContent = currentUser;
@@ -1163,10 +1130,8 @@ function logout() {
   $('#app').classList.add('hidden');
   
   // Reset forms
-  $('#userSelect').value = '';
+  $('#loginName').value = '';
   $('#pinInput').value = '';
-  $('#pinInput').classList.add('hidden');
-  $('#loginBtn').classList.add('hidden');
   showLoginForm();
 }
 
