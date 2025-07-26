@@ -222,15 +222,14 @@ async function initializeUserData(userId) {
   // Initialize stats with proper structure
   await setDoc(doc(db, 'userStats', userId), {
     added: 0,
-    hospitalized: 0,
-    discharged: 0,
-    transferred: 0,
-    red: 0,
-    orange: 0,
-    yellow: 0,
-    green: 0,
-    blue: 0,
-    purple: 0,
+    addedStart: new Date().toISOString(),
+    triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+    orientations: {
+      hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+      discharged: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+      transferred: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 }
+    },
+    timePerTriageMinutes: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
     totalTimeMinutes: 0,
     totalPatients: 0,
     lastUpdated: new Date().toISOString()
@@ -877,48 +876,52 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
   try {
     const { doc, getDoc, setDoc } = window.firestoreFunctions;
     const statsRef = doc(db, 'userStats', currentUserId);
-    
-    // Get current stats
+
     const statsDoc = await getDoc(statsRef);
     let stats = {
       added: 0,
-      hospitalized: 0,
-      discharged: 0,
-      transferred: 0,
-      red: 0,
-      orange: 0,
-      yellow: 0,
-      green: 0,
-      blue: 0,
-      purple: 0,
+      addedStart: new Date().toISOString(),
+      triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+      orientations: {
+        hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+        discharged: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+        transferred: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 }
+      },
+      timePerTriageMinutes: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       totalTimeMinutes: 0,
       totalPatients: 0
     };
-    
+
     if (statsDoc.exists()) {
-      stats = { ...stats, ...statsDoc.data() };
+      const data = statsDoc.data();
+      stats = {
+        ...stats,
+        ...data,
+        triageAdded: { ...stats.triageAdded, ...(data.triageAdded || {}) },
+        orientations: {
+          hospitalized: { ...stats.orientations.hospitalized, ...(data.orientations?.hospitalized || {}) },
+          discharged: { ...stats.orientations.discharged, ...(data.orientations?.discharged || {}) },
+          transferred: { ...stats.orientations.transferred, ...(data.orientations?.transferred || {}) }
+        },
+        timePerTriageMinutes: { ...stats.timePerTriageMinutes, ...(data.timePerTriageMinutes || {}) }
+      };
     }
-    
-    // Update stats based on action
+
     switch (action) {
       case 'added':
         stats.added += 1;
-        if (triage && stats.hasOwnProperty(triage)) {
-          stats[triage] += 1;
+        if (triage) {
+          stats.triageAdded[triage] = (stats.triageAdded[triage] || 0) + 1;
         }
         break;
       case 'hospitalized':
-        stats.hospitalized += 1;
-        stats.totalTimeMinutes += timeSpent;
-        stats.totalPatients += 1;
-        break;
       case 'discharged':
-        stats.discharged += 1;
-        stats.totalTimeMinutes += timeSpent;
-        stats.totalPatients += 1;
-        break;
       case 'transferred':
-        stats.transferred += 1;
+        stats.orientations[action].total += 1;
+        if (triage) {
+          stats.orientations[action][triage] = (stats.orientations[action][triage] || 0) + 1;
+          stats.timePerTriageMinutes[triage] = (stats.timePerTriageMinutes[triage] || 0) + timeSpent;
+        }
         stats.totalTimeMinutes += timeSpent;
         stats.totalPatients += 1;
         break;
@@ -939,32 +942,77 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
 // Update stats display
 function updateStatsDisplay(stats) {
   const statAdded = $('#statAdded');
-  const statHospitalized = $('#statHospitalized');
-  const statDischarged = $('#statDischarged');
-  const statTransferred = $('#statTransferred');
+  const statPerHour = $('#statPerHour');
   const statAvgTime = $('#statAvgTime');
-  const statRed = $('#statRed');
-  const statOrange = $('#statOrange');
-  const statYellow = $('#statYellow');
-  const statGreen = $('#statGreen');
-  const statBlue = $('#statBlue');
-  const statPurple = $('#statPurple');
-  
+
+  const hospTotal = $('#statHospitalizedTotal');
+  const disTotal = $('#statDischargedTotal');
+  const transTotal = $('#statTransferredTotal');
+  const hospRed = $('#statHospRed');
+  const hospOrange = $('#statHospOrange');
+  const hospYellow = $('#statHospYellow');
+  const hospGreen = $('#statHospGreen');
+  const hospBlue = $('#statHospBlue');
+  const hospPurple = $('#statHospPurple');
+  const disRed = $('#statDisRed');
+  const disOrange = $('#statDisOrange');
+  const disYellow = $('#statDisYellow');
+  const disGreen = $('#statDisGreen');
+  const disBlue = $('#statDisBlue');
+  const disPurple = $('#statDisPurple');
+  const transRed = $('#statTransRed');
+  const transOrange = $('#statTransOrange');
+  const transYellow = $('#statTransYellow');
+  const transGreen = $('#statTransGreen');
+  const transBlue = $('#statTransBlue');
+  const transPurple = $('#statTransPurple');
+
+  const avgRed = $('#avgRed');
+  const avgOrange = $('#avgOrange');
+  const avgYellow = $('#avgYellow');
+  const avgGreen = $('#avgGreen');
+  const avgBlue = $('#avgBlue');
+  const avgPurple = $('#avgPurple');
+
+  const orientations = stats.orientations || { hospitalized: {}, discharged: {}, transferred: {} };
+  const timePerTriage = stats.timePerTriageMinutes || {};
+
   if (statAdded) statAdded.textContent = stats.added || 0;
-  if (statHospitalized) statHospitalized.textContent = stats.hospitalized || 0;
-  if (statDischarged) statDischarged.textContent = stats.discharged || 0;
-  if (statTransferred) statTransferred.textContent = stats.transferred || 0;
-  if (statRed) statRed.textContent = stats.red || 0;
-  if (statOrange) statOrange.textContent = stats.orange || 0;
-  if (statYellow) statYellow.textContent = stats.yellow || 0;
-  if (statGreen) statGreen.textContent = stats.green || 0;
-  if (statBlue) statBlue.textContent = stats.blue || 0;
-  if (statPurple) statPurple.textContent = stats.purple || 0;
-  
-  // Calculate average time
+
+  if (statPerHour) {
+    const start = new Date(stats.addedStart || new Date());
+    const hoursDiff = Math.max((Date.now() - start.getTime()) / 3600000, 0.01);
+    statPerHour.textContent = (stats.added / hoursDiff).toFixed(1);
+  }
+
+  if (hospTotal) hospTotal.textContent = orientations.hospitalized.total || 0;
+  if (disTotal) disTotal.textContent = orientations.discharged.total || 0;
+  if (transTotal) transTotal.textContent = orientations.transferred.total || 0;
+
+  if (hospRed) hospRed.textContent = orientations.hospitalized.red || 0;
+  if (hospOrange) hospOrange.textContent = orientations.hospitalized.orange || 0;
+  if (hospYellow) hospYellow.textContent = orientations.hospitalized.yellow || 0;
+  if (hospGreen) hospGreen.textContent = orientations.hospitalized.green || 0;
+  if (hospBlue) hospBlue.textContent = orientations.hospitalized.blue || 0;
+  if (hospPurple) hospPurple.textContent = orientations.hospitalized.purple || 0;
+
+  if (disRed) disRed.textContent = orientations.discharged.red || 0;
+  if (disOrange) disOrange.textContent = orientations.discharged.orange || 0;
+  if (disYellow) disYellow.textContent = orientations.discharged.yellow || 0;
+  if (disGreen) disGreen.textContent = orientations.discharged.green || 0;
+  if (disBlue) disBlue.textContent = orientations.discharged.blue || 0;
+  if (disPurple) disPurple.textContent = orientations.discharged.purple || 0;
+
+  if (transRed) transRed.textContent = orientations.transferred.red || 0;
+  if (transOrange) transOrange.textContent = orientations.transferred.orange || 0;
+  if (transYellow) transYellow.textContent = orientations.transferred.yellow || 0;
+  if (transGreen) transGreen.textContent = orientations.transferred.green || 0;
+  if (transBlue) transBlue.textContent = orientations.transferred.blue || 0;
+  if (transPurple) transPurple.textContent = orientations.transferred.purple || 0;
+
   const totalPatients = stats.totalPatients || 0;
   const totalTimeMinutes = stats.totalTimeMinutes || 0;
-  
+
   if (totalPatients > 0 && statAvgTime) {
     const avgTimeMinutes = Math.round(totalTimeMinutes / totalPatients);
     const hours = Math.floor(avgTimeMinutes / 60);
@@ -972,6 +1020,24 @@ function updateStatsDisplay(stats) {
     statAvgTime.textContent = `${hours}h ${minutes}m`;
   } else if (statAvgTime) {
     statAvgTime.textContent = '0h 0m';
+  }
+
+  const triages = ['red','orange','yellow','green','blue','purple'];
+  const avgElements = { red: avgRed, orange: avgOrange, yellow: avgYellow, green: avgGreen, blue: avgBlue, purple: avgPurple };
+
+  for (const t of triages) {
+    const total = (orientations.hospitalized[t] || 0) + (orientations.discharged[t] || 0) + (orientations.transferred[t] || 0);
+    const totalTime = timePerTriage[t] || 0;
+    if (avgElements[t]) {
+      if (total > 0) {
+        const avgMin = Math.round(totalTime / total);
+        const h = Math.floor(avgMin / 60);
+        const m = avgMin % 60;
+        avgElements[t].textContent = `${h}h ${m}m`;
+      } else {
+        avgElements[t].textContent = '0h';
+      }
+    }
   }
 }
 
@@ -986,15 +1052,14 @@ async function resetUserStats() {
     
     const resetStats = {
       added: 0,
-      hospitalized: 0,
-      discharged: 0,
-      transferred: 0,
-      red: 0,
-      orange: 0,
-      yellow: 0,
-      green: 0,
-      blue: 0,
-      purple: 0,
+      addedStart: new Date().toISOString(),
+      triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+      orientations: {
+        hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+        discharged: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
+        transferred: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 }
+      },
+      timePerTriageMinutes: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       totalTimeMinutes: 0,
       totalPatients: 0,
       lastUpdated: new Date().toISOString(),
@@ -1647,7 +1712,7 @@ async function handlePatientDecision(patientId, action) {
       } else if (action === 'transfer') {
         statsAction = 'transferred';
       }
-      await updateUserStats(statsAction, timeSpentMinutes);
+      await updateUserStats(statsAction, timeSpentMinutes, patientData.triage);
     }
     
     $$('.floating-menu').forEach(menu => menu.remove());
@@ -1804,7 +1869,7 @@ async function executeTransfer() {
         const createdAt = new Date(patient.createdAt);
         const now = new Date();
         const timeSpentMinutes = Math.floor((now - createdAt) / 60000);
-        await updateUserStats('transferred', timeSpentMinutes);
+        await updateUserStats('transferred', timeSpentMinutes, patient.triage);
       }
     }
     

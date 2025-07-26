@@ -85,7 +85,59 @@
           <p>Données en temps réel pour <strong id="statsUsername"></strong></p>
         </div>
         
-        <div class="stats-grid">
+        <!-- Orientation statistics -->
+        <div class="stats-grid orientation-grid">
+          <div class="orientation-card stat-hospitalized">
+            <div class="orientation-header">
+              <span class="orientation-icon">🏥</span>
+              <span class="orientation-title">Hospitalisés</span>
+              <span class="orientation-total" id="statHospitalizedTotal">0</span>
+            </div>
+            <div class="triage-counts">
+              <span class="count red" id="statHospRed">0</span>
+              <span class="count orange" id="statHospOrange">0</span>
+              <span class="count yellow" id="statHospYellow">0</span>
+              <span class="count green" id="statHospGreen">0</span>
+              <span class="count blue" id="statHospBlue">0</span>
+              <span class="count purple" id="statHospPurple">0</span>
+            </div>
+          </div>
+
+          <div class="orientation-card stat-discharged">
+            <div class="orientation-header">
+              <span class="orientation-icon">🏠</span>
+              <span class="orientation-title">Retours à domicile</span>
+              <span class="orientation-total" id="statDischargedTotal">0</span>
+            </div>
+            <div class="triage-counts">
+              <span class="count red" id="statDisRed">0</span>
+              <span class="count orange" id="statDisOrange">0</span>
+              <span class="count yellow" id="statDisYellow">0</span>
+              <span class="count green" id="statDisGreen">0</span>
+              <span class="count blue" id="statDisBlue">0</span>
+              <span class="count purple" id="statDisPurple">0</span>
+            </div>
+          </div>
+
+          <div class="orientation-card stat-transferred">
+            <div class="orientation-header">
+              <span class="orientation-icon">🚑</span>
+              <span class="orientation-title">Transférés</span>
+              <span class="orientation-total" id="statTransferredTotal">0</span>
+            </div>
+            <div class="triage-counts">
+              <span class="count red" id="statTransRed">0</span>
+              <span class="count orange" id="statTransOrange">0</span>
+              <span class="count yellow" id="statTransYellow">0</span>
+              <span class="count green" id="statTransGreen">0</span>
+              <span class="count blue" id="statTransBlue">0</span>
+              <span class="count purple" id="statTransPurple">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global statistics -->
+        <div class="stats-grid summary-grid">
           <div class="stat-card stat-added">
             <div class="stat-icon">👥</div>
             <div class="stat-content">
@@ -93,84 +145,65 @@
               <div class="stat-label">Patients ajoutés</div>
             </div>
           </div>
-          
-          <div class="stat-card stat-hospitalized">
-            <div class="stat-icon">🏥</div>
+
+          <div class="stat-card stat-perhour">
+            <div class="stat-icon">⌚</div>
             <div class="stat-content">
-              <div class="stat-number" id="statHospitalized">0</div>
-              <div class="stat-label">Hospitalisés</div>
+              <div class="stat-number" id="statPerHour">0</div>
+              <div class="stat-label">Moyenne/h ajout</div>
             </div>
           </div>
-          
-          <div class="stat-card stat-discharged">
-            <div class="stat-icon">🏠</div>
-            <div class="stat-content">
-              <div class="stat-number" id="statDischarged">0</div>
-              <div class="stat-label">Retours à domicile</div>
-            </div>
-          </div>
-          
-          <div class="stat-card stat-transferred">
-            <div class="stat-icon">🚑</div>
-            <div class="stat-content">
-              <div class="stat-number" id="statTransferred">0</div>
-              <div class="stat-label">Transférés</div>
-            </div>
-          </div>
-          
+
           <div class="stat-card stat-avgtime">
             <div class="stat-icon">⏱️</div>
             <div class="stat-content">
               <div class="stat-number" id="statAvgTime">0h 0m</div>
-              <div class="stat-label">Temps moyen par patient</div>
+              <div class="stat-label">Temps moyen/patient</div>
             </div>
           </div>
+        </div>
 
+        <div class="stats-grid avg-triage-grid">
           <div class="stat-card stat-red">
             <div class="stat-icon">🔴</div>
             <div class="stat-content">
-              <div class="stat-number" id="statRed">0</div>
-              <div class="stat-label">Triage rouge</div>
+              <div class="stat-number" id="avgRed">0h</div>
+              <div class="stat-label">Moyenne rouge</div>
             </div>
           </div>
-
           <div class="stat-card stat-orange">
             <div class="stat-icon">🟠</div>
             <div class="stat-content">
-              <div class="stat-number" id="statOrange">0</div>
-              <div class="stat-label">Triage orange</div>
+              <div class="stat-number" id="avgOrange">0h</div>
+              <div class="stat-label">Moyenne orange</div>
             </div>
           </div>
-
           <div class="stat-card stat-yellow">
             <div class="stat-icon">🟡</div>
             <div class="stat-content">
-              <div class="stat-number" id="statYellow">0</div>
-              <div class="stat-label">Triage jaune</div>
+              <div class="stat-number" id="avgYellow">0h</div>
+              <div class="stat-label">Moyenne jaune</div>
             </div>
           </div>
-
           <div class="stat-card stat-green">
             <div class="stat-icon">🟢</div>
             <div class="stat-content">
-              <div class="stat-number" id="statGreen">0</div>
-              <div class="stat-label">Triage vert</div>
+              <div class="stat-number" id="avgGreen">0h</div>
+              <div class="stat-label">Moyenne verte</div>
             </div>
           </div>
-
           <div class="stat-card stat-blue">
             <div class="stat-icon">🔵</div>
             <div class="stat-content">
-              <div class="stat-number" id="statBlue">0</div>
-              <div class="stat-label">Triage bleu</div>
+              <div class="stat-number" id="avgBlue">0h</div>
+              <div class="stat-label">Moyenne bleue</div>
             </div>
           </div>
-
           <div class="stat-card stat-purple">
             <div class="stat-icon">🟣</div>
             <div class="stat-content">
-              <div class="stat-number" id="statPurple">0</div>
-              <div class="stat-label">Triage violet</div>
+              <div class="stat-number" id="avgPurple">0h</div>
+              <div class="stat-label">Moyenne violette</div>
             </div>
           </div>
         </div>

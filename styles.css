@@ -374,6 +374,7 @@ body {
   display: grid;
   gap: var(--space-5);
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  margin-top: var(--space-4);
   margin-bottom: var(--space-8);
   margin-left: 1rem;
   margin-right: 1rem;
@@ -1019,6 +1020,74 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-6);
   margin-bottom: var(--space-8);
+}
+
+.orientation-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.avg-triage-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Layout for longer orientation cards */
+.orientation-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: relative;
+  overflow: hidden;
+}
+
+.orientation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+}
+
+.orientation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+}
+
+.orientation-total {
+  font-weight: 700;
+  font-size: var(--font-size-2xl);
+}
+
+.triage-counts {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.triage-counts .count {
+  font-weight: 600;
+}
+
+.orientation-card.stat-hospitalized::before {
+  background: linear-gradient(135deg, var(--accent-orange), #d97706);
+}
+
+.orientation-card.stat-discharged::before {
+  background: linear-gradient(135deg, var(--accent-green), #059669);
+}
+
+.orientation-card.stat-transferred::before {
+  background: linear-gradient(135deg, var(--accent-yellow), #d97706);
 }
 
 .stat-card {
