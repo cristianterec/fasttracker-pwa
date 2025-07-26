@@ -225,6 +225,12 @@ async function initializeUserData(userId) {
     hospitalized: 0,
     discharged: 0,
     transferred: 0,
+    red: 0,
+    orange: 0,
+    yellow: 0,
+    green: 0,
+    blue: 0,
+    purple: 0,
     totalTimeMinutes: 0,
     totalPatients: 0,
     lastUpdated: new Date().toISOString()
@@ -867,7 +873,7 @@ function setupAppEventListeners() {
 }
 
 // Statistics Functions
-async function updateUserStats(action, timeSpent = 0) {
+async function updateUserStats(action, timeSpent = 0, triage = null) {
   try {
     const { doc, getDoc, setDoc } = window.firestoreFunctions;
     const statsRef = doc(db, 'userStats', currentUserId);
@@ -879,6 +885,12 @@ async function updateUserStats(action, timeSpent = 0) {
       hospitalized: 0,
       discharged: 0,
       transferred: 0,
+      red: 0,
+      orange: 0,
+      yellow: 0,
+      green: 0,
+      blue: 0,
+      purple: 0,
       totalTimeMinutes: 0,
       totalPatients: 0
     };
@@ -891,6 +903,9 @@ async function updateUserStats(action, timeSpent = 0) {
     switch (action) {
       case 'added':
         stats.added += 1;
+        if (triage && stats.hasOwnProperty(triage)) {
+          stats[triage] += 1;
+        }
         break;
       case 'hospitalized':
         stats.hospitalized += 1;
@@ -928,11 +943,23 @@ function updateStatsDisplay(stats) {
   const statDischarged = $('#statDischarged');
   const statTransferred = $('#statTransferred');
   const statAvgTime = $('#statAvgTime');
+  const statRed = $('#statRed');
+  const statOrange = $('#statOrange');
+  const statYellow = $('#statYellow');
+  const statGreen = $('#statGreen');
+  const statBlue = $('#statBlue');
+  const statPurple = $('#statPurple');
   
   if (statAdded) statAdded.textContent = stats.added || 0;
   if (statHospitalized) statHospitalized.textContent = stats.hospitalized || 0;
   if (statDischarged) statDischarged.textContent = stats.discharged || 0;
   if (statTransferred) statTransferred.textContent = stats.transferred || 0;
+  if (statRed) statRed.textContent = stats.red || 0;
+  if (statOrange) statOrange.textContent = stats.orange || 0;
+  if (statYellow) statYellow.textContent = stats.yellow || 0;
+  if (statGreen) statGreen.textContent = stats.green || 0;
+  if (statBlue) statBlue.textContent = stats.blue || 0;
+  if (statPurple) statPurple.textContent = stats.purple || 0;
   
   // Calculate average time
   const totalPatients = stats.totalPatients || 0;
@@ -962,6 +989,12 @@ async function resetUserStats() {
       hospitalized: 0,
       discharged: 0,
       transferred: 0,
+      red: 0,
+      orange: 0,
+      yellow: 0,
+      green: 0,
+      blue: 0,
+      purple: 0,
       totalTimeMinutes: 0,
       totalPatients: 0,
       lastUpdated: new Date().toISOString(),
@@ -1156,9 +1189,12 @@ function formatElapsedTime(ms) {
 // Patient management
 function renderPatients(snapshot) {
   const grid = $('#grid');
-  
+  const addBtn = $('#addPatient');
+
+  grid.innerHTML = '';
+
   if (snapshot.empty) {
-    grid.innerHTML = '<div class="empty-state"><p>Aucun patient actif</p><p>Cliquez sur "Ajouter un patient" pour commencer</p></div>';
+    grid.appendChild(addBtn);
     return;
   }
   
@@ -1171,6 +1207,7 @@ function renderPatients(snapshot) {
   patients.sort((a, b) => (triagePriority[a.triage] || 6) - (triagePriority[b.triage] || 6));
   
   grid.innerHTML = patients.map(patient => createPatientCardHTML(patient)).join('');
+  grid.appendChild(addBtn);
 }
 
 function createPatientCardHTML(patient) {
@@ -1309,7 +1346,7 @@ async function savePatient() {
     await setDoc(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
     
     // Update stats immediately
-    await updateUserStats('added');
+    await updateUserStats('added', 0, selectedTriage.dataset.triage);
     
     closeAllModals();
     console.log('Patient ajouté:', name);

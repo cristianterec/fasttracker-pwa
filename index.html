@@ -55,13 +55,14 @@
         <img src="my_icon_192_F.png" width="42" height="42" style="vertical-align:middle;margin-right:4px;">
         FastTrackers
       </div>
-      <div class="user-panel">
-        <button id="usernameBtn" class="username-btn">
-          <span id="username"></span>
-          <span class="profile-icon">👤</span>
-        </button>
-        <button id="logout">Déconnexion</button>
-      </div>
+        <div class="user-panel">
+          <button id="transferBtn" class="transfer-btn">🔄 Relève</button>
+          <button id="usernameBtn" class="username-btn">
+            <span id="username"></span>
+            <span class="profile-icon">👤</span>
+          </button>
+          <button id="logout">Déconnexion</button>
+        </div>
     </header>
 
     <nav class="tabs">
@@ -71,11 +72,9 @@
 
     <!-- PATIENTS TAB -->
     <main id="patients" class="tab-content">
-      <div class="patients-header">
-        <button id="transferBtn" class="transfer-btn">🔄 Relève</button>
+      <div id="grid" class="grid">
+        <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
       </div>
-      <div id="grid" class="grid"></div>
-      <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
     </main>
 
     <!-- STATISTICS TAB -->
@@ -124,6 +123,54 @@
             <div class="stat-content">
               <div class="stat-number" id="statAvgTime">0h 0m</div>
               <div class="stat-label">Temps moyen par patient</div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-red">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statRed">0</div>
+              <div class="stat-label">Triage rouge</div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-orange">
+            <div class="stat-icon">🟠</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statOrange">0</div>
+              <div class="stat-label">Triage orange</div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-yellow">
+            <div class="stat-icon">🟡</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statYellow">0</div>
+              <div class="stat-label">Triage jaune</div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-green">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statGreen">0</div>
+              <div class="stat-label">Triage vert</div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-blue">
+            <div class="stat-icon">🔵</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statBlue">0</div>
+              <div class="stat-label">Triage bleu</div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-purple">
+            <div class="stat-icon">🟣</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statPurple">0</div>
+              <div class="stat-label">Triage violet</div>
             </div>
           </div>
         </div>
