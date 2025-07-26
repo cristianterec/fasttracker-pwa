@@ -1158,7 +1158,7 @@ function renderPatients(snapshot) {
   const grid = $('#grid');
   
   if (snapshot.empty) {
-    grid.innerHTML = '';
+    grid.innerHTML = '<div class="empty-state"><p>Aucun patient actif</p><p>Cliquez sur "Ajouter un patient" pour commencer</p></div>';
     return;
   }
   
@@ -1184,7 +1184,7 @@ function createPatientCardHTML(patient) {
     </div>` : '';
   
   return `
-    <div class="card ${patient.triage} ${notesDisplay ? '' : 'no-notes'}" data-patient-id="${patient.id}">
+    <div class="card ${patient.triage}" data-patient-id="${patient.id}">
       <!-- Live timer -->
       <div class="live-timer" data-created="${patient.createdAt}">
         ${formatElapsedTime(Date.now() - new Date(patient.createdAt).getTime())}
@@ -1306,10 +1306,7 @@ async function savePatient() {
     await setDoc(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
     
     // Update stats immediately
-    await updateUserStats(
-        action === 'discharge' ? 'discharged' :
-        action === 'hospitalize' ? 'hospitalized' :
-        action === 'transfer' ? 'transferred' : action, timeSpentMinutes);
+    await updateUserStats('added');
     
     closeAllModals();
     console.log('Patient ajouté:', name);

@@ -1662,8 +1662,3 @@ body {
     font-size: 1rem;
   }
 }
-
-/* Prevent overlap between live timer and tasks when no notes */
-.card.no-notes .tasks {
-  margin-top: var(--space-6);
-}
