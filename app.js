@@ -942,7 +942,7 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
 // Update stats display
 function updateStatsDisplay(stats) {
   const statAdded = $('#statAdded');
-  const statPerHour = $('#statPerHour');
+  const statAddPerHour = $('#statAddPerHour');
   const statAvgTime = $('#statAvgTime');
 
   const hospTotal = $('#statHospitalizedTotal');
@@ -979,10 +979,10 @@ function updateStatsDisplay(stats) {
 
   if (statAdded) statAdded.textContent = stats.added || 0;
 
-  if (statPerHour) {
+  if (statAddPerHour) {
     const start = new Date(stats.addedStart || new Date());
     const hoursDiff = Math.max((Date.now() - start.getTime()) / 3600000, 0.01);
-    statPerHour.textContent = (stats.added / hoursDiff).toFixed(1);
+    statAddPerHour.textContent = (stats.added / hoursDiff).toFixed(1);
   }
 
   if (hospTotal) hospTotal.textContent = orientations.hospitalized.total || 0;

@@ -357,7 +357,7 @@ body {
   color: white;
   border: none;
   border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-4);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1074,9 +1074,26 @@ body {
   font-size: var(--font-size-sm);
 }
 
-.triage-counts .count {
-  font-weight: 600;
+
+.triage-counts .triage-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
+
+.triage-counts .dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.triage-counts .dot.red { background: var(--triage-red); }
+.triage-counts .dot.orange { background: var(--triage-orange); }
+.triage-counts .dot.yellow { background: var(--triage-yellow); }
+.triage-counts .dot.green { background: var(--triage-green); }
+.triage-counts .dot.blue { background: var(--triage-blue); }
+.triage-counts .dot.purple { background: var(--triage-purple); }
 
 .orientation-card.stat-hospitalized::before {
   background: linear-gradient(135deg, var(--accent-orange), #d97706);
