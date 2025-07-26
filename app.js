@@ -76,7 +76,8 @@ async function initializeFirebase() {
 // Initialize app
 async function initializeApp() {
   console.log('Initializing FastTrackers...');
-  
+
+  applySavedTheme();
   await initializeFirebase();
   setupAuthEventListeners();
   setupAppEventListeners();
@@ -810,9 +811,12 @@ function setupAppEventListeners() {
   $('#editNameBtn').addEventListener('click', showEditNameModal);
   $('#changePinBtn').addEventListener('click', showChangePinModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
-  
+
   // Stats reset button
   $('#resetStatsBtn').addEventListener('click', resetUserStats);
+
+  // Theme toggle
+  setupThemeToggle();
   
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
@@ -1040,6 +1044,34 @@ async function resetUserStats() {
   } catch (error) {
     console.error('Error resetting stats:', error);
     alert('Erreur lors de la réinitialisation');
+  }
+}
+
+// Theme handling
+function applySavedTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.body.classList.toggle('light-mode', saved === 'light');
+  updateThemeColorMeta();
+}
+
+function setupThemeToggle() {
+  const toggle = $('#themeToggle');
+  if (!toggle) return;
+  applySavedTheme();
+  toggle.checked = document.body.classList.contains('light-mode');
+  toggle.addEventListener('change', () => {
+    const light = toggle.checked;
+    document.body.classList.toggle('light-mode', light);
+    localStorage.setItem('theme', light ? 'light' : 'dark');
+    updateThemeColorMeta();
+  });
+}
+
+function updateThemeColorMeta() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    const color = getComputedStyle(document.body).getPropertyValue('--bg-primary');
+    meta.setAttribute('content', color.trim());
   }
 }
 
