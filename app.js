@@ -21,6 +21,7 @@ let unsubscribeTransfers = null;
 let app = null;
 let updateTimerHandle = null;
 let liveTimerHandle = null;
+let currentStats = null;
 
 // DOM helpers
 const $ = (selector) => document.querySelector(selector);
@@ -951,9 +952,14 @@ function updateStatsDisplay(stats) {
   if (statAdded) statAdded.textContent = stats.added || 0;
 
   if (statAddPerHour) {
-    const start = new Date(stats.addedStart || new Date());
-    const hoursDiff = Math.max((Date.now() - start.getTime()) / 3600000, 0.01);
-    statAddPerHour.textContent = (stats.added / hoursDiff).toFixed(1);
+    const totalMinutes = stats.totalTimeMinutes || 0;
+    const total = stats.totalPatients || 0;
+    if (totalMinutes > 0) {
+      const rate = total / (totalMinutes / 60);
+      statAddPerHour.textContent = rate.toFixed(1);
+    } else {
+      statAddPerHour.textContent = '0';
+    }
   }
 
   if (hospTotal) hospTotal.textContent = orientations.hospitalized.total || 0;
@@ -1010,6 +1016,8 @@ function updateStatsDisplay(stats) {
       }
     }
   }
+
+  currentStats = stats;
 }
 
 // Reset user statistics
@@ -1038,12 +1046,30 @@ async function resetUserStats() {
     };
     
     await setDoc(doc(db, 'userStats', currentUserId), resetStats);
-    
+
+    await resetTaskSuggestionsData();
+
     alert('Statistiques réinitialisées avec succès!');
     
   } catch (error) {
     console.error('Error resetting stats:', error);
     alert('Erreur lors de la réinitialisation');
+  }
+}
+
+async function resetTaskSuggestionsData() {
+  try {
+    const { doc, setDoc } = window.firestoreFunctions;
+    await setDoc(doc(db, 'users', currentUserId, 'taskSuggestions', 'main'), {
+      suggestions: [
+        { description: 'Senior', timer: 0, frequency: 1 },
+        { description: 'Bilan bio', timer: 70, frequency: 1 },
+        { description: 'ECG', timer: 0, frequency: 1 },
+        { description: 'BU', timer: 0, frequency: 1 }
+      ]
+    });
+  } catch (error) {
+    console.error('Error resetting task suggestions:', error);
   }
 }
 
@@ -1219,6 +1245,25 @@ function updateLiveTimers() {
     const elapsed = now - createdAt;
     el.textContent = formatElapsedTime(elapsed);
   });
+
+  if (currentStats) {
+    const timers = $$('.live-timer');
+    let activeMinutes = 0;
+    timers.forEach(el => {
+      const createdAt = new Date(el.dataset.created).getTime();
+      activeMinutes += (now - createdAt) / 60000;
+    });
+
+    const totalMinutes = (currentStats.totalTimeMinutes || 0) + activeMinutes;
+    const totalPatients = (currentStats.totalPatients || 0) + timers.length;
+    const statAvgTime = $('#statAvgTime');
+    if (statAvgTime && totalPatients > 0) {
+      const avg = Math.round(totalMinutes / totalPatients);
+      const h = Math.floor(avg / 60);
+      const m = avg % 60;
+      statAvgTime.textContent = `${h}h ${m}m`;
+    }
+  }
 }
 
 function formatTime(ms) {

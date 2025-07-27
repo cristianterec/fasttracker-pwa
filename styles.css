@@ -386,6 +386,7 @@ body {
   display: grid;
   gap: var(--space-5);
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items: flex-start;
   margin-top: var(--space-4);
   margin-bottom: var(--space-8);
   margin-left: 1rem;
@@ -1038,9 +1039,36 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
-.avg-triage-grid {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+
+.avg-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-6);
 }
+
+.avg-table th,
+.avg-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.avg-table tbody tr:nth-child(odd) {
+  background: var(--bg-card);
+}
+
+.avg-table .dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+.avg-table .dot.red { background: var(--triage-red); }
+.avg-table .dot.orange { background: var(--triage-orange); }
+.avg-table .dot.yellow { background: var(--triage-yellow); }
+.avg-table .dot.green { background: var(--triage-green); }
+.avg-table .dot.blue { background: var(--triage-blue); }
+.avg-table .dot.purple { background: var(--triage-purple); }
 
 /* Layout for longer orientation cards */
 .orientation-card {
@@ -1720,6 +1748,7 @@ body {
     grid-template-columns: 1fr;
     margin-left: 2rem;
     margin-right: 2rem;
+    align-items: flex-start;
   }
   
   .tab-content#patients,
@@ -1794,6 +1823,7 @@ body {
   .grid {
     margin-left: 1.5rem;
     margin-right: 1.5rem;
+    align-items: flex-start;
   }
   
   .tab-content#patients,

@@ -161,50 +161,22 @@
           </div>
         </div>
 
-        <div class="stats-grid avg-triage-grid">
-          <div class="stat-card stat-red">
-            <div class="stat-icon">🔴</div>
-            <div class="stat-content">
-              <div class="stat-number" id="avgRed">0h</div>
-              <div class="stat-label">Moyenne rouge</div>
-            </div>
-          </div>
-          <div class="stat-card stat-orange">
-            <div class="stat-icon">🟠</div>
-            <div class="stat-content">
-              <div class="stat-number" id="avgOrange">0h</div>
-              <div class="stat-label">Moyenne orange</div>
-            </div>
-          </div>
-          <div class="stat-card stat-yellow">
-            <div class="stat-icon">🟡</div>
-            <div class="stat-content">
-              <div class="stat-number" id="avgYellow">0h</div>
-              <div class="stat-label">Moyenne jaune</div>
-            </div>
-          </div>
-          <div class="stat-card stat-green">
-            <div class="stat-icon">🟢</div>
-            <div class="stat-content">
-              <div class="stat-number" id="avgGreen">0h</div>
-              <div class="stat-label">Moyenne verte</div>
-            </div>
-          </div>
-          <div class="stat-card stat-blue">
-            <div class="stat-icon">🔵</div>
-            <div class="stat-content">
-              <div class="stat-number" id="avgBlue">0h</div>
-              <div class="stat-label">Moyenne bleue</div>
-            </div>
-          </div>
-          <div class="stat-card stat-purple">
-            <div class="stat-icon">🟣</div>
-            <div class="stat-content">
-              <div class="stat-number" id="avgPurple">0h</div>
-              <div class="stat-label">Moyenne violette</div>
-            </div>
-          </div>
-        </div>
+        <table class="avg-table">
+          <thead>
+            <tr>
+              <th>Triages</th>
+              <th>Temps moyen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="red"><td><span class="dot red"></span>Rouge</td><td id="avgRed">0h</td></tr>
+            <tr class="orange"><td><span class="dot orange"></span>Orange</td><td id="avgOrange">0h</td></tr>
+            <tr class="yellow"><td><span class="dot yellow"></span>Jaune</td><td id="avgYellow">0h</td></tr>
+            <tr class="green"><td><span class="dot green"></span>Vert</td><td id="avgGreen">0h</td></tr>
+            <tr class="blue"><td><span class="dot blue"></span>Bleu</td><td id="avgBlue">0h</td></tr>
+            <tr class="purple"><td><span class="dot purple"></span>Violet</td><td id="avgPurple">0h</td></tr>
+          </tbody>
+        </table>
         
         <div class="stats-actions">
           <button id="resetStatsBtn" class="reset-stats-btn">
