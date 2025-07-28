@@ -18,6 +18,7 @@ let db = null;
 let unsubscribePatients = null;
 let unsubscribeStats = null;
 let unsubscribeTransfers = null;
+let unsubscribeDaily = null;
 let app = null;
 let updateTimerHandle = null;
 let liveTimerHandle = null;
@@ -198,6 +199,7 @@ async function initializeUserData(userId) {
   // Initialize stats with proper structure
   await setDoc(doc(db, 'userStats', userId), {
     added: 0,
+    completedTasks: 0,
     triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
     orientations: {
       hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
@@ -749,7 +751,7 @@ async function declineTransfer(transferId, transfer) {
 // Start real-time listeners
 async function startRealtimeListeners() {
   try {
-    const { collection, doc, onSnapshot, orderBy, query, where } = window.firestoreFunctions;
+    const { collection, doc, onSnapshot, orderBy, query, where, limit } = window.firestoreFunctions;
     
     // Patients listener
     const patientsQuery = query(
@@ -768,6 +770,16 @@ async function startRealtimeListeners() {
         updateStatsDisplay(stats);
       }
     });
+
+    // Daily stats listener
+    unsubscribeDaily = onSnapshot(
+      query(collection(db, 'userDailyStats', currentUserId, 'days'), orderBy('date', 'desc'), limit(7)),
+      (snapshot) => {
+        const days = [];
+        snapshot.forEach(d => days.push(d.data()));
+        renderDailyCarousel(days);
+      }
+    );
 
     // Transfers listener
     unsubscribeTransfers = onSnapshot(query(
@@ -850,6 +862,7 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
     const statsDoc = await getDoc(statsRef);
     let stats = {
       added: 0,
+      completedTasks: 0,
       triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       orientations: {
         hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
@@ -894,13 +907,17 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
         stats.totalTimeMinutes += timeSpent;
         stats.totalPatients += 1;
         break;
+      case 'taskCompleted':
+        stats.completedTasks += 1;
+        break;
     }
     
     stats.lastUpdated = new Date().toISOString();
     
     // Save updated stats
     await setDoc(statsRef, stats);
-    
+    await updateDailyStats(action, timeSpent);
+
     console.log('Stats updated:', action, stats);
     
   } catch (error) {
@@ -908,10 +925,53 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
   }
 }
 
+async function updateDailyStats(action, timeSpent = 0) {
+  try {
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const today = new Date().toISOString().slice(0, 10);
+    const ref = doc(db, 'userDailyStats', currentUserId, 'days', today);
+
+    const snap = await getDoc(ref);
+    let data = {
+      date: today,
+      added: 0,
+      hospitalized: 0,
+      discharged: 0,
+      transferred: 0,
+      totalTimeMinutes: 0,
+      totalPatients: 0
+    };
+
+    if (snap.exists()) {
+      data = { ...data, ...snap.data() };
+    }
+
+    switch (action) {
+      case 'added':
+        data.added += 1;
+        break;
+      case 'hospitalized':
+      case 'discharged':
+      case 'transferred':
+        data[action] += 1;
+        data.totalTimeMinutes += timeSpent;
+        data.totalPatients += 1;
+        break;
+    }
+
+    data.lastUpdated = new Date().toISOString();
+
+    await setDoc(ref, data);
+  } catch (error) {
+    console.error('Error updating daily stats:', error);
+  }
+}
+
 // Update stats display
 function updateStatsDisplay(stats) {
   const statAdded = $('#statAdded');
   const statAvgTime = $('#statAvgTime');
+  const statCompleted = $('#statCompleted');
 
   const hospTotal = $('#statHospitalizedTotal');
   const disTotal = $('#statDischargedTotal');
@@ -935,15 +995,7 @@ function updateStatsDisplay(stats) {
   const transBlue = $('#statTransBlue');
   const transPurple = $('#statTransPurple');
 
-  const avgRed = $('#avgRed');
-  const avgOrange = $('#avgOrange');
-  const avgYellow = $('#avgYellow');
-  const avgGreen = $('#avgGreen');
-  const avgBlue = $('#avgBlue');
-  const avgPurple = $('#avgPurple');
-
   const orientations = stats.orientations || { hospitalized: {}, discharged: {}, transferred: {} };
-  const timePerTriage = stats.timePerTriageMinutes || {};
 
   if (statAdded) statAdded.textContent = stats.added || 0;
 
@@ -985,25 +1037,41 @@ function updateStatsDisplay(stats) {
     statAvgTime.textContent = '0h 0m';
   }
 
-  const triages = ['red','orange','yellow','green','blue','purple'];
-  const avgElements = { red: avgRed, orange: avgOrange, yellow: avgYellow, green: avgGreen, blue: avgBlue, purple: avgPurple };
 
-  for (const t of triages) {
-    const total = (orientations.hospitalized[t] || 0) + (orientations.discharged[t] || 0) + (orientations.transferred[t] || 0);
-    const totalTime = timePerTriage[t] || 0;
-    if (avgElements[t]) {
-      if (total > 0) {
-        const avgMin = Math.round(totalTime / total);
-        const h = Math.floor(avgMin / 60);
-        const m = avgMin % 60;
-        avgElements[t].textContent = `${h}h ${m}m`;
-      } else {
-        avgElements[t].textContent = '0h';
-      }
-    }
-  }
+  if (statCompleted) statCompleted.textContent = stats.completedTasks || 0;
 
   currentStats = stats;
+}
+
+function renderDailyCarousel(days) {
+  const container = $('#dailyCarousel');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const ordered = days.sort((a, b) => b.date.localeCompare(a.date));
+
+  ordered.forEach(day => {
+    const maxVal = Math.max(day.added || 0, day.hospitalized || 0, day.discharged || 0, day.transferred || 0, 1);
+    const avgMin = day.totalPatients > 0 ? Math.round((day.totalTimeMinutes || 0) / day.totalPatients) : 0;
+    const h = Math.floor(avgMin / 60);
+    const m = avgMin % 60;
+    const dateParts = day.date.split('-');
+    const displayDate = `${dateParts[2]}/${dateParts[1]}`;
+
+    const card = document.createElement('div');
+    card.className = 'daily-card';
+    card.innerHTML = `
+      <div class="daily-date">${displayDate}</div>
+      <div class="daily-bars">
+        <div class="bar added" style="height:${(day.added / maxVal) * 100}%"><span>${day.added || 0}</span></div>
+        <div class="bar hosp" style="height:${(day.hospitalized / maxVal) * 100}%"><span>${day.hospitalized || 0}</span></div>
+        <div class="bar dis" style="height:${(day.discharged / maxVal) * 100}%"><span>${day.discharged || 0}</span></div>
+        <div class="bar trans" style="height:${(day.transferred / maxVal) * 100}%"><span>${day.transferred || 0}</span></div>
+      </div>
+      <div class="daily-avg">⏱️ ${h}h ${m}m</div>
+    `;
+    container.appendChild(card);
+  });
 }
 
 // Reset user statistics
@@ -1017,6 +1085,7 @@ async function resetUserStats() {
     
     const resetStats = {
       added: 0,
+      completedTasks: 0,
       triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       orientations: {
         hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
@@ -1146,6 +1215,7 @@ function logout() {
   if (unsubscribePatients) unsubscribePatients();
   if (unsubscribeStats) unsubscribeStats();
   if (unsubscribeTransfers) unsubscribeTransfers();
+  if (unsubscribeDaily) unsubscribeDaily();
   stopLiveTimers();
   
   currentUser = null;
@@ -1597,10 +1667,11 @@ async function completeTask(patientId, taskId) {
     
     if (patientSnap.exists()) {
       const patientData = patientSnap.data();
-      const updatedTasks = patientData.tasks.map(task => 
+      const updatedTasks = patientData.tasks.map(task =>
         task.id === taskId ? { ...task, completed: true, completedAt: new Date().toISOString() } : task
       );
       await updateDoc(patientRef, { tasks: updatedTasks });
+      await updateUserStats('taskCompleted');
     }
     
   } catch (error) {

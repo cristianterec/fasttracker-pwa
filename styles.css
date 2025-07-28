@@ -383,21 +383,18 @@ body {
 
 /* Grid - ADDITIONAL MARGINS TO ENSURE NO OVERLAP */
 .grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-5);
-  align-items: flex-start;
-  justify-content: flex-start;
   margin-top: var(--space-4);
   margin-bottom: var(--space-8);
-  margin-left: 1rem;
-  margin-right: 1rem;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
 }
 
 .grid .card,
 .grid .add-btn {
-  flex: 1 1 calc(25% - var(--space-5));
-  min-width: 220px;
+  width: 100%;
 }
 
 /* Patient Cards */
@@ -407,7 +404,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
-  min-height: 200px;
+  height: 260px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1047,35 +1045,6 @@ body {
 }
 
 
-.avg-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: var(--space-6);
-}
-
-.avg-table th,
-.avg-table td {
-  padding: var(--space-2) var(--space-3);
-  text-align: left;
-}
-
-.avg-table tbody tr:nth-child(odd) {
-  background: var(--bg-card);
-}
-
-.avg-table .dot {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 0.5rem;
-}
-.avg-table .dot.red { background: var(--triage-red); }
-.avg-table .dot.orange { background: var(--triage-orange); }
-.avg-table .dot.yellow { background: var(--triage-yellow); }
-.avg-table .dot.green { background: var(--triage-green); }
-.avg-table .dot.blue { background: var(--triage-blue); }
-.avg-table .dot.purple { background: var(--triage-purple); }
 
 /* Layout for longer orientation cards */
 .orientation-card {
@@ -1187,6 +1156,10 @@ body {
   background: linear-gradient(135deg, var(--accent-blue), #2563eb);
 }
 
+.stat-card.stat-completed::before {
+  background: linear-gradient(135deg, var(--accent-green), #16a34a);
+}
+
 .stat-card.stat-hospitalized::before {
   background: linear-gradient(135deg, var(--accent-orange), #d97706);
 }
@@ -1273,6 +1246,72 @@ body {
 .reset-stats-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+
+/* Daily stats carousel */
+.daily-carousel {
+  display: flex;
+  gap: var(--space-6);
+  overflow-x: auto;
+  padding: var(--space-4) 0;
+  margin-top: var(--space-6);
+}
+
+.daily-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  min-width: 150px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.daily-date {
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.daily-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  height: 80px;
+  width: 100%;
+  margin-bottom: var(--space-3);
+}
+
+.daily-bars .bar {
+  flex: 1;
+  border-radius: var(--radius-sm);
+  position: relative;
+  background: var(--accent-blue);
+}
+
+.daily-bars .bar.hosp {
+  background: var(--accent-orange);
+}
+.daily-bars .bar.dis {
+  background: var(--accent-green);
+}
+.daily-bars .bar.trans {
+  background: var(--accent-yellow);
+}
+
+.daily-bars .bar span {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--font-size-xs);
+}
+
+.daily-avg {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 /* Profile */
@@ -1754,11 +1793,7 @@ body {
   .grid {
     margin-left: 2rem;
     margin-right: 2rem;
-  }
-
-  .grid .card,
-  .grid .add-btn {
-    flex-basis: 100%;
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .tab-content#patients,
@@ -1833,11 +1868,7 @@ body {
   .grid {
     margin-left: 1.5rem;
     margin-right: 1.5rem;
-  }
-
-  .grid .card,
-  .grid .add-btn {
-    flex-basis: 100%;
+    grid-template-columns: 1fr;
   }
   
   .tab-content#patients,
