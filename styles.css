@@ -558,9 +558,10 @@ body {
   margin-top: var(--space-10);
 }
 
-/* When no tasks and no notes, separate actions from timer */
+/* When no tasks and no notes, keep actions at the bottom but add spacing */
 .card.no-notes.no-tasks .actions {
-  margin-top: var(--space-10);
+  margin-top: auto;
+  padding-top: var(--space-10);
 }
 
 .task {
