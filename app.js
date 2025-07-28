@@ -23,6 +23,14 @@ let updateTimerHandle = null;
 let liveTimerHandle = null;
 let currentStats = null;
 
+const DEFAULT_SUGGESTIONS = [
+  { description: 'Bilan bio', timer: 70 },
+  { description: 'Validation senior', timer: 0 },
+  { description: 'ECG', timer: 0 },
+  { description: 'Imagerie', timer: 0 },
+  { description: 'BU', timer: 0 }
+];
+
 // DOM helpers
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
@@ -190,7 +198,6 @@ async function initializeUserData(userId) {
   // Initialize stats with proper structure
   await setDoc(doc(db, 'userStats', userId), {
     added: 0,
-    addedStart: new Date().toISOString(),
     triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
     orientations: {
       hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
@@ -220,15 +227,6 @@ async function initializeUserData(userId) {
     lastUpdated: new Date().toISOString()
   });
   
-  // Initialize task suggestions
-  await setDoc(doc(db, 'users', userId, 'taskSuggestions', 'main'), {
-    suggestions: [
-      { description: "Senior", timer: 0, frequency: 1 },
-      { description: "Bilan bio", timer: 70, frequency: 1 },
-      { description: "ECG", timer: 0, frequency: 1 },
-      { description: "BU", timer: 0, frequency: 1 }
-    ]
-  });
 }
 
 // Handle user login
@@ -852,7 +850,6 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
     const statsDoc = await getDoc(statsRef);
     let stats = {
       added: 0,
-      addedStart: new Date().toISOString(),
       triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       orientations: {
         hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
@@ -914,7 +911,6 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
 // Update stats display
 function updateStatsDisplay(stats) {
   const statAdded = $('#statAdded');
-  const statAddPerHour = $('#statAddPerHour');
   const statAvgTime = $('#statAvgTime');
 
   const hospTotal = $('#statHospitalizedTotal');
@@ -951,16 +947,6 @@ function updateStatsDisplay(stats) {
 
   if (statAdded) statAdded.textContent = stats.added || 0;
 
-  if (statAddPerHour) {
-    const totalMinutes = stats.totalTimeMinutes || 0;
-    const total = stats.totalPatients || 0;
-    if (totalMinutes > 0) {
-      const rate = total / (totalMinutes / 60);
-      statAddPerHour.textContent = rate.toFixed(1);
-    } else {
-      statAddPerHour.textContent = '0';
-    }
-  }
 
   if (hospTotal) hospTotal.textContent = orientations.hospitalized.total || 0;
   if (disTotal) disTotal.textContent = orientations.discharged.total || 0;
@@ -1031,7 +1017,6 @@ async function resetUserStats() {
     
     const resetStats = {
       added: 0,
-      addedStart: new Date().toISOString(),
       triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       orientations: {
         hospitalized: { total: 0, red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
@@ -1047,29 +1032,11 @@ async function resetUserStats() {
     
     await setDoc(doc(db, 'userStats', currentUserId), resetStats);
 
-    await resetTaskSuggestionsData();
-
     alert('Statistiques réinitialisées avec succès!');
     
   } catch (error) {
     console.error('Error resetting stats:', error);
     alert('Erreur lors de la réinitialisation');
-  }
-}
-
-async function resetTaskSuggestionsData() {
-  try {
-    const { doc, setDoc } = window.firestoreFunctions;
-    await setDoc(doc(db, 'users', currentUserId, 'taskSuggestions', 'main'), {
-      suggestions: [
-        { description: 'Senior', timer: 0, frequency: 1 },
-        { description: 'Bilan bio', timer: 70, frequency: 1 },
-        { description: 'ECG', timer: 0, frequency: 1 },
-        { description: 'BU', timer: 0, frequency: 1 }
-      ]
-    });
-  } catch (error) {
-    console.error('Error resetting task suggestions:', error);
   }
 }
 
@@ -1230,12 +1197,25 @@ function updateAllTimers() {
     const diff = target - now;
     if (diff <= 0) {
       el.textContent = '00:00';
-      el.classList.add('expired');
+      if (!el.classList.contains('expired')) {
+        el.classList.add('expired');
+        const card = el.closest('.card');
+        if (card) moveCardToFront(card);
+      }
     } else {
       el.textContent = formatTime(diff);
       el.classList.remove('expired');
     }
   });
+}
+
+function moveCardToFront(card) {
+  const grid = $('#grid');
+  const addBtn = $('#addPatient');
+  if (grid && card) {
+    grid.insertBefore(card, grid.firstChild);
+    if (addBtn) grid.appendChild(addBtn);
+  }
 }
 
 function updateLiveTimers() {
@@ -1554,27 +1534,14 @@ function showAddTaskModal(patientId) {
 }
 
 // Load task suggestions
-async function loadTaskSuggestions() {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const suggestionsSnap = await getDoc(doc(db, 'users', currentUserId, 'taskSuggestions', 'main'));
-    
-    if (suggestionsSnap.exists()) {
-      const data = suggestionsSnap.data();
-      const container = $('#suggestionChips');
-      
-      if (container) {
-        const suggestions = data.suggestions.sort((a, b) => b.frequency - a.frequency);
-        
-        container.innerHTML = suggestions.map(s => 
-          `<div class="suggestion-chip" data-description="${s.description}" data-timer="${s.timer}">
-            ${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}
-          </div>`
-        ).join('');
-      }
-    }
-  } catch (error) {
-    console.error('Error loading task suggestions:', error);
+function loadTaskSuggestions() {
+  const container = $('#suggestionChips');
+  if (container) {
+    container.innerHTML = DEFAULT_SUGGESTIONS.map(s =>
+      `<div class="suggestion-chip" data-description="${s.description}" data-timer="${s.timer}">
+        ${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}
+      </div>`
+    ).join('');
   }
 }
 
@@ -1611,8 +1578,6 @@ async function saveTask(patientId) {
       
       const updatedTasks = [...(patientData.tasks || []), task];
       await updateDoc(patientRef, { tasks: updatedTasks });
-      
-      await updateTaskSuggestions(description, minutes);
     }
     
     closeAllModals();
@@ -1620,36 +1585,6 @@ async function saveTask(patientId) {
   } catch (error) {
     console.error('Error adding task:', error);
     alert('Erreur lors de l\'ajout de la tâche');
-  }
-}
-
-// Update task suggestions based on usage
-async function updateTaskSuggestions(description, timer) {
-  try {
-    const { doc, getDoc, setDoc } = window.firestoreFunctions;
-    const suggestionsRef = doc(db, 'users', currentUserId, 'taskSuggestions', 'main');
-    const suggestionsSnap = await getDoc(suggestionsRef);
-    
-    let suggestions = [];
-    if (suggestionsSnap.exists()) {
-      suggestions = suggestionsSnap.data().suggestions || [];
-    }
-    
-    const existingIndex = suggestions.findIndex(s => s.description === description);
-    if (existingIndex >= 0) {
-      suggestions[existingIndex].frequency++;
-      suggestions[existingIndex].timer = timer;
-    } else {
-      suggestions.push({ description, timer, frequency: 1 });
-    }
-    
-    suggestions.sort((a, b) => b.frequency - a.frequency);
-    suggestions = suggestions.slice(0, 10);
-    
-    await setDoc(suggestionsRef, { suggestions });
-    
-  } catch (error) {
-    console.error('Error updating task suggestions:', error);
   }
 }
 
