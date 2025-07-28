@@ -384,12 +384,12 @@ body {
 /* Grid - ADDITIONAL MARGINS TO ENSURE NO OVERLAP */
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-5);
   margin-top: var(--space-4);
   margin-bottom: var(--space-8);
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
+  margin-left: 2rem;
+  margin-right: 2rem;
 }
 
 .grid .card,
@@ -404,7 +404,6 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
-  height: 260px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1248,71 +1247,6 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-/* Daily stats carousel */
-.daily-carousel {
-  display: flex;
-  gap: var(--space-6);
-  overflow-x: auto;
-  padding: var(--space-4) 0;
-  margin-top: var(--space-6);
-}
-
-.daily-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-backdrop);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: var(--space-4);
-  min-width: 150px;
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.daily-date {
-  font-weight: 600;
-  margin-bottom: var(--space-3);
-}
-
-.daily-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  height: 80px;
-  width: 100%;
-  margin-bottom: var(--space-3);
-}
-
-.daily-bars .bar {
-  flex: 1;
-  border-radius: var(--radius-sm);
-  position: relative;
-  background: var(--accent-blue);
-}
-
-.daily-bars .bar.hosp {
-  background: var(--accent-orange);
-}
-.daily-bars .bar.dis {
-  background: var(--accent-green);
-}
-.daily-bars .bar.trans {
-  background: var(--accent-yellow);
-}
-
-.daily-bars .bar span {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--font-size-xs);
-}
-
-.daily-avg {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
 
 /* Profile */
 .profile-card {
