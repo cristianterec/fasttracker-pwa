@@ -512,16 +512,6 @@ body {
   gap: var(--space-2);
 }
 
-.patient-notes-btn {
-  background: rgba(0, 0, 0, 0.3);
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  color: white;
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-}
 
 .patient-complaint {
   font-size: var(--font-size-lg);
@@ -1044,6 +1034,12 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
+@media (max-width: 480px) {
+  .orientation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 
 /* Layout for longer orientation cards */
@@ -1551,9 +1547,10 @@ body {
   transition: all 0.2s ease;
 }
 
+.suggestion-chip.selected,
 .suggestion-chip:hover {
   background: var(--accent-blue);
-  color: white;
+  color: #fff;
 }
 
 /* Transfer Modal */

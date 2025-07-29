@@ -900,6 +900,12 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
       case 'taskCompleted':
         stats.completedTasks += 1;
         break;
+      case 'removed':
+        stats.added = Math.max(0, stats.added - 1);
+        if (triage && stats.triageAdded[triage] > 0) {
+          stats.triageAdded[triage] -= 1;
+        }
+        break;
     }
     
     stats.lastUpdated = new Date().toISOString();
@@ -1098,13 +1104,6 @@ function globalClickHandler(e) {
     return;
   }
   
-  // Patient notes
-  if (e.target.matches('.patient-notes-btn')) {
-    e.preventDefault();
-    const patientId = e.target.dataset.pid;
-    showPatientNotesModal(patientId);
-    return;
-  }
   
   // Decision menu items
   if (e.target.matches('.menu-item')) {
@@ -1123,7 +1122,7 @@ function globalClickHandler(e) {
   // Task suggestions
   if (e.target.matches('.suggestion-chip')) {
     e.preventDefault();
-    applySuggestion(e.target);
+    e.target.classList.toggle('selected');
     return;
   }
 }
@@ -1186,8 +1185,6 @@ function updateAllTimers() {
       el.textContent = '00:00';
       if (!el.classList.contains('expired')) {
         el.classList.add('expired');
-        const card = el.closest('.card');
-        if (card) moveCardToFront(card);
       }
     } else {
       el.textContent = formatTime(diff);
@@ -1196,14 +1193,7 @@ function updateAllTimers() {
   });
 }
 
-function moveCardToFront(card) {
-  const grid = $('#grid');
-  const addBtn = $('#addPatient');
-  if (grid && card) {
-    grid.insertBefore(card, grid.firstChild);
-    if (addBtn) grid.appendChild(addBtn);
-  }
-}
+
 
 function updateLiveTimers() {
   const now = Date.now();
@@ -1310,10 +1300,7 @@ function createPatientCardHTML(patient) {
       </div>
       
       <div class="patient-main">
-        <div class="patient-name">
-          ${patient.name}
-          <button class="patient-notes-btn" data-pid="${patient.id}">📝</button>
-        </div>
+        <div class="patient-name">${patient.name}</div>
         <div class="patient-complaint">${patient.complaint}</div>
       </div>
       
@@ -1532,21 +1519,41 @@ function loadTaskSuggestions() {
   }
 }
 
-// Apply suggestion
-function applySuggestion(chip) {
-  $('#taskDescription').value = chip.dataset.description;
-  $('#taskMinutes').value = chip.dataset.timer || '';
-}
-
 // Save task
 async function saveTask(patientId) {
   const description = $('#taskDescription').value.trim();
   const minutes = parseInt($('#taskMinutes').value) || 0;
   
-  if (!description) {
-    alert('Veuillez saisir une description');
+  const chips = $$('#suggestionChips .suggestion-chip.selected');
+
+  if (!description && chips.length === 0) {
+    alert('Veuillez saisir une description ou sélectionner une suggestion');
     return;
   }
+
+  const tasksToAdd = [];
+
+  if (description) {
+    tasksToAdd.push({
+      id: generateId('task'),
+      description,
+      dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
+      completed: false,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  chips.forEach(chip => {
+    const desc = chip.dataset.description;
+    const t = parseInt(chip.dataset.timer) || 0;
+    tasksToAdd.push({
+      id: generateId('task'),
+      description: desc,
+      dueAt: t > 0 ? new Date(Date.now() + t * 60000).toISOString() : null,
+      completed: false,
+      createdAt: new Date().toISOString()
+    });
+  });
   
   try {
     const { doc, getDoc, updateDoc } = window.firestoreFunctions;
@@ -1555,15 +1562,7 @@ async function saveTask(patientId) {
     
     if (patientSnap.exists()) {
       const patientData = patientSnap.data();
-      const task = {
-        id: generateId('task'),
-        description,
-        dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
-        completed: false,
-        createdAt: new Date().toISOString()
-      };
-      
-      const updatedTasks = [...(patientData.tasks || []), task];
+      const updatedTasks = [...(patientData.tasks || []), ...tasksToAdd];
       await updateDoc(patientRef, { tasks: updatedTasks });
     }
     
@@ -1666,9 +1665,10 @@ async function handlePatientDecision(patientId, action) {
     }
     
     await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
-    
-    // Update stats based on action (exclude delete)
-    if (action !== 'delete' && patientData) {
+
+    if (action === 'delete' && patientData) {
+      await updateUserStats('removed', 0, patientData.triage);
+    } else if (patientData) {
       let statsAction = action;
       if (action === 'discharge') {
         statsAction = 'discharged';
@@ -1687,49 +1687,7 @@ async function handlePatientDecision(patientId, action) {
   }
 }
 
-// Patient notes modal
-function showPatientNotesModal(patientId) {
-  loadPatientNotes(patientId);
-}
 
-async function loadPatientNotes(patientId) {
-  try {
-    const { doc, getDoc } = window.firestoreFunctions;
-    const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
-    
-    if (patientSnap.exists()) {
-      const patient = patientSnap.data();
-      
-      const modal = createModal('📝 Notes du patient', `
-        <h4>${patient.name} - ${patient.complaint}</h4>
-        <textarea id="patientNotes" placeholder="Objectifs, attentes, notes..." rows="6">${patient.notes || ''}</textarea>
-        <button class="btn-primary" id="savePatientNotes">Sauvegarder</button>
-      `);
-      
-      $('#savePatientNotes').addEventListener('click', () => savePatientNotes(patientId));
-    }
-  } catch (error) {
-    console.error('Error loading patient notes:', error);
-  }
-}
-
-// Save patient notes
-async function savePatientNotes(patientId) {
-  const notes = $('#patientNotes').value.trim();
-  
-  try {
-    const { doc, updateDoc } = window.firestoreFunctions;
-    await updateDoc(doc(db, 'users', currentUserId, 'patients', patientId), {
-      notes,
-      notesUpdatedAt: new Date().toISOString()
-    });
-    
-    closeAllModals();
-    
-  } catch (error) {
-    console.error('Error saving patient notes:', error);
-  }
-}
 
 // Transfer modal
 function showTransferModal() {
