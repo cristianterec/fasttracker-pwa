@@ -1103,6 +1103,20 @@ function globalClickHandler(e) {
     }
     return;
   }
+
+  // Edit task
+  if (e.target.closest('.task') && !e.target.closest('button')) {
+    const taskEl = e.target.closest('.task');
+    if (!taskEl.classList.contains('completed')) {
+      const pid = taskEl.dataset.pid;
+      const tid = taskEl.dataset.tid;
+      if (pid && tid) {
+        e.preventDefault();
+        showEditTaskModal(pid, tid);
+        return;
+      }
+    }
+  }
   
   
   // Decision menu items
@@ -1320,11 +1334,11 @@ function createPatientCardHTML(patient) {
 
 function createTaskHTML(patientId, task) {
   const isCompleted = task.completed;
-  const timer = task.dueAt && !isCompleted ? 
+  const timer = task.dueAt && !isCompleted ?
     `<span class="task-timer" data-dueat="${task.dueAt}">${formatTime(new Date(task.dueAt) - Date.now())}</span>` : '';
-  
+
   return `
-    <div class="task ${isCompleted ? 'completed' : ''}">
+    <div class="task ${isCompleted ? 'completed' : ''}" data-pid="${patientId}" data-tid="${task.id}">
       <div class="task-content">
         <span class="task-desc">${task.description}</span>
         ${timer}
@@ -1610,6 +1624,72 @@ async function deleteTask(patientId, taskId) {
     
   } catch (error) {
     console.error('Error deleting task:', error);
+  }
+}
+
+// Show edit task modal
+async function showEditTaskModal(patientId, taskId) {
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, 'users', currentUserId, 'patients', patientId);
+    const snap = await getDoc(patientRef);
+
+    if (!snap.exists()) return;
+    const patient = snap.data();
+    const task = (patient.tasks || []).find(t => t.id === taskId);
+    if (!task || task.completed) return;
+
+    const remaining = task.dueAt ? Math.max(0, Math.ceil((new Date(task.dueAt) - Date.now()) / 60000)) : '';
+
+    const modal = createModal('✏️ Modifier la tâche', `
+      <input id="editTaskDesc" value="${task.description}" placeholder="Description de la tâche" required>
+      <input id="editTaskMinutes" type="number" placeholder="⏰ Délai en minutes (optionnel)" min="1" max="1440" value="${remaining}">
+      <button class="btn-primary" id="updateTask">Mettre à jour</button>
+    `);
+
+    $('#updateTask').addEventListener('click', () => updateTask(patientId, taskId));
+
+  } catch (error) {
+    console.error('Error loading task for edit:', error);
+  }
+}
+
+// Update task
+async function updateTask(patientId, taskId) {
+  const description = $('#editTaskDesc').value.trim();
+  const minutes = parseInt($('#editTaskMinutes').value) || 0;
+
+  if (!description) {
+    alert('Veuillez saisir une description');
+    return;
+  }
+
+  try {
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const patientRef = doc(db, 'users', currentUserId, 'patients', patientId);
+    const snap = await getDoc(patientRef);
+
+    if (snap.exists()) {
+      const patientData = snap.data();
+      const updatedTasks = patientData.tasks.map(task => {
+        if (task.id === taskId) {
+          return {
+            ...task,
+            description,
+            dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null
+          };
+        }
+        return task;
+      });
+
+      await updateDoc(patientRef, { tasks: updatedTasks });
+    }
+
+    closeAllModals();
+
+  } catch (error) {
+    console.error('Error updating task:', error);
+    alert('Erreur lors de la mise à jour de la tâche');
   }
 }
 

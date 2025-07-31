@@ -565,6 +565,9 @@ body {
   transition: all 0.2s ease;
   position: relative;
 }
+.task:not(.completed) {
+  cursor: pointer;
+}
 
 .task:not(.completed):hover {
   background: rgba(255, 255, 255, 0.25);
