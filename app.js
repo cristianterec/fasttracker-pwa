@@ -22,6 +22,8 @@ let app = null;
 let updateTimerHandle = null;
 let liveTimerHandle = null;
 let currentStats = null;
+let autoLogoutTimer = null;
+const AUTO_LOGOUT_DELAY = 10 * 60 * 1000;
 
 const DEFAULT_SUGGESTIONS = [
   { description: 'Bilan bio', timer: 70 },
@@ -87,6 +89,7 @@ async function initializeApp() {
   console.log('Initializing FastTrackers...');
 
   applySavedTheme();
+  showPrivacyModalIfNeeded();
   await initializeFirebase();
   setupAuthEventListeners();
   setupAppEventListeners();
@@ -120,6 +123,20 @@ function setupAuthEventListeners() {
       });
     }
   });
+}
+
+function showPrivacyModalIfNeeded() {
+  const modal = $('#privacyModal');
+  if (!modal) return;
+  if (localStorage.getItem('privacyAccepted') === '1') {
+    modal.classList.add('hidden');
+    return;
+  }
+  modal.classList.remove('hidden');
+  $('#acceptPrivacy').addEventListener('click', () => {
+    localStorage.setItem('privacyAccepted', '1');
+    modal.classList.add('hidden');
+  }, { once: true });
 }
 
 // Show/hide auth forms
@@ -271,7 +288,8 @@ async function handleLogin() {
     await checkForTransfers();
     startLiveTimers();
     initializePanels();
-    
+    setupAutoLogout();
+
     console.log('Login successful for:', currentUser);
     
   } catch (error) {
@@ -1147,7 +1165,8 @@ function logout() {
   if (unsubscribeStats) unsubscribeStats();
   if (unsubscribeTransfers) unsubscribeTransfers();
   stopLiveTimers();
-  
+  clearAutoLogout();
+
   currentUser = null;
   currentUserId = null;
   
@@ -1158,6 +1177,29 @@ function logout() {
   $('#loginName').value = '';
   $('#pinInput').value = '';
   showLoginForm();
+}
+
+function setupAutoLogout() {
+  ['click', 'mousemove', 'keydown', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, resetAutoLogoutTimer, { passive: true });
+  });
+  resetAutoLogoutTimer();
+}
+
+function resetAutoLogoutTimer() {
+  clearTimeout(autoLogoutTimer);
+  autoLogoutTimer = setTimeout(() => {
+    alert('Déconnexion automatique pour inactivité');
+    logout();
+  }, AUTO_LOGOUT_DELAY);
+}
+
+function clearAutoLogout() {
+  ['click', 'mousemove', 'keydown', 'touchstart'].forEach(evt => {
+    document.removeEventListener(evt, resetAutoLogoutTimer);
+  });
+  clearTimeout(autoLogoutTimer);
+  autoLogoutTimer = null;
 }
 
 // Tab switching
