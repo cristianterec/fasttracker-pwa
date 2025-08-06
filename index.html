@@ -18,17 +18,6 @@
 </head>
 
 <body>
-  <div id="privacyModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Charte de confidentialité</h2>
-      </div>
-      <div class="modal-content">
-        <p>En utilisant cette application, vous vous engagez à respecter le RGPD et la législation française relative aux données de santé. Aucune donnée nominative ne doit être saisie et vous devez disposer des autorisations nécessaires.</p>
-        <button id="acceptPrivacy" class="btn-primary">J'ai compris</button>
-      </div>
-    </div>
-  </div>
   <!-- AUTH SCREEN -->
   <section id="auth" class="auth-screen">
     <div class="auth-card">
@@ -280,6 +269,33 @@
           <button id="acceptTransfer" class="btn-primary">✅ Accepter</button>
           <button id="declineTransfer" class="btn-secondary">❌ Refuser</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboarding Prompt Modal -->
+  <div id="onboardingPrompt" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-content">
+        <p>Souhaitez-vous suivre un tutoriel de démarrage ?</p>
+        <div class="transfer-actions">
+          <button id="startOnboarding" class="btn-primary">Oui</button>
+          <button id="skipOnboarding" class="btn-secondary">Non</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboarding Tutorial Modal -->
+  <div id="onboardingModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Tutoriel</h2>
+      </div>
+      <div class="modal-content" id="onboardingContent"></div>
+      <div class="transfer-actions">
+        <button id="nextOnboarding" class="btn-primary">Suivant</button>
+        <button id="closeOnboarding" class="btn-secondary hidden">Fermer</button>
       </div>
     </div>
   </div>
