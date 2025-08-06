@@ -24,7 +24,6 @@ let liveTimerHandle = null;
 let currentStats = null;
 let autoLogoutTimer = null;
 const AUTO_LOGOUT_DELAY = 10 * 60 * 1000;
-let onboardingStep = 0;
 
 const DEFAULT_SUGGESTIONS = [
   { description: 'Bilan bio', timer: 70 },
@@ -32,13 +31,6 @@ const DEFAULT_SUGGESTIONS = [
   { description: 'ECG', timer: 0 },
   { description: 'Imagerie', timer: 0 },
   { description: 'BU', timer: 0 }
-];
-
-const ONBOARDING_STEPS = [
-  'Ajoutez un patient avec le bouton "Ajouter un patient".',
-  'Cliquez sur une carte pour gérer les tâches et les décisions.',
-  'Consultez l\'onglet Statistiques pour suivre votre activité.',
-  'Transférez des patients avec le bouton "Relève".'
 ];
 
 // DOM helpers
@@ -181,8 +173,7 @@ async function handleRegister() {
       id: userId,
       name: name,
       pin: pin,
-      createdAt: new Date().toISOString(),
-      onboarded: false
+      createdAt: new Date().toISOString()
     };
     
     await setDoc(doc(db, 'users', userId), userData);
@@ -283,10 +274,6 @@ async function handleLogin() {
     startLiveTimers();
     initializePanels();
     setupAutoLogout();
-
-    if (!userData.onboarded) {
-      showOnboardingPrompt();
-    }
 
     console.log('Login successful for:', currentUser);
     
@@ -740,66 +727,6 @@ async function declineTransfer(transferId, transfer) {
     
   } catch (error) {
     console.error('Error declining transfer:', error);
-  }
-}
-
-// Onboarding flow
-function showOnboardingPrompt() {
-  const prompt = $('#onboardingPrompt');
-  if (!prompt) return;
-  prompt.classList.remove('hidden');
-  $('#startOnboarding').onclick = () => {
-    prompt.classList.add('hidden');
-    startOnboarding();
-  };
-  $('#skipOnboarding').onclick = async () => {
-    prompt.classList.add('hidden');
-    await markOnboardingComplete();
-  };
-}
-
-function startOnboarding() {
-  onboardingStep = 0;
-  updateOnboardingContent();
-  const modal = $('#onboardingModal');
-  modal.classList.remove('hidden');
-  $('#nextOnboarding').onclick = advanceOnboarding;
-  $('#closeOnboarding').onclick = finishOnboarding;
-}
-
-function updateOnboardingContent() {
-  $('#onboardingContent').textContent = ONBOARDING_STEPS[onboardingStep];
-  const nextBtn = $('#nextOnboarding');
-  const closeBtn = $('#closeOnboarding');
-  if (onboardingStep >= ONBOARDING_STEPS.length - 1) {
-    nextBtn.classList.add('hidden');
-    closeBtn.classList.remove('hidden');
-  } else {
-    nextBtn.classList.remove('hidden');
-    closeBtn.classList.add('hidden');
-  }
-}
-
-function advanceOnboarding() {
-  onboardingStep++;
-  if (onboardingStep >= ONBOARDING_STEPS.length) {
-    finishOnboarding();
-  } else {
-    updateOnboardingContent();
-  }
-}
-
-async function finishOnboarding() {
-  $('#onboardingModal').classList.add('hidden');
-  await markOnboardingComplete();
-}
-
-async function markOnboardingComplete() {
-  try {
-    const { doc, updateDoc } = window.firestoreFunctions;
-    await updateDoc(doc(db, 'users', currentUserId), { onboarded: true });
-  } catch (err) {
-    console.error('Error saving onboarding status:', err);
   }
 }
 
