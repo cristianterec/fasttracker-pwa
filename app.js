@@ -33,7 +33,37 @@ const DEFAULT_SUGGESTIONS = [
   { description: 'BU', timer: 0 }
 ];
 
-let taskTemplates = [];
+const ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef';
+
+async function getEncryptionKey() {
+  return crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(ENCRYPTION_KEY),
+    'AES-GCM',
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptText(text) {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(text);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+  const ivStr = btoa(String.fromCharCode(...iv));
+  const dataStr = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+  return `${ivStr}:${dataStr}`;
+}
+
+async function decryptText(text) {
+  if (!text || !text.includes(':')) return text;
+  const [ivStr, dataStr] = text.split(':');
+  const iv = Uint8Array.from(atob(ivStr), c => c.charCodeAt(0));
+  const data = Uint8Array.from(atob(dataStr), c => c.charCodeAt(0));
+  const key = await getEncryptionKey();
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+  return new TextDecoder().decode(decrypted);
+}
 
 // DOM helpers
 const $ = (selector) => document.querySelector(selector);
@@ -273,7 +303,6 @@ async function handleLogin() {
     $('#app').classList.remove('hidden');
 
     await startRealtimeListeners();
-    await loadTaskTemplates();
     startLiveTimers();
     initializePanels();
     setupAutoLogout();
@@ -640,17 +669,22 @@ async function deletePhone(index) {
 
 
 // Show transfer acceptance modal
-function showTransferAcceptanceModal(transfer, transferId) {
+async function showTransferAcceptanceModal(transfer, transferId) {
   const modal = $('#transferAcceptModal');
   $('#transferCount').textContent = transfer.patientIds.length;
   $('#transferFrom').textContent = transfer.fromUserName;
-  
+
   const patientsList = $('#transferPatientsList');
-  patientsList.innerHTML = transfer.patients.map(patient => 
-    `<div class="transfer-patient-item">
-      <strong>${patient.name}</strong> - ${patient.complaint} (${getTriageDisplayName(patient.triage)})
-    </div>`
-  ).join('');
+  const items = [];
+  for (const patient of transfer.patients) {
+    const name = await decryptText(patient.name);
+    const complaint = await decryptText(patient.complaint);
+    items.push(`
+      <div class="transfer-patient-item">
+        <strong>${name}</strong> - ${complaint} (${getTriageDisplayName(patient.triage)})
+      </div>`);
+  }
+  patientsList.innerHTML = items.join('');
   
   modal.classList.remove('hidden');
   
@@ -797,7 +831,6 @@ function setupAppEventListeners() {
   // Profile management
   $('#editNameBtn').addEventListener('click', showEditNameModal);
   $('#changePinBtn').addEventListener('click', showChangePinModal);
-  $('#editSuggestionsBtn').addEventListener('click', showEditSuggestionsModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
 
   // Stats reset button
@@ -1138,7 +1171,6 @@ function logout() {
 
   currentUser = null;
   currentUserId = null;
-  taskTemplates = [];
 
   $('#auth').classList.remove('hidden');
   $('#app').classList.add('hidden');
@@ -1276,7 +1308,7 @@ function formatElapsedTime(ms) {
 }
 
 // Patient management
-function renderPatients(snapshot) {
+async function renderPatients(snapshot) {
   const grid = $('#grid');
   const addBtn = $('#addPatient');
 
@@ -1288,9 +1320,12 @@ function renderPatients(snapshot) {
   }
   
   const patients = [];
-  snapshot.forEach(doc => {
-    patients.push(doc.data());
-  });
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data();
+    data.name = await decryptText(data.name);
+    data.complaint = await decryptText(data.complaint);
+    patients.push(data);
+  }
   
   const triagePriority = { red: 1, orange: 2, yellow: 3, green: 4, blue: 5, purple: 6 };
   patients.sort((a, b) => (triagePriority[a.triage] || 6) - (triagePriority[b.triage] || 6));
@@ -1418,8 +1453,8 @@ async function savePatient() {
     
     const patientData = {
       id: patientId,
-      name,
-      complaint,
+      name: await encryptText(name),
+      complaint: await encryptText(complaint),
       triage: selectedTriage.dataset.triage,
       location,
       nurse,
@@ -1452,7 +1487,9 @@ async function editPatient(patientId) {
     if (!patientSnap.exists()) return;
     
     const patient = patientSnap.data();
-    
+    patient.name = await decryptText(patient.name);
+    patient.complaint = await decryptText(patient.complaint);
+
     const modal = createModal('✏️ Modifier le patient', `
       <input id="editPatientName" placeholder="Nom du patient" value="${patient.name}">
       <input id="editPatientComplaint" placeholder="Motif de consultation" value="${patient.complaint}">
@@ -1498,8 +1535,8 @@ async function updatePatient(patientId) {
     const { doc, updateDoc } = window.firestoreFunctions;
     
     await updateDoc(doc(db, 'users', currentUserId, 'patients', patientId), {
-      name,
-      complaint,
+      name: await encryptText(name),
+      complaint: await encryptText(complaint),
       triage: selectedTriage.dataset.triage,
       location,
       nurse,
@@ -1536,8 +1573,7 @@ function showAddTaskModal(patientId) {
 function loadTaskSuggestions() {
   const container = $('#suggestionChips');
   if (container) {
-    const list = taskTemplates.length ? taskTemplates : DEFAULT_SUGGESTIONS;
-    container.innerHTML = list.map(s =>
+    container.innerHTML = DEFAULT_SUGGESTIONS.map(s =>
       `<div class="suggestion-chip" data-description="${s.description}" data-timer="${s.timer}">
         ${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}
       </div>`
@@ -1545,75 +1581,6 @@ function loadTaskSuggestions() {
   }
 }
 
-async function loadTaskTemplates() {
-  try {
-    const { collection, getDocs, doc, setDoc } = window.firestoreFunctions;
-    const snap = await getDocs(collection(db, 'users', currentUserId, 'taskSuggestions'));
-    taskTemplates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (taskTemplates.length === 0) {
-      taskTemplates = DEFAULT_SUGGESTIONS.map(s => ({ id: generateId('suggestion'), ...s }));
-      for (const t of taskTemplates) {
-        await setDoc(doc(db, 'users', currentUserId, 'taskSuggestions', t.id), {
-          description: t.description,
-          timer: t.timer
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Error loading task templates:', error);
-    taskTemplates = DEFAULT_SUGGESTIONS.map(s => ({ id: generateId('suggestion'), ...s }));
-  }
-}
-
-async function addTaskTemplate(description, timer) {
-  const { doc, setDoc } = window.firestoreFunctions;
-  const id = generateId('suggestion');
-  await setDoc(doc(db, 'users', currentUserId, 'taskSuggestions', id), { description, timer });
-  taskTemplates.push({ id, description, timer });
-}
-
-async function removeTaskTemplate(id) {
-  const { doc, deleteDoc } = window.firestoreFunctions;
-  await deleteDoc(doc(db, 'users', currentUserId, 'taskSuggestions', id));
-  taskTemplates = taskTemplates.filter(t => t.id !== id);
-}
-
-function showEditSuggestionsModal() {
-  const modal = createModal('🛠️ Suggestions de tâches', `
-    <div id="suggestionsList">${renderSuggestionRows()}</div>
-    <div class="new-suggestion">
-      <input id="newSuggestionDesc" placeholder="Description">
-      <input id="newSuggestionTimer" type="number" min="0" placeholder="Min">
-      <button class="btn-primary" id="addSuggestion">Ajouter</button>
-    </div>
-  `);
-
-  $('#addSuggestion').addEventListener('click', async () => {
-    const desc = $('#newSuggestionDesc').value.trim();
-    const mins = parseInt($('#newSuggestionTimer').value) || 0;
-    if (!desc) return;
-    await addTaskTemplate(desc, mins);
-    $('#newSuggestionDesc').value = '';
-    $('#newSuggestionTimer').value = '';
-    $('#suggestionsList').innerHTML = renderSuggestionRows();
-  });
-
-  $('#suggestionsList').addEventListener('click', async (e) => {
-    if (e.target.matches('.delete-suggestion')) {
-      await removeTaskTemplate(e.target.dataset.id);
-      $('#suggestionsList').innerHTML = renderSuggestionRows();
-    }
-  });
-}
-
-function renderSuggestionRows() {
-  return taskTemplates.map(s => `
-    <div class="suggestion-row">
-      <span>${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}</span>
-      <button class="delete-suggestion" data-id="${s.id}">✖️</button>
-    </div>
-  `).join('');
-}
 
 // Save task
 async function saveTask(patientId) {
@@ -1908,17 +1875,19 @@ async function loadTransferPatients() {
     
     if (container) {
       container.innerHTML = '';
-      
-      patientsSnapshot.forEach(doc => {
-        const patient = doc.data();
+
+      for (const docSnap of patientsSnapshot.docs) {
+        const patient = docSnap.data();
+        const name = await decryptText(patient.name);
+        const complaint = await decryptText(patient.complaint);
         const item = document.createElement('div');
         item.className = 'checkbox-item';
         item.innerHTML = `
-          <input type="checkbox" id="patient_${doc.id}" value="${doc.id}">
-          <label for="patient_${doc.id}">${patient.name} - ${patient.complaint} (${getTriageDisplayName(patient.triage)})</label>
+          <input type="checkbox" id="patient_${docSnap.id}" value="${docSnap.id}">
+          <label for="patient_${docSnap.id}">${name} - ${complaint} (${getTriageDisplayName(patient.triage)})</label>
         `;
         container.appendChild(item);
-      });
+      }
     }
     
   } catch (error) {
@@ -2109,7 +2078,7 @@ async function handleDeleteAccount() {
     }
     
     // Delete all user data
-    const collections = ['patients', 'taskSuggestions'];
+    const collections = ['patients'];
     
     for (const collectionName of collections) {
       const snapshot = await getDocs(collection(db, 'users', currentUserId, collectionName));
