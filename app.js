@@ -33,6 +33,8 @@ const DEFAULT_SUGGESTIONS = [
   { description: 'BU', timer: 0 }
 ];
 
+let taskTemplates = [];
+
 // DOM helpers
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
@@ -269,8 +271,9 @@ async function handleLogin() {
     
     $('#auth').classList.add('hidden');
     $('#app').classList.remove('hidden');
-    
+
     await startRealtimeListeners();
+    await loadTaskTemplates();
     startLiveTimers();
     initializePanels();
     setupAutoLogout();
@@ -794,6 +797,7 @@ function setupAppEventListeners() {
   // Profile management
   $('#editNameBtn').addEventListener('click', showEditNameModal);
   $('#changePinBtn').addEventListener('click', showChangePinModal);
+  $('#editSuggestionsBtn').addEventListener('click', showEditSuggestionsModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
 
   // Stats reset button
@@ -1134,7 +1138,8 @@ function logout() {
 
   currentUser = null;
   currentUserId = null;
-  
+  taskTemplates = [];
+
   $('#auth').classList.remove('hidden');
   $('#app').classList.add('hidden');
   
@@ -1154,7 +1159,6 @@ function setupAutoLogout() {
 function resetAutoLogoutTimer() {
   clearTimeout(autoLogoutTimer);
   autoLogoutTimer = setTimeout(() => {
-    alert('Déconnexion automatique pour inactivité');
     logout();
   }, AUTO_LOGOUT_DELAY);
 }
@@ -1532,12 +1536,83 @@ function showAddTaskModal(patientId) {
 function loadTaskSuggestions() {
   const container = $('#suggestionChips');
   if (container) {
-    container.innerHTML = DEFAULT_SUGGESTIONS.map(s =>
+    const list = taskTemplates.length ? taskTemplates : DEFAULT_SUGGESTIONS;
+    container.innerHTML = list.map(s =>
       `<div class="suggestion-chip" data-description="${s.description}" data-timer="${s.timer}">
         ${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}
       </div>`
     ).join('');
   }
+}
+
+async function loadTaskTemplates() {
+  try {
+    const { collection, getDocs, doc, setDoc } = window.firestoreFunctions;
+    const snap = await getDocs(collection(db, 'users', currentUserId, 'taskSuggestions'));
+    taskTemplates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (taskTemplates.length === 0) {
+      taskTemplates = DEFAULT_SUGGESTIONS.map(s => ({ id: generateId('suggestion'), ...s }));
+      for (const t of taskTemplates) {
+        await setDoc(doc(db, 'users', currentUserId, 'taskSuggestions', t.id), {
+          description: t.description,
+          timer: t.timer
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error loading task templates:', error);
+    taskTemplates = DEFAULT_SUGGESTIONS.map(s => ({ id: generateId('suggestion'), ...s }));
+  }
+}
+
+async function addTaskTemplate(description, timer) {
+  const { doc, setDoc } = window.firestoreFunctions;
+  const id = generateId('suggestion');
+  await setDoc(doc(db, 'users', currentUserId, 'taskSuggestions', id), { description, timer });
+  taskTemplates.push({ id, description, timer });
+}
+
+async function removeTaskTemplate(id) {
+  const { doc, deleteDoc } = window.firestoreFunctions;
+  await deleteDoc(doc(db, 'users', currentUserId, 'taskSuggestions', id));
+  taskTemplates = taskTemplates.filter(t => t.id !== id);
+}
+
+function showEditSuggestionsModal() {
+  const modal = createModal('🛠️ Suggestions de tâches', `
+    <div id="suggestionsList">${renderSuggestionRows()}</div>
+    <div class="new-suggestion">
+      <input id="newSuggestionDesc" placeholder="Description">
+      <input id="newSuggestionTimer" type="number" min="0" placeholder="Min">
+      <button class="btn-primary" id="addSuggestion">Ajouter</button>
+    </div>
+  `);
+
+  $('#addSuggestion').addEventListener('click', async () => {
+    const desc = $('#newSuggestionDesc').value.trim();
+    const mins = parseInt($('#newSuggestionTimer').value) || 0;
+    if (!desc) return;
+    await addTaskTemplate(desc, mins);
+    $('#newSuggestionDesc').value = '';
+    $('#newSuggestionTimer').value = '';
+    $('#suggestionsList').innerHTML = renderSuggestionRows();
+  });
+
+  $('#suggestionsList').addEventListener('click', async (e) => {
+    if (e.target.matches('.delete-suggestion')) {
+      await removeTaskTemplate(e.target.dataset.id);
+      $('#suggestionsList').innerHTML = renderSuggestionRows();
+    }
+  });
+}
+
+function renderSuggestionRows() {
+  return taskTemplates.map(s => `
+    <div class="suggestion-row">
+      <span>${s.description}${s.timer > 0 ? ` (${s.timer}min)` : ''}</span>
+      <button class="delete-suggestion" data-id="${s.id}">✖️</button>
+    </div>
+  `).join('');
 }
 
 // Save task
