@@ -1308,18 +1308,61 @@ body {
 }
 
 
-/* Theme toggle button in header */
-.theme-toggle-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.5rem;
+/* Theme toggle switch in header */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   margin-right: var(--space-2);
-  transition: transform 0.2s ease;
 }
 
-.theme-toggle-btn:hover {
-  transform: scale(1.1);
+.theme-toggle .sun,
+.theme-toggle .moon {
+  font-size: 1.2rem;
+}
+
+.theme-toggle .switch {
+  position: relative;
+  width: 40px;
+  height: 20px;
+}
+
+.theme-toggle .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-toggle .slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #555;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.theme-toggle .slider:before {
+  content: "";
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle input:checked + .slider {
+  background: #999;
+}
+
+.theme-toggle input:checked + .slider:before {
+  transform: translateX(20px);
 }
 
 .profile-btn {

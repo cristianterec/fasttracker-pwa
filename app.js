@@ -1074,14 +1074,14 @@ function applySavedTheme() {
 }
 
 function setupThemeToggle() {
-  const btn = $('#themeToggle');
-  if (!btn) return;
+  const toggle = $('#themeToggle');
+  if (!toggle) return;
   const saved = applySavedTheme();
-  btn.textContent = saved === 'light' ? '☀️' : '🌙';
-  btn.addEventListener('click', () => {
-    const isLight = document.body.classList.toggle('light-mode');
+  toggle.checked = saved === 'light';
+  toggle.addEventListener('change', () => {
+    const isLight = toggle.checked;
+    document.body.classList.toggle('light-mode', isLight);
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
-    btn.textContent = isLight ? '☀️' : '🌙';
     updateThemeColorMeta();
   });
 }
