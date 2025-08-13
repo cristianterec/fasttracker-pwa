@@ -1313,7 +1313,12 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  margin-right: var(--space-2);
+}
+
+.app-header .theme-toggle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .theme-toggle .sun,
