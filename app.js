@@ -18,12 +18,14 @@ let db = null;
 let unsubscribePatients = null;
 let unsubscribeStats = null;
 let unsubscribeTransfers = null;
+let unsubscribeUserDoc = null;
 let app = null;
 let updateTimerHandle = null;
 let liveTimerHandle = null;
 let currentStats = null;
 let autoLogoutTimer = null;
 const AUTO_LOGOUT_DELAY = 10 * 60 * 1000;
+let sessionStart = null;
 
 const DEFAULT_SUGGESTIONS = [
   { description: 'Bilan bio', timer: 70 },
@@ -294,6 +296,7 @@ async function handleLogin() {
     // Login successful
     currentUser = userData.name;
     currentUserId = userDoc.id;
+    sessionStart = Date.now();
     
     $('#username').textContent = currentUser;
     $('#profileName').textContent = currentUser;
@@ -802,6 +805,14 @@ async function startRealtimeListeners() {
         showTransferAcceptanceModal(transfer, snapshot.docs[0].id);
       }
     });
+
+    // Listen for forced logouts
+    unsubscribeUserDoc = onSnapshot(doc(db, 'users', currentUserId), (docSnap) => {
+      const data = docSnap.data();
+      if (data && data.forceLogout && sessionStart && data.forceLogout.toMillis() > sessionStart) {
+        logout();
+      }
+    });
     
   } catch (error) {
     console.error('Error setting up listeners:', error);
@@ -832,6 +843,7 @@ function setupAppEventListeners() {
   $('#editNameBtn').addEventListener('click', showEditNameModal);
   $('#changePinBtn').addEventListener('click', showChangePinModal);
   $('#deleteAccountBtn').addEventListener('click', handleDeleteAccount);
+  $('#logoutAllBtn').addEventListener('click', logoutAllSessions);
 
   // Stats reset button
   $('#resetStatsBtn').addEventListener('click', resetUserStats);
@@ -1058,17 +1070,18 @@ function applySavedTheme() {
   const saved = localStorage.getItem('theme') || 'dark';
   document.body.classList.toggle('light-mode', saved === 'light');
   updateThemeColorMeta();
+  return saved;
 }
 
 function setupThemeToggle() {
-  const toggle = $('#themeToggle');
-  if (!toggle) return;
-  applySavedTheme();
-  toggle.checked = document.body.classList.contains('light-mode');
-  toggle.addEventListener('change', () => {
-    const light = toggle.checked;
-    document.body.classList.toggle('light-mode', light);
-    localStorage.setItem('theme', light ? 'light' : 'dark');
+  const btn = $('#themeToggle');
+  if (!btn) return;
+  const saved = applySavedTheme();
+  btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  btn.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-mode');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    btn.textContent = isLight ? '☀️' : '🌙';
     updateThemeColorMeta();
   });
 }
@@ -1127,14 +1140,12 @@ function globalClickHandler(e) {
   // Edit task
   if (e.target.closest('.task') && !e.target.closest('button')) {
     const taskEl = e.target.closest('.task');
-    if (!taskEl.classList.contains('completed')) {
-      const pid = taskEl.dataset.pid;
-      const tid = taskEl.dataset.tid;
-      if (pid && tid) {
-        e.preventDefault();
-        showEditTaskModal(pid, tid);
-        return;
-      }
+    const pid = taskEl.dataset.pid;
+    const tid = taskEl.dataset.tid;
+    if (pid && tid) {
+      e.preventDefault();
+      showEditTaskModal(pid, tid);
+      return;
     }
   }
   
@@ -1166,11 +1177,13 @@ function logout() {
   if (unsubscribePatients) unsubscribePatients();
   if (unsubscribeStats) unsubscribeStats();
   if (unsubscribeTransfers) unsubscribeTransfers();
+  if (unsubscribeUserDoc) unsubscribeUserDoc();
   stopLiveTimers();
   clearAutoLogout();
 
   currentUser = null;
   currentUserId = null;
+  sessionStart = null;
 
   $('#auth').classList.remove('hidden');
   $('#app').classList.add('hidden');
@@ -1179,6 +1192,18 @@ function logout() {
   $('#loginName').value = '';
   $('#pinInput').value = '';
   showLoginForm();
+}
+
+// Force logout on all devices
+async function logoutAllSessions() {
+  if (!currentUserId) return;
+  try {
+    const { doc, updateDoc, serverTimestamp } = window.firestoreFunctions;
+    await updateDoc(doc(db, 'users', currentUserId), { forceLogout: serverTimestamp() });
+  } catch (error) {
+    console.error('Error logging out sessions:', error);
+  }
+  logout();
 }
 
 function setupAutoLogout() {
@@ -1686,7 +1711,7 @@ async function showEditTaskModal(patientId, taskId) {
     if (!snap.exists()) return;
     const patient = snap.data();
     const task = (patient.tasks || []).find(t => t.id === taskId);
-    if (!task || task.completed) return;
+    if (!task) return;
 
     const remaining = task.dueAt ? Math.max(0, Math.ceil((new Date(task.dueAt) - Date.now()) / 60000)) : '';
 

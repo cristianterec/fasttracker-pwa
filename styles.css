@@ -564,8 +564,6 @@ body {
   gap: var(--space-3);
   transition: all 0.2s ease;
   position: relative;
-}
-.task:not(.completed) {
   cursor: pointer;
 }
 
@@ -1309,59 +1307,19 @@ body {
   gap: var(--space-3);
 }
 
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg-surface);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-}
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 46px;
-  height: 24px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
+/* Theme toggle button in header */
+.theme-toggle-btn {
+  background: none;
+  border: none;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-  border-radius: var(--radius-full);
+  font-size: 1.5rem;
+  margin-right: var(--space-2);
+  transition: transform 0.2s ease;
 }
 
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.4s;
-  border-radius: 50%;
-}
-
-.switch input:checked + .slider {
-  background-color: var(--accent-blue);
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(22px);
+.theme-toggle-btn:hover {
+  transform: scale(1.1);
 }
 
 .profile-btn {
