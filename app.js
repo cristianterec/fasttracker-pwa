@@ -26,6 +26,7 @@ let currentStats = null;
 let autoLogoutTimer = null;
 const AUTO_LOGOUT_DELAY = 10 * 60 * 1000;
 let sessionStart = null;
+const shownTransfers = new Set();
 
 const DEFAULT_SUGGESTIONS = [
   { description: 'Bilan bio', timer: 70 },
@@ -789,16 +790,22 @@ async function startRealtimeListeners() {
 
 
     // Transfers listener
-    unsubscribeTransfers = onSnapshot(query(
-      collection(db, 'transfers'),
-      where('targetUserId', '==', currentUserId),
-      where('status', '==', 'pending')
-    ), (snapshot) => {
-      if (!snapshot.empty) {
-        const transfer = snapshot.docs[0].data();
-        showTransferAcceptanceModal(transfer, snapshot.docs[0].id);
+    unsubscribeTransfers = onSnapshot(
+      query(
+        collection(db, 'transfers'),
+        where('targetUserId', '==', currentUserId)
+      ),
+      (snapshot) => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'added' && !shownTransfers.has(change.doc.id)) {
+            shownTransfers.add(change.doc.id);
+            showTransferAcceptanceModal(change.doc.data(), change.doc.id);
+          } else if (change.type === 'removed') {
+            shownTransfers.delete(change.doc.id);
+          }
+        });
       }
-    });
+    );
 
     // Listen for forced logouts
     unsubscribeUserDoc = onSnapshot(doc(db, 'users', currentUserId), (docSnap) => {
@@ -1745,8 +1752,8 @@ async function updateTask(patientId, taskId) {
             ...t,
             description,
             dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
-            completed: t.completed || false,
-            completedAt: t.completed ? t.completedAt || null : null
+            completed: false,
+            completedAt: null
           };
         }
         return t;
