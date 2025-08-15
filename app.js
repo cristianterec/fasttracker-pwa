@@ -701,7 +701,7 @@ async function showTransferAcceptanceModal(transfer, transferId) {
 // Accept transfer
 async function acceptTransfer(transferId, transfer) {
   try {
-    const { doc, setDoc, updateDoc, writeBatch } = window.firestoreFunctions;
+    const { doc, writeBatch } = window.firestoreFunctions;
     const batch = writeBatch(db);
     
     // Add patients to current user
@@ -718,11 +718,8 @@ async function acceptTransfer(transferId, transfer) {
       batch.set(doc(db, 'users', currentUserId, 'patients', patientId), patientData);
     }
     
-    // Update transfer status
-    batch.update(doc(db, 'transfers', transferId), { 
-      status: 'accepted',
-      acceptedAt: new Date().toISOString()
-    });
+    // Remove transfer record to prevent duplicate prompts
+    batch.delete(doc(db, 'transfers', transferId));
     
     await batch.commit();
     
@@ -738,7 +735,7 @@ async function acceptTransfer(transferId, transfer) {
 // Decline transfer
 async function declineTransfer(transferId, transfer) {
   try {
-    const { doc, updateDoc, writeBatch, setDoc } = window.firestoreFunctions;
+    const { doc, writeBatch } = window.firestoreFunctions;
     const batch = writeBatch(db);
     
     // Return patients to original user
@@ -754,11 +751,8 @@ async function declineTransfer(transferId, transfer) {
       batch.set(doc(db, 'users', transfer.fromUserId, 'patients', patientId), patientData);
     }
     
-    // Update transfer status
-    batch.update(doc(db, 'transfers', transferId), {
-      status: 'declined',
-      declinedAt: new Date().toISOString()
-    });
+    // Remove transfer record after declining
+    batch.delete(doc(db, 'transfers', transferId));
     
     await batch.commit();
     
@@ -1745,15 +1739,17 @@ async function updateTask(patientId, taskId) {
 
     if (snap.exists()) {
       const patientData = snap.data();
-      const updatedTasks = patientData.tasks.map(task => {
-        if (task.id === taskId) {
+      const updatedTasks = patientData.tasks.map(t => {
+        if (t.id === taskId) {
           return {
-            ...task,
+            ...t,
             description,
-            dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null
+            dueAt: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
+            completed: t.completed || false,
+            completedAt: t.completed ? t.completedAt || null : null
           };
         }
-        return task;
+        return t;
       });
 
       await updateDoc(patientRef, { tasks: updatedTasks });
