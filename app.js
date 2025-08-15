@@ -1940,18 +1940,13 @@ async function executeTransfer() {
     const targetUserSnap = await getDoc(doc(db, 'users', targetUserId));
     const targetUserName = targetUserSnap.exists() ? targetUserSnap.data().name : 'Utilisateur inconnu';
     
-    // Collect patient data and track stats
+    // Collect patient data
     const patientsData = [];
     for (const patientId of selectedPatients) {
       const patientSnap = await getDoc(doc(db, 'users', currentUserId, 'patients', patientId));
       if (patientSnap.exists()) {
         const patient = patientSnap.data();
         patientsData.push(patient);
-
-        const createdAt = new Date(patient.createdAt);
-        const now = new Date();
-        const timeSpentMinutes = Math.floor((now - createdAt) / 60000);
-        await updateUserStats('transferred', timeSpentMinutes, patient.triage);
       }
     }
     
