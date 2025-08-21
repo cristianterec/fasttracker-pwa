@@ -858,7 +858,6 @@ function setupAppEventListeners() {
   // Task drag and drop handlers
   document.addEventListener('dragstart', handleTaskDragStart);
   document.addEventListener('dragover', handleTaskDragOver);
-  document.addEventListener('drop', handleTaskDrop);
   document.addEventListener('dragend', handleTaskDragEnd);
 
   // Modal handling
@@ -1786,53 +1785,55 @@ function handleTaskDragStart(e) {
 }
 
 function handleTaskDragOver(e) {
-  if (e.target.closest('.task') || e.target.closest('.tasks')) {
-    e.preventDefault();
+  const container = e.target.closest('.tasks');
+  if (!container) return;
+  e.preventDefault();
+  const dragging = document.querySelector('.task.dragging');
+  if (!dragging) return;
+  const afterElement = getDragAfterElement(container, e.clientY);
+  if (afterElement == null) {
+    container.appendChild(dragging);
+  } else {
+    container.insertBefore(dragging, afterElement);
   }
 }
 
-async function handleTaskDrop(e) {
-  const targetContainer = e.target.closest('.tasks');
-  const targetTask = e.target.closest('.task');
-  if (!targetContainer) return;
-  e.preventDefault();
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.task:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+async function handleTaskDragEnd(e) {
+  const task = e.target.closest('.task');
+  if (!task) return;
+  task.classList.remove('dragging');
+
+  const container = task.closest('.tasks');
+  const pid = container.closest('.card').dataset.patientId;
+  const orderedIds = [...container.querySelectorAll('.task')].map(t => t.dataset.tid);
 
   try {
     const { doc, getDoc, updateDoc } = window.firestoreFunctions;
-    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-    const fromPid = data.pid;
-    const taskId = data.tid;
-    const containerPid = targetContainer.closest('.card').dataset.patientId;
-    if (fromPid !== containerPid) return;
-
-    const patientRef = doc(db, 'patients', fromPid);
+    const patientRef = doc(db, 'users', currentUserId, 'patients', pid);
     const patientSnap = await getDoc(patientRef);
     if (!patientSnap.exists()) return;
 
     const tasks = patientSnap.data().tasks || [];
-    const fromIndex = tasks.findIndex(t => t.id === taskId);
-    if (fromIndex === -1) return;
-
-    let toIndex = tasks.length - 1;
-    if (targetTask) {
-      const targetId = targetTask.dataset.tid;
-      toIndex = tasks.findIndex(t => t.id === targetId);
-    } else {
-      toIndex = tasks.length;
-    }
-
-    const [moved] = tasks.splice(fromIndex, 1);
-    if (fromIndex < toIndex) toIndex--;
-    tasks.splice(toIndex, 0, moved);
-    await updateDoc(patientRef, { tasks });
+    const map = {};
+    tasks.forEach(t => { map[t.id] = t; });
+    const reordered = orderedIds.map(id => map[id]).filter(Boolean);
+    await updateDoc(patientRef, { tasks: reordered });
   } catch (err) {
     console.error('Error reordering tasks:', err);
   }
-}
-
-function handleTaskDragEnd(e) {
-  const task = e.target.closest('.task');
-  if (task) task.classList.remove('dragging');
 }
 
 // Show decision menu
