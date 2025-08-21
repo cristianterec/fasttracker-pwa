@@ -851,10 +851,16 @@ function setupAppEventListeners() {
 
   // Theme toggle
   setupThemeToggle();
-  
+
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
-  
+
+  // Task drag and drop handlers
+  document.addEventListener('dragstart', handleTaskDragStart);
+  document.addEventListener('dragover', handleTaskDragOver);
+  document.addEventListener('drop', handleTaskDrop);
+  document.addEventListener('dragend', handleTaskDragEnd);
+
   // Modal handling
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay') && !e.target.closest('.modal')) {
@@ -1410,7 +1416,7 @@ function createTaskHTML(patientId, task) {
     `<span class="task-timer" data-dueat="${task.dueAt}">${formatTime(new Date(task.dueAt) - Date.now())}</span>` : '';
 
   return `
-    <div class="task ${isCompleted ? 'completed' : ''}" data-pid="${patientId}" data-tid="${task.id}">
+    <div class="task ${isCompleted ? 'completed' : ''}" data-pid="${patientId}" data-tid="${task.id}" draggable="true">
       <div class="task-content">
         <span class="task-desc">${task.description}</span>
         ${timer}
@@ -1768,6 +1774,65 @@ async function updateTask(patientId, taskId) {
     console.error('Error updating task:', error);
     alert('Erreur lors de la mise à jour de la tâche');
   }
+}
+
+// Drag-and-drop task reordering
+function handleTaskDragStart(e) {
+  const task = e.target.closest('.task');
+  if (!task) return;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', JSON.stringify({ pid: task.dataset.pid, tid: task.dataset.tid }));
+  task.classList.add('dragging');
+}
+
+function handleTaskDragOver(e) {
+  if (e.target.closest('.task') || e.target.closest('.tasks')) {
+    e.preventDefault();
+  }
+}
+
+async function handleTaskDrop(e) {
+  const targetContainer = e.target.closest('.tasks');
+  const targetTask = e.target.closest('.task');
+  if (!targetContainer) return;
+  e.preventDefault();
+
+  try {
+    const { doc, getDoc, updateDoc } = window.firestoreFunctions;
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    const fromPid = data.pid;
+    const taskId = data.tid;
+    const containerPid = targetContainer.closest('.card').dataset.patientId;
+    if (fromPid !== containerPid) return;
+
+    const patientRef = doc(db, 'patients', fromPid);
+    const patientSnap = await getDoc(patientRef);
+    if (!patientSnap.exists()) return;
+
+    const tasks = patientSnap.data().tasks || [];
+    const fromIndex = tasks.findIndex(t => t.id === taskId);
+    if (fromIndex === -1) return;
+
+    let toIndex = tasks.length - 1;
+    if (targetTask) {
+      const targetId = targetTask.dataset.tid;
+      toIndex = tasks.findIndex(t => t.id === targetId);
+    } else {
+      toIndex = tasks.length;
+    }
+
+    const [moved] = tasks.splice(fromIndex, 1);
+    if (fromIndex < toIndex) toIndex--;
+    tasks.splice(toIndex, 0, moved);
+    await updateDoc(patientRef, { tasks });
+  } catch (err) {
+    console.error('Error reordering tasks:', err);
+  }
+}
+
+function handleTaskDragEnd(e) {
+  const task = e.target.closest('.task');
+  if (task) task.classList.remove('dragging');
 }
 
 // Show decision menu
