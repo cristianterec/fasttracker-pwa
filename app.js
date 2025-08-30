@@ -790,10 +790,11 @@ async function startRealtimeListeners() {
     });
 
     // Prescriptions listener
-    unsubscribePrescriptions = onSnapshot(
+    const prescQuery = query(
       collection(db, 'users', currentUserId, 'prescriptions'),
-      (snapshot) => renderPrescriptions(snapshot)
+      orderBy('order')
     );
+    unsubscribePrescriptions = onSnapshot(prescQuery, (snapshot) => renderPrescriptions(snapshot));
 
 
     // Transfers listener
@@ -877,6 +878,11 @@ function setupAppEventListeners() {
   document.addEventListener('dragstart', handleTaskDragStart);
   document.addEventListener('dragover', handleTaskDragOver);
   document.addEventListener('dragend', handleTaskDragEnd);
+
+  // Prescription drag and drop handlers
+  document.addEventListener('dragstart', handlePrescriptionDragStart);
+  document.addEventListener('dragover', handlePrescriptionDragOver);
+  document.addEventListener('dragend', handlePrescriptionDragEnd);
 
   // Modal handling
   document.addEventListener('click', (e) => {
@@ -1834,7 +1840,7 @@ function handleTaskDragOver(e) {
   e.preventDefault();
   const dragging = document.querySelector('.task.dragging');
   if (!dragging) return;
-  const afterElement = getDragAfterElement(container, e.clientY);
+  const afterElement = getDragAfterElement(container, e.clientY, '.task');
   if (afterElement == null) {
     container.appendChild(dragging);
   } else {
@@ -1842,8 +1848,8 @@ function handleTaskDragOver(e) {
   }
 }
 
-function getDragAfterElement(container, y) {
-  const draggableElements = [...container.querySelectorAll('.task:not(.dragging)')];
+function getDragAfterElement(container, y, selector = '.task') {
+  const draggableElements = [...container.querySelectorAll(`${selector}:not(.dragging)`)];
   return draggableElements.reduce((closest, child) => {
     const box = child.getBoundingClientRect();
     const offset = y - box.top - box.height / 2;
@@ -1877,6 +1883,47 @@ async function handleTaskDragEnd(e) {
     await updateDoc(patientRef, { tasks: reordered });
   } catch (err) {
     console.error('Error reordering tasks:', err);
+  }
+}
+
+// Drag-and-drop prescription reordering
+function handlePrescriptionDragStart(e) {
+  const item = e.target.closest('.prescription-item');
+  if (!item) return;
+  e.dataTransfer.effectAllowed = 'move';
+  item.classList.add('dragging');
+}
+
+function handlePrescriptionDragOver(e) {
+  const container = e.target.closest('.prescriptions-list');
+  if (!container) return;
+  e.preventDefault();
+  const dragging = container.querySelector('.prescription-item.dragging');
+  if (!dragging) return;
+  const afterElement = getDragAfterElement(container, e.clientY, '.prescription-item');
+  if (afterElement == null) {
+    container.appendChild(dragging);
+  } else {
+    container.insertBefore(dragging, afterElement);
+  }
+}
+
+async function handlePrescriptionDragEnd(e) {
+  const item = e.target.closest('.prescription-item');
+  if (!item) return;
+  item.classList.remove('dragging');
+
+  const list = $('#prescriptionsList');
+  const ids = [...list.querySelectorAll('.prescription-item')].map(el => el.dataset.id);
+  try {
+    const { doc, writeBatch } = window.firestoreFunctions;
+    const batch = writeBatch(db);
+    ids.forEach((id, index) => {
+      batch.update(doc(db, 'users', currentUserId, 'prescriptions', id), { order: index });
+    });
+    await batch.commit();
+  } catch (err) {
+    console.error('Error reordering prescriptions:', err);
   }
 }
 
@@ -1966,6 +2013,7 @@ function renderPrescriptions(snapshot) {
     const item = document.createElement('div');
     item.className = 'prescription-item';
     item.dataset.id = docSnap.id;
+    item.setAttribute('draggable', 'true');
     item.innerHTML = `
       <input type="checkbox" class="prescription-select">
       <span class="prescription-text">${data.text}</span>
@@ -1993,7 +2041,7 @@ function showPrescriptionModal(id = null, text = '') {
       await updateDoc(doc(db, 'users', currentUserId, 'prescriptions', id), { text: value });
     } else {
       const newRef = doc(collection(db, 'users', currentUserId, 'prescriptions'));
-      await setDoc(newRef, { text: value });
+      await setDoc(newRef, { text: value, order: Date.now() });
     }
     closeAllModals();
   });
@@ -2009,7 +2057,16 @@ function copySelectedPrescriptions() {
     cb.closest('.prescription-item').querySelector('.prescription-text').textContent
   );
   if (selected.length) {
-    navigator.clipboard.writeText(selected.join('\n\n'));
+    const btn = $('#copySelectedPrescriptions');
+    const original = btn.textContent;
+    navigator.clipboard.writeText(selected.join('\n\n')).then(() => {
+      btn.textContent = 'Copié';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 2000);
+    });
   }
 }
 

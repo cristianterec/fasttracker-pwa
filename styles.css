@@ -385,11 +385,11 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-5);
+  gap: var(--space-4);
   margin-top: var(--space-4);
   margin-bottom: var(--space-8);
-  margin-left: var(--space-3);
-  margin-right: var(--space-3);
+  margin-left: var(--space-8);
+  margin-right: var(--space-8);
 }
 
 .grid .card,
@@ -1692,6 +1692,12 @@ body {
   background: var(--bg-card);
   padding: var(--space-3);
   border-radius: var(--radius-md);
+  cursor: grab;
+}
+
+.prescription-item.dragging {
+  opacity: 0.6;
+  cursor: grabbing;
 }
 
 .prescription-text {
@@ -1710,6 +1716,11 @@ body {
 
 #copySelectedPrescriptions.hidden {
   display: none;
+}
+
+#copySelectedPrescriptions.copied {
+  background: var(--accent-green);
+  color: #fff;
 }
 
 /* Floating Menu */
