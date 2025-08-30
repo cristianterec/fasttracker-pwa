@@ -74,6 +74,7 @@
     <nav class="tabs">
       <button class="tab active" data-tab="patients">👥 Patients</button>
       <button class="tab" data-tab="stats">📊 Statistiques</button>
+      <button class="tab" data-tab="ordonnances">💊 Ordonnances</button>
     </nav>
 
     <!-- PATIENTS TAB -->
@@ -175,6 +176,17 @@
             🔄 Réinitialiser les statistiques
           </button>
         </div>
+      </div>
+    </main>
+
+    <!-- ORDONNANCES TAB -->
+    <main id="ordonnances" class="tab-content hidden">
+      <div class="prescriptions-container">
+        <div class="ord-actions">
+          <button id="addPrescription" class="btn-primary">➕ Ajouter</button>
+          <button id="copySelectedPrescriptions" class="btn-secondary hidden">📋 Copier la sélection</button>
+        </div>
+        <div id="prescriptionsList" class="prescriptions-list"></div>
       </div>
     </main>
 

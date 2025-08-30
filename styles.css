@@ -384,12 +384,12 @@ body {
 /* Grid - ADDITIONAL MARGINS TO ENSURE NO OVERLAP */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-5);
   margin-top: var(--space-4);
   margin-bottom: var(--space-8);
-  margin-left: 2rem;
-  margin-right: 2rem;
+  margin-left: var(--space-3);
+  margin-right: var(--space-3);
 }
 
 .grid .card,
@@ -1667,6 +1667,51 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Prescriptions */
+.ord-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.ord-actions .btn-primary,
+.ord-actions .btn-secondary {
+  width: auto;
+}
+
+.prescriptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.prescription-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--bg-card);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.prescription-text {
+  flex: 1;
+  white-space: pre-wrap;
+}
+
+.prescription-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.prescription-actions button {
+  padding: var(--space-2);
+}
+
+#copySelectedPrescriptions.hidden {
+  display: none;
+}
+
 /* Floating Menu */
 .floating-menu {
   position: absolute;
@@ -1736,8 +1781,8 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
   .grid {
-    margin-left: 2rem;
-    margin-right: 2rem;
+    margin-left: var(--space-3);
+    margin-right: var(--space-3);
     grid-template-columns: repeat(2, 1fr);
   }
   
@@ -1811,8 +1856,8 @@ body {
   }
   
   .grid {
-    margin-left: 1.5rem;
-    margin-right: 1.5rem;
+    margin-left: var(--space-2);
+    margin-right: var(--space-2);
     grid-template-columns: 1fr;
   }
   

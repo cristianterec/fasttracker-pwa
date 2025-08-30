@@ -19,6 +19,7 @@ let unsubscribePatients = null;
 let unsubscribeStats = null;
 let unsubscribeTransfers = null;
 let unsubscribeUserDoc = null;
+let unsubscribePrescriptions = null;
 let app = null;
 let updateTimerHandle = null;
 let liveTimerHandle = null;
@@ -788,6 +789,12 @@ async function startRealtimeListeners() {
       }
     });
 
+    // Prescriptions listener
+    unsubscribePrescriptions = onSnapshot(
+      collection(db, 'users', currentUserId, 'prescriptions'),
+      (snapshot) => renderPrescriptions(snapshot)
+    );
+
 
     // Transfers listener
     unsubscribeTransfers = onSnapshot(
@@ -839,6 +846,10 @@ function setupAppEventListeners() {
   // Patient management
   $('#addPatient').addEventListener('click', showAddPatientModal);
   $('#transferBtn').addEventListener('click', showTransferModal);
+
+  // Prescriptions management
+  $('#addPrescription').addEventListener('click', () => showPrescriptionModal());
+  $('#copySelectedPrescriptions').addEventListener('click', copySelectedPrescriptions);
   
   // Profile management
   $('#editNameBtn').addEventListener('click', showEditNameModal);
@@ -854,6 +865,13 @@ function setupAppEventListeners() {
 
   // Global click delegation
   document.addEventListener('click', globalClickHandler);
+
+  // Checkbox change delegation
+  document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('prescription-select')) {
+      updateCopySelectedVisibility();
+    }
+  });
 
   // Task drag and drop handlers
   document.addEventListener('dragstart', handleTaskDragStart);
@@ -1176,6 +1194,31 @@ function globalClickHandler(e) {
     e.target.classList.toggle('selected');
     return;
   }
+
+  // Prescription item actions
+  if (e.target.matches('.prescription-copy')) {
+    e.preventDefault();
+    const item = e.target.closest('.prescription-item');
+    const text = item.querySelector('.prescription-text').textContent;
+    navigator.clipboard.writeText(text);
+    return;
+  }
+
+  if (e.target.matches('.prescription-edit')) {
+    e.preventDefault();
+    const item = e.target.closest('.prescription-item');
+    showPrescriptionModal(item.dataset.id, item.querySelector('.prescription-text').textContent);
+    return;
+  }
+
+  if (e.target.matches('.prescription-delete')) {
+    e.preventDefault();
+    const item = e.target.closest('.prescription-item');
+    if (confirm('Supprimer cette ordonnance ?')) {
+      deletePrescription(item.dataset.id);
+    }
+    return;
+  }
 }
 
 // Logout
@@ -1184,6 +1227,7 @@ function logout() {
   if (unsubscribeStats) unsubscribeStats();
   if (unsubscribeTransfers) unsubscribeTransfers();
   if (unsubscribeUserDoc) unsubscribeUserDoc();
+  if (unsubscribePrescriptions) unsubscribePrescriptions();
   stopLiveTimers();
   clearAutoLogout();
 
@@ -1911,6 +1955,69 @@ async function handlePatientDecision(patientId, action) {
 }
 
 
+
+// Prescription templates
+function renderPrescriptions(snapshot) {
+  const list = $('#prescriptionsList');
+  if (!list) return;
+  list.innerHTML = '';
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const item = document.createElement('div');
+    item.className = 'prescription-item';
+    item.dataset.id = docSnap.id;
+    item.innerHTML = `
+      <input type="checkbox" class="prescription-select">
+      <span class="prescription-text">${data.text}</span>
+      <div class="prescription-actions">
+        <button class="prescription-copy">📋</button>
+        <button class="prescription-edit">✏️</button>
+        <button class="prescription-delete">🗑️</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+  updateCopySelectedVisibility();
+}
+
+function showPrescriptionModal(id = null, text = '') {
+  const modal = createModal(id ? 'Modifier une ordonnance' : 'Nouvelle ordonnance', `
+    <textarea id="prescriptionInput" rows="4" placeholder="Contenu de l'ordonnance">${text}</textarea>
+    <button class="btn-primary" id="savePrescription">${id ? 'Mettre à jour' : 'Ajouter'}</button>
+  `);
+  $('#savePrescription').addEventListener('click', async () => {
+    const value = $('#prescriptionInput').value.trim();
+    if (!value) return;
+    const { collection, doc, setDoc, updateDoc } = window.firestoreFunctions;
+    if (id) {
+      await updateDoc(doc(db, 'users', currentUserId, 'prescriptions', id), { text: value });
+    } else {
+      const newRef = doc(collection(db, 'users', currentUserId, 'prescriptions'));
+      await setDoc(newRef, { text: value });
+    }
+    closeAllModals();
+  });
+}
+
+async function deletePrescription(id) {
+  const { doc, deleteDoc } = window.firestoreFunctions;
+  await deleteDoc(doc(db, 'users', currentUserId, 'prescriptions', id));
+}
+
+function copySelectedPrescriptions() {
+  const selected = Array.from($$('#prescriptionsList .prescription-select:checked')).map(cb =>
+    cb.closest('.prescription-item').querySelector('.prescription-text').textContent
+  );
+  if (selected.length) {
+    navigator.clipboard.writeText(selected.join('\n\n'));
+  }
+}
+
+function updateCopySelectedVisibility() {
+  const count = $$('#prescriptionsList .prescription-select:checked').length;
+  const btn = $('#copySelectedPrescriptions');
+  if (btn) btn.classList.toggle('hidden', count === 0);
+}
 
 // Transfer modal
 function showTransferModal() {
