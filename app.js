@@ -28,6 +28,7 @@ let autoLogoutTimer = null;
 const AUTO_LOGOUT_DELAY = 10 * 60 * 1000;
 let sessionStart = null;
 const shownTransfers = new Set();
+let isDragging = false;
 
 const DEFAULT_SUGGESTIONS = [
   { description: 'Bilan bio', timer: 70 },
@@ -237,6 +238,9 @@ async function initializeUserData(userId) {
   // Initialize stats with proper structure
   await setDoc(doc(db, 'userStats', userId), {
     added: 0,
+    todayDate: new Date().toISOString().slice(0, 10),
+    todayAdded: 0,
+    yesterdayAdded: 0,
     completedTasks: 0,
     triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
     orientations: {
@@ -782,9 +786,11 @@ async function startRealtimeListeners() {
     });
     
     // Stats listener for real-time updates
-    unsubscribeStats = onSnapshot(doc(db, 'userStats', currentUserId), (doc) => {
-      if (doc.exists()) {
-        const stats = doc.data();
+    unsubscribeStats = onSnapshot(doc(db, 'userStats', currentUserId), async (snap) => {
+      if (snap.exists()) {
+        let stats = snap.data();
+        const statsRef = snap.ref;
+        stats = await normalizeDailyStats(statsRef, stats);
         updateStatsDisplay(stats);
       }
     });
@@ -833,6 +839,7 @@ function setupAppEventListeners() {
   // Navigation
   $$('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
+      if (isDragging) return;
       switchTab(tab.dataset.tab);
     });
   });
@@ -906,7 +913,7 @@ function setupAppEventListeners() {
 }
 
 // Statistics Functions
-async function updateUserStats(action, timeSpent = 0, triage = null) {
+async function updateUserStats(action, timeSpent = 0, triage = null, addedDate = null) {
   try {
     const { doc, getDoc, setDoc } = window.firestoreFunctions;
     const statsRef = doc(db, 'userStats', currentUserId);
@@ -914,6 +921,9 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
     const statsDoc = await getDoc(statsRef);
     let stats = {
       added: 0,
+      todayDate: new Date().toISOString().slice(0, 10),
+      todayAdded: 0,
+      yesterdayAdded: 0,
       completedTasks: 0,
       triageAdded: { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0 },
       orientations: {
@@ -941,9 +951,17 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
       };
     }
 
+    const currentDate = new Date().toISOString().slice(0, 10);
+    if (stats.todayDate !== currentDate) {
+      stats.yesterdayAdded = stats.todayAdded || 0;
+      stats.todayAdded = 0;
+      stats.todayDate = currentDate;
+    }
+
     switch (action) {
       case 'added':
         stats.added += 1;
+        stats.todayAdded = (stats.todayAdded || 0) + 1;
         if (triage) {
           stats.triageAdded[triage] = (stats.triageAdded[triage] || 0) + 1;
         }
@@ -967,6 +985,9 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
         if (triage && stats.triageAdded[triage] > 0) {
           stats.triageAdded[triage] -= 1;
         }
+        if (addedDate && addedDate.slice(0, 10) === currentDate && stats.todayAdded > 0) {
+          stats.todayAdded -= 1;
+        }
         break;
     }
     
@@ -980,6 +1001,18 @@ async function updateUserStats(action, timeSpent = 0, triage = null) {
   } catch (error) {
     console.error('Error updating user stats:', error);
   }
+}
+
+async function normalizeDailyStats(statsRef, stats) {
+  const currentDate = new Date().toISOString().slice(0, 10);
+  if (stats.todayDate !== currentDate) {
+    stats.yesterdayAdded = stats.todayAdded || 0;
+    stats.todayAdded = 0;
+    stats.todayDate = currentDate;
+    const { setDoc } = window.firestoreFunctions;
+    await setDoc(statsRef, stats);
+  }
+  return stats;
 }
 
 
@@ -1013,7 +1046,11 @@ function updateStatsDisplay(stats) {
 
   const orientations = stats.orientations || { hospitalized: {}, discharged: {}, transferred: {} };
 
-  if (statAdded) statAdded.textContent = stats.added || 0;
+  if (statAdded) {
+    const today = stats.todayAdded || 0;
+    const yesterday = stats.yesterdayAdded || 0;
+    statAdded.textContent = `${today} (vs. hier ${yesterday})`;
+  }
 
 
   if (hospTotal) hospTotal.textContent = orientations.hospitalized.total || 0;
@@ -1706,7 +1743,9 @@ async function saveTask(patientId) {
     
     if (patientSnap.exists()) {
       const patientData = patientSnap.data();
-      const updatedTasks = [...(patientData.tasks || []), ...tasksToAdd];
+      let updatedTasks = [...(patientData.tasks || []), ...tasksToAdd];
+      const valSenior = updatedTasks.filter(t => t.description === 'Validation senior');
+      updatedTasks = updatedTasks.filter(t => t.description !== 'Validation senior').concat(valSenior);
       await updateDoc(patientRef, { tasks: updatedTasks });
     }
     
@@ -1832,6 +1871,7 @@ function handleTaskDragStart(e) {
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', JSON.stringify({ pid: task.dataset.pid, tid: task.dataset.tid }));
   task.classList.add('dragging');
+  isDragging = true;
 }
 
 function handleTaskDragOver(e) {
@@ -1865,6 +1905,7 @@ async function handleTaskDragEnd(e) {
   const task = e.target.closest('.task');
   if (!task) return;
   task.classList.remove('dragging');
+  isDragging = false;
 
   const container = task.closest('.tasks');
   const pid = container.closest('.card').dataset.patientId;
@@ -1892,6 +1933,7 @@ function handlePrescriptionDragStart(e) {
   if (!item) return;
   e.dataTransfer.effectAllowed = 'move';
   item.classList.add('dragging');
+  isDragging = true;
 }
 
 function handlePrescriptionDragOver(e) {
@@ -1912,6 +1954,7 @@ async function handlePrescriptionDragEnd(e) {
   const item = e.target.closest('.prescription-item');
   if (!item) return;
   item.classList.remove('dragging');
+  isDragging = false;
 
   const list = $('#prescriptionsList');
   const ids = [...list.querySelectorAll('.prescription-item')].map(el => el.dataset.id);
@@ -1981,7 +2024,7 @@ async function handlePatientDecision(patientId, action) {
     await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
 
     if (action === 'delete' && patientData) {
-      await updateUserStats('removed', 0, patientData.triage);
+      await updateUserStats('removed', 0, patientData.triage, patientData.createdAt);
     } else if (patientData) {
       let statsAction = action;
       if (action === 'discharge') {
