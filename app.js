@@ -26,6 +26,14 @@ let liveTimerHandle = null;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
 
+// Format dates as YYYY-MM-DD using the local timezone (for daily stats)
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Initialize Firebase
 async function initializeFirebase() {
   try {
@@ -227,7 +235,9 @@ async function initializeUserData(userId) {
     transferred: 0,
     totalTimeMinutes: 0,
     totalPatients: 0,
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
+    dailyAddedCount: 0,
+    dailyAddedDate: getLocalDateKey()
   });
   
   // Initialize templates
@@ -868,6 +878,10 @@ function setupAppEventListeners() {
 
 // Statistics Functions
 async function updateUserStats(action, timeSpent = 0) {
+  if (!currentUserId) {
+    return;
+  }
+
   try {
     const { doc, getDoc, setDoc } = window.firestoreFunctions;
     const statsRef = doc(db, 'userStats', currentUserId);
@@ -880,17 +894,27 @@ async function updateUserStats(action, timeSpent = 0) {
       discharged: 0,
       transferred: 0,
       totalTimeMinutes: 0,
-      totalPatients: 0
+      totalPatients: 0,
+      dailyAddedCount: 0,
+      dailyAddedDate: getLocalDateKey()
     };
-    
+
     if (statsDoc.exists()) {
       stats = { ...stats, ...statsDoc.data() };
     }
-    
+
+    const todayKey = getLocalDateKey();
+
+    if (stats.dailyAddedDate !== todayKey) {
+      stats.dailyAddedDate = todayKey;
+      stats.dailyAddedCount = 0;
+    }
+
     // Update stats based on action
     switch (action) {
       case 'added':
         stats.added += 1;
+        stats.dailyAddedCount = (stats.dailyAddedCount || 0) + 1;
         break;
       case 'hospitalized':
         stats.hospitalized += 1;
@@ -921,6 +945,51 @@ async function updateUserStats(action, timeSpent = 0) {
   }
 }
 
+async function decrementDailyAddedIfNeeded(createdAt) {
+  if (!createdAt || !currentUserId) {
+    return;
+  }
+
+  try {
+    const createdDate = new Date(createdAt);
+
+    if (Number.isNaN(createdDate.getTime())) {
+      return;
+    }
+
+    const createdKey = getLocalDateKey(createdDate);
+    const todayKey = getLocalDateKey();
+
+    if (createdKey !== todayKey) {
+      return;
+    }
+
+    const { doc, getDoc, setDoc } = window.firestoreFunctions;
+    const statsRef = doc(db, 'userStats', currentUserId);
+    const statsSnap = await getDoc(statsRef);
+
+    if (!statsSnap.exists()) {
+      return;
+    }
+
+    const stats = { ...statsSnap.data() };
+
+    if (stats.dailyAddedDate !== todayKey) {
+      stats.dailyAddedDate = todayKey;
+      stats.dailyAddedCount = 0;
+    } else {
+      const currentCount = typeof stats.dailyAddedCount === 'number' ? stats.dailyAddedCount : 0;
+      stats.dailyAddedCount = Math.max(0, currentCount - 1);
+    }
+
+    stats.lastUpdated = new Date().toISOString();
+
+    await setDoc(statsRef, stats);
+  } catch (error) {
+    console.error('Error adjusting daily added count:', error);
+  }
+}
+
 // Update stats display
 function updateStatsDisplay(stats) {
   const statAdded = $('#statAdded');
@@ -929,7 +998,20 @@ function updateStatsDisplay(stats) {
   const statTransferred = $('#statTransferred');
   const statAvgTime = $('#statAvgTime');
   
-  if (statAdded) statAdded.textContent = stats.added || 0;
+  if (statAdded) {
+    const todayKey = getLocalDateKey();
+    let todayCount = 0;
+
+    if (typeof stats.dailyAddedCount === 'number') {
+      if (!stats.dailyAddedDate || stats.dailyAddedDate === todayKey) {
+        todayCount = stats.dailyAddedCount;
+      }
+    } else {
+      todayCount = stats.added || 0;
+    }
+
+    statAdded.textContent = todayCount;
+  }
   if (statHospitalized) statHospitalized.textContent = stats.hospitalized || 0;
   if (statDischarged) statDischarged.textContent = stats.discharged || 0;
   if (statTransferred) statTransferred.textContent = stats.transferred || 0;
@@ -965,7 +1047,9 @@ async function resetUserStats() {
       totalTimeMinutes: 0,
       totalPatients: 0,
       lastUpdated: new Date().toISOString(),
-      resetAt: new Date().toISOString()
+      resetAt: new Date().toISOString(),
+      dailyAddedCount: 0,
+      dailyAddedDate: getLocalDateKey()
     };
     
     await setDoc(doc(db, 'userStats', currentUserId), resetStats);
@@ -1596,7 +1680,11 @@ async function handlePatientDecision(patientId, action) {
     }
     
     await deleteDoc(doc(db, 'users', currentUserId, 'patients', patientId));
-    
+
+    if (action === 'delete' && patientData) {
+      await decrementDailyAddedIfNeeded(patientData.createdAt);
+    }
+
     // Update stats based on action (exclude delete)
     if (action !== 'delete' && patientData) {
       await updateUserStats(action === 'discharge' ? 'discharged' : action, timeSpentMinutes);
