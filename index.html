@@ -1,97 +1,248 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FastTrackers - Gestion patients</title>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="topbar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FastTrackers – Gestion des Urgences</title>
+
+  <!-- PWA essentials -->
+  <meta name="theme-color" content="#0a1628" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Homescreen icons -->
+  <link rel="apple-touch-icon" sizes="512x512" href="my_icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="my_icon_192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="my_icon.png" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- AUTH SCREEN -->
+  <section id="auth" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="my_icon.png" width="96" height="96" alt="FastTrackers logo"/>
+      </div>
       <h1>FastTrackers</h1>
-      <div class="topbar-actions">
-        <span id="doctorLabel" class="user-label"></span>
-        <button id="logoutButton" class="secondary hidden">Se déconnecter</button>
+      <p>Gestion des patients aux urgences</p>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm" class="auth-form">
+        <select id="userSelect" class="auth-select">
+          <option value="">Sélectionner un utilisateur</option>
+        </select>
+        <input type="password" id="pinInput" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input hidden">
+        <button id="loginBtn" class="auth-btn primary hidden">Se connecter</button>
+        <button id="showRegisterBtn" class="auth-btn secondary">Nouvel utilisateur</button>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerForm" class="auth-form hidden">
+        <input id="registerName" placeholder="Nom d'utilisateur" class="auth-input">
+        <input id="registerPin" placeholder="PIN (4 chiffres)" maxlength="4" class="auth-input">
+        <input id="confirmPin" placeholder="Confirmer le PIN" maxlength="4" class="auth-input">
+        <button id="registerBtn" class="auth-btn primary">S'inscrire</button>
+        <button id="showLoginBtn" class="auth-btn secondary">Retour à la connexion</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP SHELL -->
+  <section id="app" class="app-container hidden">
+    <header class="app-header">
+      <div class="brand">
+        <img src="my_icon_192_F.png" width="42" height="42" style="vertical-align:middle;margin-right:4px;">
+        FastTrackers
+      </div>
+      <div class="user-panel">
+        <button id="usernameBtn" class="username-btn">
+          <span id="username"></span>
+          <span class="profile-icon">👤</span>
+        </button>
+        <button id="logout">Déconnexion</button>
       </div>
     </header>
 
-    <main class="main">
-      <section id="authSection" class="card">
-        <h2>Connexion</h2>
-        <form id="loginForm" class="stack">
-          <label>
-            Adresse e-mail
-            <input type="email" name="email" required autocomplete="username" />
-          </label>
-          <label>
-            Code PIN (4 chiffres)
-            <input type="password" name="pin" pattern="\d{4}" maxlength="4" required autocomplete="current-password" />
-          </label>
-          <button type="submit" class="primary">Se connecter</button>
-          <p class="muted">Pas encore de compte ? <button type="button" id="toggleToRegister" class="link">Créer un compte</button></p>
-        </form>
+    <nav class="tabs">
+      <button class="tab active" data-tab="patients">👥 Patients</button>
+      <button class="tab" data-tab="stats">📊 Statistiques</button>
+    </nav>
 
-        <form id="registerForm" class="stack hidden">
-          <label>
-            Adresse e-mail
-            <input type="email" name="email" required autocomplete="username" />
-          </label>
-          <label>
-            Code PIN (4 chiffres)
-            <input type="password" name="pin" pattern="\d{4}" maxlength="4" required autocomplete="new-password" />
-          </label>
-          <label>
-            Confirmation du PIN
-            <input type="password" name="confirm" pattern="\d{4}" maxlength="4" required autocomplete="new-password" />
-          </label>
-          <button type="submit" class="primary">Créer le compte</button>
-          <p class="muted">Déjà inscrit ? <button type="button" id="toggleToLogin" class="link">Se connecter</button></p>
-        </form>
-      </section>
-
-      <section id="appSection" class="hidden">
-        <div class="banner">Les noms ne quittent jamais cet appareil. Le serveur ne stocke que les codes patients.</div>
-
-        <section class="card stack">
-          <h2>Ajouter un patient</h2>
-          <form id="addPatientForm" class="form-grid">
-            <label>
-              Nom de famille (local uniquement)
-              <input type="text" name="lastName" autocomplete="off" />
-            </label>
-            <label>
-              Motif principal
-              <input type="text" name="complaint" required autocomplete="off" />
-            </label>
-            <button type="submit" class="primary">Créer le patient</button>
-          </form>
-        </section>
-
-        <section class="card stack">
-          <div class="table-toolbar">
-            <h2>Patients</h2>
-            <input type="search" id="searchInput" placeholder="Rechercher (nom local ou motif)" />
-          </div>
-          <div class="table-wrapper">
-            <table id="patientsTable">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Nom (local)</th>
-                  <th>Motif</th>
-                  <th>Créé</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="patientsTableBody"></tbody>
-            </table>
-            <div id="noPatientsRow" class="empty-state">Aucun patient pour le moment.</div>
-          </div>
-        </section>
-      </section>
+    <!-- PATIENTS TAB -->
+    <main id="patients" class="tab-content">
+      <div class="patients-header">
+        <button id="transferBtn" class="transfer-btn">🔄 Relève</button>
+      </div>
+      <div id="grid" class="grid"></div>
+      <button id="addPatient" class="add-btn">➕ Ajouter un patient</button>
     </main>
 
-    <script type="module" src="./src/js/main.js"></script>
-  </body>
+    <!-- STATISTICS TAB -->
+    <main id="stats" class="tab-content hidden">
+      <div class="stats-container">
+        <div class="stats-header">
+          <h2>Statistiques personnelles</h2>
+          <p>Données en temps réel pour <strong id="statsUsername"></strong></p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card stat-added">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statAdded">0</div>
+              <div class="stat-label">Patients ajoutés</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-hospitalized">
+            <div class="stat-icon">🏥</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statHospitalized">0</div>
+              <div class="stat-label">Hospitalisés</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-discharged">
+            <div class="stat-icon">🏠</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statDischarged">0</div>
+              <div class="stat-label">Retours à domicile</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-transferred">
+            <div class="stat-icon">🚑</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statTransferred">0</div>
+              <div class="stat-label">Transférés</div>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-avgtime">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-content">
+              <div class="stat-number" id="statAvgTime">0h 0m</div>
+              <div class="stat-label">Temps moyen par patient</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stats-actions">
+          <button id="resetStatsBtn" class="reset-stats-btn">
+            🔄 Réinitialiser les statistiques
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- PROFILE TAB -->
+    <main id="profile" class="tab-content hidden">
+      <div class="profile-card">
+        <h2>👤 Profil utilisateur</h2>
+        <div class="profile-info">
+          <label>Nom d'utilisateur :</label>
+          <div class="profile-field">
+            <span id="profileName"></span>
+            <button id="editNameBtn" class="edit-btn">✏️</button>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button id="changePinBtn" class="profile-btn">🔑 Changer le PIN</button>
+          <button id="deleteAccountBtn" class="profile-btn danger">🗑️ Supprimer le compte</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- EDGE BUTTONS -->
+    <button id="leftEdgeBtn" class="edge-button left-edge" title="Numéros utiles">
+      📞
+    </button>
+    <button id="rightEdgeBtn" class="edge-button right-edge" title="Modèles">
+      📋
+    </button>
+
+    <!-- LEFT SLIDING PANEL - PHONE NUMBERS -->
+    <div id="leftPanel" class="sliding-panel left-panel">
+      <div class="panel-header">
+        <h3>📞 Numéros utiles</h3>
+        <button class="panel-close" id="leftPanelClose">&times;</button>
+      </div>
+      <div class="panel-content">
+        <button id="addPhoneBtn" class="panel-btn primary">➕ Ajouter un numéro</button>
+        <div id="phonesList" class="phones-list"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT SLIDING PANEL - TEMPLATES -->
+    <div id="rightPanel" class="sliding-panel right-panel">
+      <div class="panel-header">
+        <h3>📋 Modèles observation clinique</h3>
+        <button class="panel-close" id="rightPanelClose">&times;</button>
+      </div>
+      <div class="panel-content">
+        <div class="template-fields">
+          <div class="template-field-group">
+            <textarea id="templateHemo" placeholder="Hémodynamique" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateHemo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateResp" placeholder="Respiratoire" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateResp">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateDig" placeholder="Digestif" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateDig">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateNeuro" placeholder="Neurologique" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateNeuro">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateOsteo" placeholder="Ostéoarticulaire" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateOsteo">📋</button>
+          </div>
+          <div class="template-field-group">
+            <textarea id="templateAutre" placeholder="Autre" rows="3"></textarea>
+            <button class="copy-btn" data-field="templateAutre">📋</button>
+          </div>
+        </div>
+        <button id="saveTemplatesBtn" class="panel-btn primary">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <!-- PANEL OVERLAY -->
+    <div id="panelOverlay" class="panel-overlay hidden"></div>
+  </section>
+
+  <!-- Transfer Acceptance Modal -->
+  <div id="transferAcceptModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📥 Patients reçus</h2>
+      </div>
+      <div class="modal-content">
+        <p>Vous avez reçu <span id="transferCount">0</span> patient(s) de <span id="transferFrom"></span>.</p>
+        <div id="transferPatientsList" class="transfer-patients-list"></div>
+        <div class="transfer-actions">
+          <button id="acceptTransfer" class="btn-primary">✅ Accepter</button>
+          <button id="declineTransfer" class="btn-secondary">❌ Refuser</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => console.log('SW registered:', registration))
+          .catch(error => console.log('SW registration failed:', error));
+      });
+    }
+  </script>
+
+  <script src="app.js"></script>
+</body>
 </html>
